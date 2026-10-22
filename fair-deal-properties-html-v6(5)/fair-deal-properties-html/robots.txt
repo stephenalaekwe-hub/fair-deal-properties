@@ -1,0 +1,16 @@
+# robots.txt - Fair Deal Properties Ltd
+User-agent: *
+Allow: /
+Disallow: /assets/js/
+
+# AI and LLM crawlers - permitted. Verified market intelligence is published to be read.
+User-agent: GPTBot
+Allow: /
+User-agent: ClaudeBot
+Allow: /
+User-agent: PerplexityBot
+Allow: /
+User-agent: Google-Extended
+Allow: /
+
+Sitemap: https://www.fairdealng.com/sitemap.xml

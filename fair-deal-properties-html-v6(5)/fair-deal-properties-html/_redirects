@@ -1,0 +1,8 @@
+# Netlify / Cloudflare Pages redirects
+/opportunities.html  /marketplace.html  301
+/inspect.html  /inspections.html  301
+/howitworks.html  /how-it-works.html  301
+/privacy.html  /privacy-notice.html  301
+/cookies.html  /cookie-notice.html  301
+/rights.html  /data-rights.html  301
+/home.html  /index.html  301

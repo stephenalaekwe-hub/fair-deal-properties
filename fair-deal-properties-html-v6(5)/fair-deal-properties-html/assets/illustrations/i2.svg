@@ -1,0 +1,39 @@
+<svg viewBox="0 0 800 450" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"><defs>
+<linearGradient id="skyd" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0a1f16"/><stop offset="100%" stop-color="#0d2b1e"/></linearGradient>
+<linearGradient id="gldd" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#e8d080"/><stop offset="100%" stop-color="#c9a84c"/></linearGradient>
+<linearGradient id="fcAd" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#f4f1e8"/><stop offset="100%" stop-color="#ddd6c4"/></linearGradient>
+<linearGradient id="fcBd" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#e6e0d2"/><stop offset="100%" stop-color="#c9c1ae"/></linearGradient>
+<linearGradient id="glsd" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3d6b7a" stop-opacity=".9"/><stop offset="100%" stop-color="#16333d" stop-opacity=".95"/></linearGradient>
+</defs>
+<rect width="800" height="450" fill="url(#skyd)"/><circle cx="200" cy="61" r="0.9" fill="#e8d080" opacity="0.26"/><circle cx="199" cy="175" r="0.7" fill="#e8d080" opacity="0.11"/><circle cx="786" cy="193" r="1.3" fill="#e8d080" opacity="0.19"/><circle cx="313" cy="87" r="0.8" fill="#e8d080" opacity="0.13"/><circle cx="108" cy="136" r="1.1" fill="#e8d080" opacity="0.17"/><circle cx="795" cy="134" r="1.2" fill="#e8d080" opacity="0.29"/><circle cx="758" cy="133" r="1.1" fill="#e8d080" opacity="0.28"/><circle cx="493" cy="57" r="0.8" fill="#e8d080" opacity="0.13"/><circle cx="336" cy="24" r="1.1" fill="#e8d080" opacity="0.17"/><circle cx="495" cy="56" r="1.2" fill="#e8d080" opacity="0.29"/><circle cx="442" cy="64" r="0.6" fill="#e8d080" opacity="0.10"/><circle cx="577" cy="135" r="1.0" fill="#e8d080" opacity="0.27"/><circle cx="500" cy="117" r="0.9" fill="#e8d080" opacity="0.26"/><circle cx="259" cy="142" r="0.8" fill="#e8d080" opacity="0.24"/><circle cx="606" cy="36" r="0.6" fill="#e8d080" opacity="0.10"/><circle cx="597" cy="68" r="0.7" fill="#e8d080" opacity="0.22"/><circle cx="440" cy="225" r="0.9" fill="#e8d080" opacity="0.26"/><circle cx="439" cy="84" r="0.7" fill="#e8d080" opacity="0.11"/><circle cx="642" cy="32" r="0.6" fill="#e8d080" opacity="0.10"/><circle cx="361" cy="140" r="0.8" fill="#e8d080" opacity="0.13"/><circle cx="316" cy="71" r="1.1" fill="#e8d080" opacity="0.17"/><circle cx="11" cy="98" r="0.8" fill="#e8d080" opacity="0.24"/><circle cx="646" cy="90" r="0.8" fill="#e8d080" opacity="0.23"/><circle cx="381" cy="53" r="0.7" fill="#e8d080" opacity="0.22"/><circle cx="32" cy="23" r="1.3" fill="#e8d080" opacity="0.30"/><circle cx="767" cy="56" r="1.0" fill="#e8d080" opacity="0.16"/><circle cx="490" cy="24" r="1.3" fill="#e8d080" opacity="0.19"/><circle cx="113" cy="184" r="1.4" fill="#e8d080" opacity="0.31"/><circle cx="484" cy="237" r="0.6" fill="#e8d080" opacity="0.21"/><circle cx="595" cy="110" r="1.4" fill="#e8d080" opacity="0.20"/><circle cx="558" cy="72" r="1.1" fill="#e8d080" opacity="0.28"/><circle cx="165" cy="172" r="0.8" fill="#e8d080" opacity="0.13"/><circle cx="616" cy="1" r="0.8" fill="#e8d080" opacity="0.12"/><circle cx="391" cy="222" r="1.0" fill="#e8d080" opacity="0.16"/><circle cx="178" cy="22" r="0.8" fill="#e8d080" opacity="0.23"/><circle cx="601" cy="5" r="1.0" fill="#e8d080" opacity="0.27"/><circle cx="492" cy="23" r="0.6" fill="#e8d080" opacity="0.21"/><circle cx="315" cy="164" r="0.8" fill="#e8d080" opacity="0.24"/><circle cx="662" cy="51" r="0.9" fill="#e8d080" opacity="0.14"/><circle cx="525" cy="20" r="1.4" fill="#e8d080" opacity="0.31"/><circle cx="336" cy="21" r="0.6" fill="#e8d080" opacity="0.21"/><circle cx="751" cy="188" r="0.8" fill="#e8d080" opacity="0.24"/><circle cx="602" cy="110" r="1.1" fill="#e8d080" opacity="0.28"/><circle cx="449" cy="7" r="1.4" fill="#e8d080" opacity="0.31"/><circle cx="20" cy="186" r="0.9" fill="#e8d080" opacity="0.26"/><circle cx="771" cy="63" r="0.8" fill="#e8d080" opacity="0.24"/><circle cx="222" cy="164" r="1.3" fill="#e8d080" opacity="0.19"/><circle cx="341" cy="67" r="0.7" fill="#e8d080" opacity="0.22"/><circle cx="760" cy="203" r="1.1" fill="#e8d080" opacity="0.17"/><circle cx="695" cy="14" r="1.0" fill="#e8d080" opacity="0.16"/>
+<circle cx="640" cy="88" r="40" fill="#e8d080" opacity=".07"/><circle cx="640" cy="88" r="22" fill="#e8d080" opacity=".12"/>
+<path d="M0 352 Q200 338 400 348 T800 342 L800 450 L0 450Z" fill="#0d2b1e" opacity=".85"/>
+<g opacity=".3"><rect x="40" y="250" width="54" height="104" fill="#1e4d38"/><rect x="104" y="272" width="42" height="82" fill="#1e4d38"/><rect x="690" y="258" width="60" height="96" fill="#1e4d38"/></g>
+<!-- main volume -->
+<rect x="236" y="188" width="226" height="166" fill="url(#fcAd)"/>
+<rect x="462" y="222" width="150" height="132" fill="url(#fcBd)"/>
+<!-- stone feature column -->
+<rect x="398" y="162" width="52" height="192" fill="#2b2f33"/>
+<rect x="398" y="162" width="52" height="192" fill="url(#glsd)" opacity=".4"/>
+<!-- cantilever roof -->
+<rect x="216" y="176" width="266" height="13" rx="2" fill="#ffffff" opacity=".93"/>
+<rect x="452" y="212" width="176" height="12" rx="2" fill="#ffffff" opacity=".88"/>
+<!-- glazing upper -->
+<rect x="258" y="206" width="56" height="54" fill="url(#glsd)"/><rect x="324" y="206" width="56" height="54" fill="url(#glsd)"/>
+<rect x="482" y="240" width="48" height="44" fill="url(#glsd)"/><rect x="542" y="240" width="48" height="44" fill="url(#glsd)"/>
+<!-- balcony rail -->
+<rect x="252" y="268" width="134" height="2.5" fill="#c9a84c" opacity=".8"/>
+<g stroke="#c9a84c" stroke-width="1" opacity=".45"><line x1="252" y1="270" x2="252" y2="288"/><line x1="263" y1="270" x2="263" y2="288"/><line x1="274" y1="270" x2="274" y2="288"/><line x1="285" y1="270" x2="285" y2="288"/><line x1="296" y1="270" x2="296" y2="288"/><line x1="307" y1="270" x2="307" y2="288"/><line x1="318" y1="270" x2="318" y2="288"/><line x1="329" y1="270" x2="329" y2="288"/><line x1="340" y1="270" x2="340" y2="288"/><line x1="351" y1="270" x2="351" y2="288"/><line x1="362" y1="270" x2="362" y2="288"/><line x1="373" y1="270" x2="373" y2="288"/><line x1="384" y1="270" x2="384" y2="288"/></g>
+<!-- ground floor -->
+<rect x="258" y="300" width="46" height="54" fill="url(#glsd)"/><rect x="314" y="300" width="46" height="54" fill="url(#glsd)"/>
+<rect x="482" y="300" width="42" height="54" fill="url(#glsd)"/><rect x="536" y="300" width="42" height="54" fill="url(#glsd)"/>
+<!-- door -->
+<rect x="408" y="288" width="32" height="66" rx="1" fill="#8a6b43"/><circle cx="434" cy="322" r="2" fill="#e8d080"/>
+<!-- soffit light -->
+<rect x="236" y="296" width="226" height="2" fill="#e8d080" opacity=".5"/>
+<!-- apron + planting -->
+<rect x="0" y="352" width="800" height="5" fill="#c9a84c" opacity=".22"/>
+<g opacity=".55"><ellipse cx="130" cy="372" rx="26" ry="9" fill="#1e4d38"/><ellipse cx="190" cy="372" rx="26" ry="9" fill="#1e4d38"/><ellipse cx="660" cy="372" rx="26" ry="9" fill="#1e4d38"/><ellipse cx="716" cy="372" rx="26" ry="9" fill="#1e4d38"/></g>
+<g opacity=".7"><ellipse cx="166" cy="322" rx="30" ry="40" fill="#1e4d38"/><rect x="163" y="340" width="5" height="24" fill="#3d3225"/>
+<ellipse cx="638" cy="312" rx="26" ry="36" fill="#1e4d38"/><rect x="635" y="330" width="5" height="26" fill="#3d3225"/></g>
+</svg>

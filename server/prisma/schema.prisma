@@ -1,0 +1,227 @@
+// ══════════════════════════════════════════════════════════════════════════════
+// FAIR DEAL PROPERTIES LTD - PRISMA SCHEMA (MYSQL)
+// ══════════════════════════════════════════════════════════════════════════════
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  AGENT
+}
+
+enum ListingSource {
+  fdp
+  developer
+  mreif
+  fhf
+  fha
+  fmbn
+  pmi
+  offmarket
+}
+
+enum PropertyType {
+  residential
+  commercial
+  land
+}
+
+enum City {
+  abuja
+  lagos
+  ogun
+  nationwide
+}
+
+enum SubmissionCollection {
+  contact
+  enquiry
+  alert
+  newsletter
+  inspection
+  dsr
+  snag
+}
+
+enum NotificationType {
+  INFO
+  LEAD
+  INSPECTION
+  PRICE_ALERT
+  SYSTEM
+}
+
+enum ScrapedStatus {
+  DETECTED
+  APPLIED
+  REJECTED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(AGENT)
+  phone        String?
+  avatarUrl    String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  assignedListings    Listing[]
+  assignedInspections Inspection[]
+  assignedSubmissions Submission[]
+  notifications       Notification[]
+
+  @@map("users")
+}
+
+model Listing {
+  id                  String        @id @default(uuid())
+  slug                String        @unique
+  title               String
+  subtitle            String        @db.Text
+  source              ListingSource @default(fdp)
+  propertyType        PropertyType  @default(residential)
+  city                City          @default(abuja)
+  diasporaFriendly    Boolean       @default(false)
+  mortgageEligible    Boolean       @default(false)
+  affordable          Boolean       @default(false)
+  offPlan             Boolean       @default(false)
+  priceMillionsNGN    Decimal?      @db.Decimal(12, 2)
+  priceDisplay        String
+  priceLabel          String        @default("Verified Price")
+  listedOn            String
+  image               String        @db.Text
+  imageAlt            String
+  badges              Json          // Array of strings
+  location            String
+  specification       String        @db.Text
+  description         String        @db.Text
+  tags                Json          // Array of strings
+  amenities           Json          // Array of strings
+  verificationStatus  String        @db.Text
+
+  assignedAgentId     String?
+  assignedAgent       User?         @relation(fields: [assignedAgentId], references: [id], onDelete: SetNull)
+
+  scrapedSourceUrl    String?       @db.Text
+  isLiveScraped       Boolean       @default(false)
+
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  @@index([city, propertyType])
+  @@index([source])
+  @@map("listings")
+}
+
+model Inspection {
+  id               String   @id @default(uuid())
+  reference        String   @unique // e.g. FDP-INS-DEMO01
+  clientName       String
+  clientEmail      String
+  clientPhone      String
+  propertyTitle    String
+  propertyLocation String
+  stage            Int      @default(1) // 1 to 9
+  
+  assignedAgentId  String?
+  assignedAgent    User?    @relation(fields: [assignedAgentId], references: [id], onDelete: SetNull)
+
+  officerName      String?
+  scheduledDate    DateTime?
+  reportUrl        String?  @db.Text
+  notes            String?  @db.Text
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([stage])
+  @@map("inspections")
+}
+
+model Submission {
+  id              String               @id @default(uuid())
+  reference       String               @unique // e.g. FDP-ENQ-..., FDP-DSR-...
+  collection      SubmissionCollection
+  clientName      String?
+  clientEmail     String?
+  clientPhone     String?
+  payload         Json
+  
+  dueAt           DateTime?
+  closedAt        DateTime?
+  closedBy        String?
+  outcome         String?              @db.Text
+
+  assignedAgentId String?
+  assignedAgent   User?                @relation(fields: [assignedAgentId], references: [id], onDelete: SetNull)
+
+  ipHash          String?
+  userAgent       String?              @db.Text
+  createdAt       DateTime             @default(now())
+
+  @@index([collection, createdAt])
+  @@map("submissions")
+}
+
+model FinancingRoute {
+  id               String   @id // e.g. 'mreif', 'nhf'
+  name             String
+  institution      String
+  interestRatePct  Decimal? @db.Decimal(5, 2)
+  maxTermYears     Int?
+  minEquityPct     Decimal? @db.Decimal(5, 2)
+  eligibility      String   @db.Text
+  bestFor          String   @db.Text
+  constraints      String   @db.Text
+  lastVerified     String
+  verificationNote String?  @db.Text
+  sourceUrl        String?  @db.Text
+  isAutoSynced     Boolean  @default(false)
+  updatedAt        DateTime @updatedAt
+
+  @@map("financing_routes")
+}
+
+model ScrapedPriceLog {
+  id              String        @id @default(uuid())
+  sourceName      String
+  sourceUrl       String        @db.Text
+  targetType      String        // 'LISTING' | 'MORTGAGE_RATE'
+  targetReference String        // slug or route id
+  oldValue        String?
+  newValue        String
+  status          ScrapedStatus @default(DETECTED)
+  notes           String?       @db.Text
+  createdAt       DateTime      @default(now())
+  appliedAt       DateTime?
+
+  @@index([status, createdAt])
+  @@map("scraped_price_logs")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String           @db.Text
+  type      NotificationType @default(INFO)
+  isRead    Boolean          @default(false)
+  link      String?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}

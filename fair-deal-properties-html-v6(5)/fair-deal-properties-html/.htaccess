@@ -1,0 +1,44 @@
+# Fair Deal Properties Ltd - Apache configuration
+Options -Indexes
+DirectoryIndex index.html
+
+ErrorDocument 404 /404.html
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # canonical host + HTTPS
+  RewriteCond %{HTTPS} off
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+  RewriteCond %{HTTP_HOST} ^fairdealng\.com$ [NC]
+  RewriteRule ^(.*)$ https://www.fairdealng.com/$1 [R=301,L]
+
+  # legacy single-page routes
+  RewriteRule ^opportunities\.html$ /marketplace.html [R=301,L]
+  RewriteRule ^inspect\.html$ /inspections.html [R=301,L]
+  RewriteRule ^howitworks\.html$ /how-it-works.html [R=301,L]
+  RewriteRule ^privacy\.html$ /privacy-notice.html [R=301,L]
+  RewriteRule ^cookies\.html$ /cookie-notice.html [R=301,L]
+  RewriteRule ^rights\.html$ /data-rights.html [R=301,L]
+  RewriteRule ^home\.html$ /index.html [R=301,L]
+</IfModule>
+
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+  Header set Permissions-Policy "geolocation=(self), camera=(), microphone=()"
+  Header set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+</IfModule>
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css application/javascript image/svg+xml
+</IfModule>
+
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/css "access plus 1 year"
+  ExpiresByType application/javascript "access plus 1 year"
+  ExpiresByType image/png "access plus 1 year"
+  ExpiresByType image/svg+xml "access plus 1 year"
+  ExpiresByType text/html "access plus 1 hour"
+</IfModule>

@@ -1,0 +1,26 @@
+{
+  "name": "fair-deal-properties-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "shared",
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=@fdp/server\" \"npm run dev --workspace=@fdp/client\"",
+    "dev:server": "npm run dev --workspace=@fdp/server",
+    "dev:client": "npm run dev --workspace=@fdp/client",
+    "build:shared": "npm run build --workspace=@fdp/shared",
+    "build:server": "npm run build --workspace=@fdp/server",
+    "build:client": "npm run build --workspace=@fdp/client",
+    "build": "npm run build:shared && npm run build:server && npm run build:client",
+    "prisma:generate": "npm run prisma:generate --workspace=@fdp/server",
+    "prisma:migrate": "npm run prisma:migrate --workspace=@fdp/server",
+    "prisma:studio": "npm run prisma:studio --workspace=@fdp/server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.7.0"
+  }
+}

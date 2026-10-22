@@ -1,0 +1,83 @@
+<svg viewBox="0 0 1600 420" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"><defs>
+<linearGradient id="skyf" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0a1f16"/><stop offset="100%" stop-color="#0d2b1e"/></linearGradient>
+<linearGradient id="gldf" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#e8d080"/><stop offset="100%" stop-color="#c9a84c"/></linearGradient>
+<linearGradient id="fcAf" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#f4f1e8"/><stop offset="100%" stop-color="#ddd6c4"/></linearGradient>
+<linearGradient id="fcBf" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#e6e0d2"/><stop offset="100%" stop-color="#c9c1ae"/></linearGradient>
+<linearGradient id="glsf" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3d6b7a" stop-opacity=".9"/><stop offset="100%" stop-color="#16333d" stop-opacity=".95"/></linearGradient>
+</defs>
+<rect width="1600" height="420" fill="url(#skyf)"/>
+<!-- star field -->
+<circle cx="120" cy="45" r="1.1" fill="#e8d080" opacity="0.25"/><circle cx="210" cy="110" r="0.8" fill="#e8d080" opacity="0.18"/><circle cx="340" cy="55" r="1.2" fill="#e8d080" opacity="0.22"/><circle cx="480" cy="90" r="0.9" fill="#e8d080" opacity="0.16"/><circle cx="620" cy="40" r="1.0" fill="#e8d080" opacity="0.24"/><circle cx="710" cy="85" r="0.7" fill="#e8d080" opacity="0.15"/><circle cx="890" cy="70" r="1.1" fill="#e8d080" opacity="0.20"/><circle cx="980" cy="35" r="0.8" fill="#e8d080" opacity="0.16"/><circle cx="1120" cy="95" r="1.2" fill="#e8d080" opacity="0.25"/><circle cx="1260" cy="45" r="0.9" fill="#e8d080" opacity="0.19"/><circle cx="1380" cy="80" r="1.3" fill="#e8d080" opacity="0.27"/><circle cx="1490" cy="50" r="0.8" fill="#e8d080" opacity="0.18"/><circle cx="1560" cy="120" r="1.0" fill="#e8d080" opacity="0.21"/><circle cx="70" cy="160" r="0.8" fill="#e8d080" opacity="0.14"/><circle cx="270" cy="180" r="1.0" fill="#e8d080" opacity="0.16"/><circle cx="1330" cy="165" r="1.1" fill="#e8d080" opacity="0.19"/><circle cx="1460" cy="190" r="0.7" fill="#e8d080" opacity="0.15"/>
+<!-- subtle background silhouettes -->
+<g opacity=".22">
+  <rect x="80" y="190" width="70" height="190" fill="#1e4d38"/>
+  <rect x="170" y="220" width="55" height="160" fill="#1e4d38"/>
+  <rect x="1400" y="210" width="60" height="170" fill="#1e4d38"/>
+  <rect x="1480" y="180" width="75" height="200" fill="#1e4d38"/>
+</g>
+<!-- central institution building -->
+<g transform="translate(800,22)">
+  <!-- Widened classical pediment with generous clearance for text -->
+  <path d="M-165 54 L0 0 L165 54 Z" fill="#ffffff" opacity=".96"/>
+  <rect x="-155" y="54" width="310" height="12" fill="#ffffff" opacity=".92"/>
+  <text y="41" font-family="monospace" font-size="11.5" fill="#0d2b1e" text-anchor="middle" font-weight="bold" letter-spacing="1">MREIF · NHF · PMI</text>
+  <!-- Classical Pillars (symmetrically spaced) -->
+  <rect x="-138" y="66" width="24" height="88" fill="#f0ece0" opacity=".92"/>
+  <rect x="-75" y="66" width="24" height="88" fill="#f0ece0" opacity=".92"/>
+  <rect x="-12" y="66" width="24" height="88" fill="#f0ece0" opacity=".92"/>
+  <rect x="51" y="66" width="24" height="88" fill="#f0ece0" opacity=".92"/>
+  <rect x="114" y="66" width="24" height="88" fill="#f0ece0" opacity=".92"/>
+  <!-- Classical multi-tier foundation plinth -->
+  <rect x="-158" y="154" width="316" height="12" fill="#ffffff" opacity=".95"/>
+  <rect x="-168" y="166" width="336" height="8" fill="#e6e0d2" opacity=".9"/>
+</g>
+<!-- central capital distribution node -->
+<circle cx="800" cy="232" r="9" fill="#e8d080"/>
+<circle cx="800" cy="232" r="20" fill="none" stroke="#e8d080" stroke-width="1.3" opacity=".45"/>
+<line x1="800" y1="196" x2="800" y2="223" stroke="#c9a84c" stroke-width="2" opacity=".6" stroke-dasharray="4 3"/>
+<!-- capital flow lines to housing schemes -->
+<path d="M800 241 Q570 268 360 300" stroke="#c9a84c" stroke-width="1.6" fill="none" opacity=".5" stroke-dasharray="7 6"/>
+<path d="M800 241 Q720 274 650 300" stroke="#c9a84c" stroke-width="1.6" fill="none" opacity=".5" stroke-dasharray="7 6"/>
+<path d="M800 241 Q880 274 950 300" stroke="#c9a84c" stroke-width="1.6" fill="none" opacity=".5" stroke-dasharray="7 6"/>
+<path d="M800 241 Q1030 268 1240 300" stroke="#c9a84c" stroke-width="1.6" fill="none" opacity=".5" stroke-dasharray="7 6"/>
+<!-- destination homes and rates -->
+<g transform="translate(360,300)">
+  <path d="M-34 14 L0 -14 L34 14 Z" fill="#ffffff" opacity=".95"/>
+  <rect x="-26" y="14" width="52" height="52" fill="url(#fcAf)" opacity=".95"/>
+  <rect x="-16" y="26" width="16" height="16" fill="url(#glsf)"/>
+  <rect x="4" y="26" width="16" height="16" fill="url(#glsf)"/>
+  <rect x="-7" y="48" width="14" height="18" fill="#8a6b43"/>
+  <text y="88" font-family="monospace" font-size="11" fill="#e8d080" text-anchor="middle" font-weight="bold">6.0%</text>
+  <text y="102" font-family="monospace" font-size="9" fill="rgba(255,255,255,.55)" text-anchor="middle">NHF</text>
+</g>
+<g transform="translate(650,300)">
+  <path d="M-34 14 L0 -14 L34 14 Z" fill="#ffffff" opacity=".95"/>
+  <rect x="-26" y="14" width="52" height="52" fill="url(#fcAf)" opacity=".95"/>
+  <rect x="-16" y="26" width="16" height="16" fill="url(#glsf)"/>
+  <rect x="4" y="26" width="16" height="16" fill="url(#glsf)"/>
+  <rect x="-7" y="48" width="14" height="18" fill="#8a6b43"/>
+  <text y="88" font-family="monospace" font-size="11" fill="#e8d080" text-anchor="middle" font-weight="bold">9.0%</text>
+  <text y="102" font-family="monospace" font-size="9" fill="rgba(255,255,255,.55)" text-anchor="middle">MREIF</text>
+</g>
+<g transform="translate(950,300)">
+  <path d="M-34 14 L0 -14 L34 14 Z" fill="#ffffff" opacity=".95"/>
+  <rect x="-26" y="14" width="52" height="52" fill="url(#fcAf)" opacity=".95"/>
+  <rect x="-16" y="26" width="16" height="16" fill="url(#glsf)"/>
+  <rect x="4" y="26" width="16" height="16" fill="url(#glsf)"/>
+  <rect x="-7" y="48" width="14" height="18" fill="#8a6b43"/>
+  <text y="88" font-family="monospace" font-size="11" fill="#e8d080" text-anchor="middle" font-weight="bold">9.75%</text>
+  <text y="102" font-family="monospace" font-size="9" fill="rgba(255,255,255,.55)" text-anchor="middle">PMI</text>
+</g>
+<g transform="translate(1240,300)">
+  <path d="M-34 14 L0 -14 L34 14 Z" fill="#ffffff" opacity=".95"/>
+  <rect x="-26" y="14" width="52" height="52" fill="url(#fcAf)" opacity=".95"/>
+  <rect x="-16" y="26" width="16" height="16" fill="url(#glsf)"/>
+  <rect x="4" y="26" width="16" height="16" fill="url(#glsf)"/>
+  <rect x="-7" y="48" width="14" height="18" fill="#8a6b43"/>
+  <text y="88" font-family="monospace" font-size="11" fill="#e8d080" text-anchor="middle" font-weight="bold">COMM.</text>
+  <text y="102" font-family="monospace" font-size="9" fill="rgba(255,255,255,.55)" text-anchor="middle">BANK</text>
+</g>
+<!-- ground foundation -->
+<rect x="0" y="385" width="1600" height="35" fill="#0d2b1e" opacity=".95"/>
+<rect x="0" y="385" width="1600" height="3" fill="#c9a84c" opacity=".35"/>
+</svg>
