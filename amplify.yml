@@ -5,8 +5,8 @@ applications:
       phases:
         preBuild:
           commands:
-            - cd .. && npm ci
-            - cd ../shared && npm run build
+            - nvm use 20 || true
+            - npm ci
         build:
           commands:
             - npm run build
@@ -17,4 +17,4 @@ applications:
       cache:
         paths:
           - .next/cache/**/*
-          - ../node_modules/**/*
+          - node_modules/**/*
