@@ -10,7 +10,7 @@ import { useAuth } from '@/components/AuthProvider';
 export default function AgentLoginPage() {
   const router = useRouter();
   const { refreshUser } = useAuth();
-  const [email, setEmail] = useState('emeka.agent@fairdealng.com');
+  const [email, setEmail] = useState('emeka.agent@fdealproperties.com');
   const [password, setPassword] = useState('Agent@123456');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -114,7 +114,7 @@ export default function AgentLoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              placeholder="e.g. emeka.agent@fairdealng.com"
+              placeholder="e.g. emeka.agent@fdealproperties.com"
               style={{
                 width: '100%',
                 padding: '10px 14px',
@@ -171,8 +171,8 @@ export default function AgentLoginPage() {
           </button>
 
           <div style={{ marginTop: '20px', padding: '12px', background: '#f8fafc', borderRadius: '6px', fontSize: '12px', color: '#64748b' }}>
-            <div><strong>Demo Field Officer 1:</strong> emeka.agent@fairdealng.com</div>
-            <div><strong>Demo Field Officer 2:</strong> aisha.agent@fairdealng.com</div>
+            <div><strong>Demo Field Officer 1:</strong> emeka.agent@fdealproperties.com</div>
+            <div><strong>Demo Field Officer 2:</strong> aisha.agent@fdealproperties.com</div>
             <div><strong>Password:</strong> Agent@123456</div>
           </div>
 

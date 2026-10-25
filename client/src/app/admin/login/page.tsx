@@ -9,7 +9,7 @@ import { useAuth } from '@/components/AuthProvider';
 export default function AdminLoginPage() {
   const router = useRouter();
   const { refreshUser } = useAuth();
-  const [email, setEmail] = useState('admin@fairdealng.com');
+  const [email, setEmail] = useState('admin@fdealproperties.com');
   const [password, setPassword] = useState('Admin@123456');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -161,7 +161,7 @@ export default function AdminLoginPage() {
           </button>
 
           <div style={{ marginTop: '20px', padding: '12px', background: '#f8fafc', borderRadius: '6px', fontSize: '12px', color: '#64748b' }}>
-            <div><strong>Default Admin:</strong> admin@fairdealng.com</div>
+            <div><strong>Default Admin:</strong> admin@fdealproperties.com</div>
             <div><strong>Password:</strong> Admin@123456</div>
           </div>
 

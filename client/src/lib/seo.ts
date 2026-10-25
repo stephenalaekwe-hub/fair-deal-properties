@@ -114,7 +114,7 @@ export const SEO: Record<RouteKey, PageSeo> = {
   contact: {
     title: 'Contact Us - Book a Property Consultation in Abuja',
     description:
-      'Every engagement starts with a confidential consultation - no obligation, no pressure. Reach us at No. 4 Ekeh A. Yesufu Close, Utako, Abuja, on 0904 992 4198, or at info@fairdealng.com.',
+      'Every engagement starts with a confidential consultation - no obligation, no pressure. Reach us at No. 4 Ekeh A. Yesufu Close, Utako, Abuja, on 0904 992 4198, or at info@fdealproperties.com.',
     priority: 0.7, changeFrequency: 'monthly',
   },
   privacyNotice: {

@@ -260,7 +260,7 @@ export default function AdminAgentsPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  placeholder="s.alaekwe@fairdealng.com"
+                  placeholder="s.alaekwe@fdealproperties.com"
                   style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
                 />
               </div>

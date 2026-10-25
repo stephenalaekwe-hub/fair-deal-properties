@@ -210,7 +210,7 @@ function vwCert(){
     'The full session log is retained and available on request.\n\n' +
     'Fair Deal Properties Ltd\n' +
     'No. 4 Ekeh A. Yesufu Close, Utako, Abuja, FCT\n' +
-    'info@fairdealng.com · 09049924198'
+    'info@fdealproperties.com · 09049924198'
   );
 }
 

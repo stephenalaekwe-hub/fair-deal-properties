@@ -156,7 +156,7 @@ function saveProperty(btn, name) {
 
 function showSavedProperties() {
   if(savedProperties.length===0) return;
-  alert('Saved properties:\n\n' + savedProperties.map(function(n,i){return (i+1)+'. '+n;}).join('\n') + '\n\nEnquire about all of these - call us on 09049924198 or email info@fairdealng.com');
+  alert('Saved properties:\n\n' + savedProperties.map(function(n,i){return (i+1)+'. '+n;}).join('\n') + '\n\nEnquire about all of these - call us on 09049924198 or email info@fdealproperties.com');
 }
 
 function filterP3(cat, btn) {

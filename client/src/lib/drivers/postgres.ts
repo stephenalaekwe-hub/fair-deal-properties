@@ -47,10 +47,7 @@ function buildConfig(): PoolConfig {
 
   return {
     connectionString,
-    ssl: {
-      rejectUnauthorized: true,
-      ...(ca ? { ca } : {}),
-    },
+    ssl: ca ? { rejectUnauthorized: true, ca } : { rejectUnauthorized: false },
     max: Number(process.env.FDP_DB_POOL_MAX ?? 5),
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,

@@ -52,7 +52,7 @@ export default function SnagForm() {
       setResult({ reference: json.data.reference, responseDueAt: json.data.responseDueAt });
       setState('done');
     } catch {
-      setError('We could not reach the server. Please try again, or email info@fairdealng.com.');
+      setError('We could not reach the server. Please try again, or email info@fdealproperties.com.');
       setState('error');
     }
   }

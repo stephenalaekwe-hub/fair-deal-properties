@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
-import { filterListings, type City, type ListingSort, type ListingSource, type PropertyType }
-  from '@/data/listings';
+import { getLiveListings } from '@/lib/db';
+import type { City, ListingSort, ListingSource, PropertyType } from '@/data/listings';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/listings
  *
- * Query parameters: source, type, city, diaspora, mortgage, affordable, offplan,
+ * Live query parameters: source, type, city, diaspora, mortgage, affordable, offplan,
  * maxPrice (₦ millions), q, sort (newest|price-asc|price-desc|title), page, pageSize.
  */
 const SOURCES = ['fdp', 'developer', 'mreif', 'fhf', 'fha', 'fmbn', 'pmi', 'offmarket'];
@@ -23,7 +24,10 @@ export async function GET(req: Request) {
   };
 
   const sort = (pick<ListingSort>('sort', SORTS) ?? 'featured') as ListingSort;
-  const results = filterListings({
+  const page = Math.max(1, Number(sp.get('page') ?? 1) || 1);
+  const pageSize = Math.min(60, Math.max(1, Number(sp.get('pageSize') ?? 30) || 30));
+
+  const result = await getLiveListings({
     source: pick<ListingSource>('source', SOURCES),
     propertyType: pick<PropertyType>('type', TYPES),
     city: pick<City>('city', CITIES),
@@ -33,21 +37,19 @@ export async function GET(req: Request) {
     offPlan: sp.get('offplan') === 'true' || undefined,
     maxPriceMillionsNGN: sp.get('maxPrice') ? Number(sp.get('maxPrice')) : undefined,
     search: sp.get('q') ?? undefined,
-  }, sort);
-
-  const page = Math.max(1, Number(sp.get('page') ?? 1) || 1);
-  const pageSize = Math.min(60, Math.max(1, Number(sp.get('pageSize') ?? 30) || 30));
-  const start = (page - 1) * pageSize;
+    sort,
+    page,
+    pageSize,
+  });
 
   return NextResponse.json({
     ok: true,
     data: {
-      total: results.length,
+      total: result.total,
       page,
       pageSize,
       sort,
-      listings: results.slice(start, start + pageSize),
+      listings: result.listings,
     },
-    // Listings are a published register, not a personalized response: cacheable.
-  }, { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600' } });
+  }, { headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' } });
 }

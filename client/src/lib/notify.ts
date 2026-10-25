@@ -22,10 +22,10 @@ export interface Notification {
 export function composeInternalAlert(rec: StoredRecord): Notification {
   const inbox =
     rec.collection === 'dsr' || rec.collection === 'snag'
-      ? process.env.FDP_DPO_INBOX ?? 'info@fairdealng.com'
+      ? process.env.FDP_DPO_INBOX ?? 'dpo@fdealproperties.com'
       : rec.collection === 'inspection'
-        ? process.env.FDP_INSPECTION_INBOX ?? 'info@fairdealng.com'
-        : process.env.FDP_ENQUIRY_INBOX ?? 'info@fairdealng.com';
+        ? process.env.FDP_INSPECTION_INBOX ?? 'inspections@fdealproperties.com'
+        : process.env.FDP_ENQUIRY_INBOX ?? 'info@fdealproperties.com';
 
   const due = rec.dueAt ? `\nRESPONSE DUE: ${rec.dueAt.slice(0, 10)}` : '';
 

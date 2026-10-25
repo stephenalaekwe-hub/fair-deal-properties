@@ -37,7 +37,7 @@ export default function TermsContent() {
         <p style={{color:'var(--ink-soft)',lineHeight:'1.85',marginBottom:'1rem'}}>In these Terms of Service, the following definitions apply:</p>
         <ul style={{listStyle:'none',display:'flex',flexDirection:'column',gap:'.75rem'}}>
           <li style={{display:'flex',alignItems:'flex-start',gap:'12px',color:'var(--ink-soft)',lineHeight:'1.75'}}><span style={{color:'var(--gold)',fontWeight:'700',flexShrink:'0',marginTop:'2px'}}>-</span><span><strong style={{color:'var(--ink)'}}>"The Firm," "we," "us," "our"</strong> refers to Fair Deal Properties, a real estate agency and financial advisory business registered and operating in the Federal Republic of Nigeria.</span></li>
-          <li style={{display:'flex',alignItems:'flex-start',gap:'12px',color:'var(--ink-soft)',lineHeight:'1.75'}}><span style={{color:'var(--gold)',fontWeight:'700',flexShrink:'0',marginTop:'2px'}}>-</span><span><strong style={{color:'var(--ink)'}}>"Website"</strong> refers to the Fair Deal Properties website accessible at www.fairdealng.com and all associated subdomains and digital touchpoints.</span></li>
+          <li style={{display:'flex',alignItems:'flex-start',gap:'12px',color:'var(--ink-soft)',lineHeight:'1.75'}}><span style={{color:'var(--gold)',fontWeight:'700',flexShrink:'0',marginTop:'2px'}}>-</span><span><strong style={{color:'var(--ink)'}}>"Website"</strong> refers to the Fair Deal Properties website accessible at www.fdealproperties.com and all associated subdomains and digital touchpoints.</span></li>
           <li style={{display:'flex',alignItems:'flex-start',gap:'12px',color:'var(--ink-soft)',lineHeight:'1.75'}}><span style={{color:'var(--gold)',fontWeight:'700',flexShrink:'0',marginTop:'2px'}}>-</span><span><strong style={{color:'var(--ink)'}}>"User," "you," "your"</strong> refers to any person who accesses or uses this website or engages the services of Fair Deal Properties.</span></li>
           <li style={{display:'flex',alignItems:'flex-start',gap:'12px',color:'var(--ink-soft)',lineHeight:'1.75'}}><span style={{color:'var(--gold)',fontWeight:'700',flexShrink:'0',marginTop:'2px'}}>-</span><span><strong style={{color:'var(--ink)'}}>"Services"</strong> refers to all services offered by Fair Deal Properties including real estate agency, real estate investment advisory, bridge-financing facilitation, diaspora advisory, and developer partnership solutions.</span></li>
           <li style={{display:'flex',alignItems:'flex-start',gap:'12px',color:'var(--ink-soft)',lineHeight:'1.75'}}><span style={{color:'var(--gold)',fontWeight:'700',flexShrink:'0',marginTop:'2px'}}>-</span><span><strong style={{color:'var(--ink)'}}>"Content"</strong> refers to all text, data, graphics, reports, market intelligence, property information, and other materials published on this Website.</span></li>
@@ -182,7 +182,7 @@ export default function TermsContent() {
             </div>
             <div>
               <div style={{fontSize:'10px',letterSpacing:'.2em',textTransform:'uppercase',color:'rgba(201,168,76,.6)',marginBottom:'.5rem'}}>General &amp; Legal Enquiries</div>
-              <div style={{color:'rgba(255,255,255,.85)',fontSize:'.9rem',lineHeight:'1.7'}}>Email: info@fairdealng.com<br/>Tel: 09049924198<br/>WhatsApp available on request</div>
+              <div style={{color:'rgba(255,255,255,.85)',fontSize:'.9rem',lineHeight:'1.7'}}>Email: info@fdealproperties.com<br/>Tel: 09049924198<br/>WhatsApp available on request</div>
             </div>
           </div>
         </div>
@@ -214,7 +214,7 @@ export default function TermsContent() {
             <div><strong style={{color:'var(--ink)'}}>Fair Deal Properties Ltd</strong></div>
             <div>Attn: The Data Protection Officer</div>
             <div>No. 4 Ekeh A. Yesufu Close, Utako, Abuja, FCT</div>
-            <div>info@fairdealng.com</div>
+            <div>info@fdealproperties.com</div>
             <div>09049924198</div>
           </div>
         </div>

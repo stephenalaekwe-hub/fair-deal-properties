@@ -3,14 +3,18 @@
 // ══════════════════════════════════════════════════════════════════════════════
 
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+  process.env.NEXT_PUBLIC_API_URL || '/api';
 
 export async function fetchApi<T = any>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<{ ok: boolean; data?: T; error?: string }> {
   try {
-    const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+    let cleanEndpoint = endpoint;
+    if (API_BASE_URL.endsWith('/api') && cleanEndpoint.startsWith('/api/')) {
+      cleanEndpoint = cleanEndpoint.replace(/^\/api/, '');
+    }
+    const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${cleanEndpoint}`;
     
     // Check if token exists in localStorage
     const token = typeof window !== 'undefined' ? localStorage.getItem('fdp_token') : null;

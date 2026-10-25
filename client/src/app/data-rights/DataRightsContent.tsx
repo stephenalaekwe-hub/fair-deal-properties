@@ -63,7 +63,7 @@ export default function DataRightsContent() {
       <div className="dpo-card" style={{marginTop:'3rem'}}>
         <h4>Data Protection Officer</h4>
         <p>You may contact the Data Protection Officer about any matter in this notice, directly and without going through any other part of the firm.</p>
-        <p><strong>Email:</strong> dpo@fairdealng.com &nbsp;|&nbsp; <strong>Telephone:</strong> 09049924198</p>
+        <p><strong>Email:</strong> dpo@fdealproperties.com &nbsp;|&nbsp; <strong>Telephone:</strong> 09049924198</p>
         <p><strong>Post:</strong> The Data Protection Officer, Fair Deal Properties Ltd, No. 4 Ekeh A. Yesufu Close, Utako, Abuja, FCT, Nigeria</p>
       </div>
     </div>

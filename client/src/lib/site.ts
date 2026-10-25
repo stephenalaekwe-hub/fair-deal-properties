@@ -1,7 +1,7 @@
 /** Single source of truth for firm identity. Referenced by metadata, JSON-LD and API responses. */
 
 export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? 'https://www.fairdealng.com';
+  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? 'https://fdealproperties.com';
 
 export const FIRM = {
   name: 'Fair Deal Properties',
@@ -9,7 +9,7 @@ export const FIRM = {
   tagline: 'Property, made transparent.',
   telephone: '+2349049924198',
   telephoneDisplay: '0904 992 4198',
-  email: 'info@fairdealng.com',
+  email: 'info@fdealproperties.com',
   street: 'No. 4 Ekeh A. Yesufu Close, Utako',
   city: 'Abuja',
   region: 'Federal Capital Territory',

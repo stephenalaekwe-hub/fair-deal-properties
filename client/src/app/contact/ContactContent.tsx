@@ -11,7 +11,7 @@ export default function ContactContent() {
         <div>
           <div className="contact-info-block"><div className="contact-info-label">Our Address</div><div className="contact-info-val">No. 4 Ekeh A. Yesufu Close,<br/>Utako, Abuja, FCT, Nigeria</div></div>
           <div className="contact-info-block"><div className="contact-info-label">Phone</div><div className="contact-info-val">09049924198</div></div>
-          <div className="contact-info-block"><div className="contact-info-label">Email</div><div className="contact-info-val">info@fairdealng.com</div></div>
+          <div className="contact-info-block"><div className="contact-info-label">Email</div><div className="contact-info-val">info@fdealproperties.com</div></div>
           <div className="contact-info-block"><div className="contact-info-label">Markets Served</div><div className="contact-info-val" style={{fontSize:'1rem'}}>Abuja · Lagos · Port Harcourt<br/><span style={{fontSize:'.9rem',color:'var(--ink-muted)'}}>Diaspora: UK, USA, Canada, Europe &amp; beyond</span></div></div>
           <div style={{marginTop:'2rem',padding:'2rem',background:'var(--cream)',borderRadius:'var(--radius-lg)',borderLeft:'3px solid var(--gold)'}}>
             <h4 className="mb-2">Consultation Commitment</h4>

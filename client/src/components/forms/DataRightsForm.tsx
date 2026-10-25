@@ -142,7 +142,7 @@ export default function DataRightsForm() {
       setState('done');
       setIsRestored(false);
     } catch {
-      setError('We could not reach the server. Please try again, or email info@fairdealng.com.');
+      setError('We could not reach the server. Please try again, or email info@fdealproperties.com.');
       setState('error');
     }
   }

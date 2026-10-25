@@ -96,11 +96,11 @@ const nullDriver: StoreDriver = {
  * does not need the `pg` dependency resolved at module load.
  */
 function selectDriver(): StoreDriver {
-  const mode = process.env.FDP_STORE ?? 'file';
+  const mode = process.env.FDP_STORE ?? (process.env.DATABASE_URL ? 'postgres' : 'file');
 
   if (mode === 'none') return nullDriver;
 
-  if (mode === 'postgres') {
+  if (mode === 'postgres' && process.env.DATABASE_URL) {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { postgresDriver } = require('./drivers/postgres') as
       typeof import('./drivers/postgres');
