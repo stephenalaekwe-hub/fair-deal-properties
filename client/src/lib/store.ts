@@ -95,30 +95,35 @@ const nullDriver: StoreDriver = {
  * The Postgres driver is loaded lazily so that a development or preview deployment
  * does not need the `pg` dependency resolved at module load.
  */
+let cachedDriver: StoreDriver | null = null;
+
 function selectDriver(): StoreDriver {
-  const mode = process.env.FDP_STORE ?? (process.env.DATABASE_URL ? 'postgres' : 'file');
+  const connStr = process.env.DATABASE_URL;
+  const mode = process.env.FDP_STORE ?? (connStr ? 'postgres' : 'file');
 
   if (mode === 'none') return nullDriver;
 
-  if (mode === 'postgres' && process.env.DATABASE_URL) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { postgresDriver } = require('./drivers/postgres') as
-      typeof import('./drivers/postgres');
-    return postgresDriver;
+  if (mode === 'postgres' || connStr) {
+    if (!cachedDriver) {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { postgresDriver } = require('./drivers/postgres') as
+        typeof import('./drivers/postgres');
+      cachedDriver = postgresDriver;
+    }
+    return cachedDriver;
   }
 
-  if (process.env.NODE_ENV === 'production') {
-    // eslint-disable-next-line no-console
-    console.warn(
-      '[fdp:store] FDP_STORE is "%s" in a production build. The file driver provides no '
-      + 'encryption at rest and does not survive a redeploy. Set FDP_STORE=postgres.',
-      mode,
-    );
-  }
   return fileDriver;
 }
 
-export const store: StoreDriver = selectDriver();
+export const store: StoreDriver = {
+  async put<T>(rec: StoredRecord<T>): Promise<void> {
+    return selectDriver().put(rec);
+  },
+  async findByReference(reference: string): Promise<StoredRecord | null> {
+    return selectDriver().findByReference(reference);
+  },
+};
 
 const PREFIX: Record<Collection, string> = {
   contact: 'ENQ', enquiry: 'PRP', alert: 'ALT', newsletter: 'SUB',

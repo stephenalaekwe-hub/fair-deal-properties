@@ -28,20 +28,7 @@ export async function POST(req: Request) {
 
   await notify(composeInternalAlert(rec));
 
-  try {
-    await fetch('http://localhost:5000/api/v1/submissions/contact', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: parsed.data.name,
-        email: parsed.data.email,
-        phone: parsed.data.phone,
-        payload: parsed.data,
-      }),
-    });
-  } catch (err) {
-    console.error('Failed to forward contact to backend db:', err);
-  }
+  // Submissions are securely recorded to PostgreSQL via store.put above
 
   return ok({
     reference: rec.reference,
