@@ -178,18 +178,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             >
               View Public Website ↗
             </Link>
-            <span
-              style={{
-                background: '#dcfce7',
-                color: '#15803d',
-                fontSize: '11px',
-                fontWeight: 700,
-                padding: '4px 8px',
-                borderRadius: '9999px',
-              }}
-            >
-              API Online (Port 5000)
-            </span>
           </div>
         </header>
 

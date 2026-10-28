@@ -36,7 +36,7 @@ export default function AgentLoginPage() {
         setError(res.error || 'Failed to authenticate. Please check your credentials.');
       }
     } catch {
-      setError('Connection refused. Please ensure the Express backend is running on port 5000.');
+      setError('Connection failed. Please check your internet connection or try again later.');
     } finally {
       setLoading(false);
     }

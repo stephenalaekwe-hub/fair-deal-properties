@@ -49,23 +49,7 @@ export async function POST(req: Request) {
 
   await notify(composeInternalAlert(rec));
 
-  try {
-    await fetch('http://localhost:5000/api/v1/submissions/snag', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: parsed.data.name || 'Anonymous Data Subject',
-        email: parsed.data.email,
-        payload: {
-          ...parsed.data,
-          reference: rec.reference,
-          serviceDueAt: rec.dueAt,
-        },
-      }),
-    });
-  } catch (err) {
-    console.error('Failed to forward SNAG to backend db:', err);
-  }
+
 
   return ok({
     reference: rec.reference,

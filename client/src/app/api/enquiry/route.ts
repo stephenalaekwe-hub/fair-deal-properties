@@ -36,21 +36,7 @@ export async function POST(req: Request) {
 
   await notify(composeInternalAlert(rec));
 
-  try {
-    await fetch('http://localhost:5000/api/v1/submissions/enquiry', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: parsed.data.name,
-        email: parsed.data.email,
-        phone: parsed.data.phone,
-        propertyTitle: parsed.data.propertyTitle,
-        payload: { ...parsed.data, listingSlug: match.slug },
-      }),
-    });
-  } catch (err) {
-    console.error('Failed to forward enquiry to backend db:', err);
-  }
+
 
   return ok({
     reference: rec.reference,

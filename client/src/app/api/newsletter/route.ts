@@ -28,21 +28,7 @@ export async function POST(req: Request) {
 
   await notify(composeInternalAlert(rec));
 
-  try {
-    await fetch('http://localhost:5000/api/v1/submissions/newsletter', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: parsed.data.email,
-        payload: {
-          ...parsed.data,
-          reference: rec.reference,
-        },
-      }),
-    });
-  } catch (err) {
-    console.error('Failed to forward newsletter to backend db:', err);
-  }
+
 
   return ok({
     reference: rec.reference,

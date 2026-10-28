@@ -58,24 +58,7 @@ export async function POST(req: Request) {
   // Routed to the Data Protection Officer inbox, not the general enquiry inbox.
   await notify(composeInternalAlert(rec));
 
-  try {
-    await fetch('http://localhost:5000/api/v1/submissions/dsr', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: parsed.data.name,
-        email: parsed.data.email,
-        phone: parsed.data.phone,
-        payload: {
-          ...parsed.data,
-          reference: rec.reference,
-          serviceDueAt: rec.dueAt,
-        },
-      }),
-    });
-  } catch (err) {
-    console.error('Failed to forward DSR to backend db:', err);
-  }
+
 
   return ok({
     reference: rec.reference,

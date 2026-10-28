@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { store } from '@/lib/store';
 import { inspectionPipeline } from '@/data/pipeline';
+import { getLiveInspectionByRef } from '@/lib/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -21,6 +22,35 @@ export async function GET(
   const { reference } = await params;
   const ref = reference.trim().toUpperCase();
 
+  // Try live database lookup first
+  try {
+    const liveRec = await getLiveInspectionByRef(ref);
+    if (liveRec) {
+      const currentStage = Math.max(1, Math.min(9, liveRec.stage || 1));
+      return NextResponse.json({
+        ok: true,
+        data: {
+          reference: liveRec.reference,
+          propertyTitle: liveRec.propertyTitle,
+          propertyLocation: liveRec.propertyLocation,
+          stage: currentStage,
+          stageName: inspectionPipeline[currentStage - 1]?.t || `Stage ${currentStage}`,
+          officer: liveRec.officerName || (currentStage >= 3 ? 'Assigned Field Surveyor' : 'Pending allocation'),
+          scheduledFor: liveRec.scheduledDate,
+          pipeline: inspectionPipeline.map((s, i) => ({
+            index: i,
+            title: s.t,
+            detail: s.d,
+            state: i < currentStage - 1 ? 'complete' : i === currentStage - 1 ? 'active' : 'pending',
+          })),
+          note: liveRec.notes || undefined,
+        },
+      });
+    }
+  } catch (err) {
+    console.error('[fdp:inspections:track] DB lookup error:', err);
+  }
+
   if (ref === DEMO_REFERENCE) {
     return NextResponse.json({
       ok: true,
@@ -28,57 +58,24 @@ export async function GET(
         reference: ref,
         demonstration: true,
         stage: 5,
-        stageName: inspectionPipeline[5]!.t,
+        stageName: inspectionPipeline[4]!.t,
         officer: 'E. Nwachukwu',
         scheduledFor: '2026-10-18',
         pipeline: inspectionPipeline.map((s, i) => ({
           index: i, title: s.t, detail: s.d,
-          state: i < 5 ? 'complete' : i === 5 ? 'active' : 'pending',
+          state: i < 4 ? 'complete' : i === 4 ? 'active' : 'pending',
         })),
         note: 'This is a demonstration record. It describes the process, not a live engagement.',
       },
     });
   }
 
-  try {
-    const backendRes = await fetch(`http://localhost:5000/api/v1/inspections/track/${encodeURIComponent(ref)}`);
-    if (backendRes.ok) {
-      const backendJson = await backendRes.json();
-      if (backendJson.ok && backendJson.data) {
-        const d = backendJson.data;
-        const currentStage = Math.max(1, Math.min(9, d.stage || 1));
-        return NextResponse.json({
-          ok: true,
-          data: {
-            reference: d.reference,
-            propertyTitle: d.propertyTitle,
-            propertyLocation: d.propertyLocation,
-            stage: currentStage,
-            stageName: d.stageTitle || (inspectionPipeline[currentStage - 1] ? inspectionPipeline[currentStage - 1]!.t : `Stage ${currentStage}`),
-            officer: d.officerName || (currentStage >= 3 ? 'Assigned Field Surveyor' : 'Pending allocation'),
-            scheduledFor: d.scheduledDate,
-            pipeline: inspectionPipeline.map((s, i) => ({
-              index: i,
-              title: s.t,
-              detail: s.d,
-              state: i < currentStage - 1 ? 'complete' : i === currentStage - 1 ? 'active' : 'pending',
-            })),
-            note: d.notes,
-          },
-        });
-      }
-    }
-  } catch (err) {
-    console.error('Backend inspection track query failed:', err);
-  }
-
+  // Fallback to store lookup
   const rec = await store.findByReference(ref);
   if (!rec || rec.collection !== 'inspection') {
     return NextResponse.json({
       ok: false,
-      error:
-        'No inspection is recorded against that reference. Check the reference in your '
-        + 'acknowledgement, or contact the firm.',
+      error: 'Reference not found. Confirm the code on your acknowledgement email.',
     }, { status: 404 });
   }
 
@@ -87,12 +84,13 @@ export async function GET(
     data: {
       reference: rec.reference,
       receivedAt: rec.receivedAt,
-      stage: 0,
+      stage: 1,
       stageName: inspectionPipeline[0]!.t,
       pipeline: inspectionPipeline.map((s, i) => ({
         index: i, title: s.t, detail: s.d,
         state: i === 0 ? 'active' : 'pending',
       })),
+      note: 'Scope and fee will be confirmed in writing before an officer is assigned.',
     },
   });
 }
