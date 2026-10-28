@@ -23,6 +23,43 @@ export default function MarketplaceContent() {
   const [enquiryValues, setEnquiryValues] = useState(initialEnquiryValues);
   const [enquiryDraftRestored, setEnquiryDraftRestored] = useState(false);
 
+  const [hutuPhase, setHutuPhase] = useState<'all' | 'phase-3' | 'phase-1-2'>('phase-3');
+  const [hutuCategory, setHutuCategory] = useState<'all' | 'apartment' | 'block' | 'land'>('all');
+
+  const isHutuVisible = (phase: 'phase-3' | 'phase-1-2', cat: 'apartment' | 'block' | 'land') => {
+    const matchPhase = hutuPhase === 'all' || hutuPhase === phase;
+    const matchCat = hutuCategory === 'all' || hutuCategory === cat;
+    return matchPhase && matchCat;
+  };
+
+  const HUTU_ITEMS = [
+    { phase: 'phase-1-2', cat: 'apartment' },
+    { phase: 'phase-1-2', cat: 'apartment' },
+    { phase: 'phase-1-2', cat: 'land' },
+    { phase: 'phase-1-2', cat: 'land' },
+    { phase: 'phase-1-2', cat: 'land' },
+    { phase: 'phase-1-2', cat: 'land' },
+    { phase: 'phase-1-2', cat: 'land' },
+    { phase: 'phase-1-2', cat: 'land' },
+    { phase: 'phase-3', cat: 'apartment' },
+    { phase: 'phase-3', cat: 'apartment' },
+    { phase: 'phase-3', cat: 'apartment' },
+    { phase: 'phase-3', cat: 'block' },
+    { phase: 'phase-3', cat: 'block' },
+    { phase: 'phase-3', cat: 'block' },
+    { phase: 'phase-3', cat: 'land' },
+    { phase: 'phase-3', cat: 'land' },
+    { phase: 'phase-3', cat: 'land' },
+    { phase: 'phase-3', cat: 'land' },
+    { phase: 'phase-3', cat: 'land' },
+    { phase: 'phase-3', cat: 'land' },
+  ];
+  const visibleHutuCount = HUTU_ITEMS.filter(
+    (item) =>
+      (hutuPhase === 'all' || item.phase === hutuPhase) &&
+      (hutuCategory === 'all' || item.cat === hutuCategory)
+  ).length;
+
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem('fdp_marketplace_enquiry_draft');
@@ -480,188 +517,21 @@ export default function MarketplaceContent() {
     </div>{/* end opp-grid */}
 
 
-      {/* ══════════════════════════════════════════════════ */}
-      {/* MSHEL HOMES · HUTU EXCLUSIVE - PARTNER LISTINGS   */}
-      {/* ══════════════════════════════════════════════════ */}
+      {/* ══════════════════════════════════════════════════════════════════════════ */}
+      {/* MSHEL HOMES · HUTU EXCLUSIVE GOLF RESORT ESTATE - UNIFIED PORTFOLIO       */}
+      {/* ══════════════════════════════════════════════════════════════════════════ */}
 
-      {/* Section Header Banner */}
-      <div className="mshel-section-header" style={{marginTop:'3rem'}}>
-        <div style={{position:'relative',zIndex:'1',display:'flex',alignItems:'flex-start',justifyContent:'space-between',flexWrap:'wrap',gap:'1.5rem'}}>
-          <div>
-            <div style={{fontSize:'10px',letterSpacing:'.25em',textTransform:'uppercase',color:'rgba(201,168,76,.7)',marginBottom:'.5rem'}}>FDP Partner Developer · Mshel Homes Ltd</div>
-            <h2 style={{fontFamily:'\'Palatino Linotype\',Palatino,Georgia,serif',fontSize:'clamp(1.8rem,4vw,2.8rem)',fontWeight:'300',color:'white',lineHeight:'1.1',marginBottom:'.75rem'}}>Hutu Exclusive Golf Resort Estate<br/><em style={{fontStyle:'italic',color:'#e8cc7a'}}>Airport Road, Before Centenary City, Abuja</em></h2>
-            <p style={{color:'rgba(255,255,255,.6)',fontSize:'.9rem',lineHeight:'1.75',maxWidth:'600px'}}>FCDA-approved estate offering apartments and estate lands across multiple unit types and price points. Flexible payment plans from 4-18 months. <strong style={{color:'#e8cc7a'}}>⚡ All prices subject to 25% review effective 7th June 2026.</strong> FDP provides independent advisory on all units - not developer sales.</p>
-          </div>
-          <div style={{display:'flex',flexDirection:'column',gap:'.75rem',flexShrink:'0'}}>
-            <div style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(201,168,76,.2)',borderRadius:'var(--radius-md)',padding:'1rem 1.5rem',textAlign:'center'}}>
-              <div style={{fontSize:'10px',letterSpacing:'.18em',textTransform:'uppercase',color:'rgba(201,168,76,.6)',marginBottom:'.25rem'}}>Price Review Deadline</div>
-              <div style={{fontFamily:'\'Palatino Linotype\',Georgia,serif',fontSize:'1.6rem',color:'white',fontWeight:'400'}}>7th June 2026</div>
-              <div style={{fontSize:'11px',color:'rgba(255,255,255,.4)',marginTop:'.2rem'}}>25% increase effective</div>
-            </div>
-            <div style={{background:'rgba(201,168,76,.12)',border:'1px solid rgba(201,168,76,.25)',borderRadius:'var(--radius-md)',padding:'.75rem 1rem',textAlign:'center'}}>
-              <div style={{fontSize:'11px',color:'#e8cc7a',fontWeight:'600',letterSpacing:'.06em'}}>FCDA Approved · Gated Golf Estate</div>
-            </div>
-            <a href="#" onClick={(event)=>{window.openEnquiry('Hutu Exclusive - General Enquiry','Multiple Units Available','Mshel Homes via FDP')}} className="btn btn-gold" style={{textAlign:'center',fontSize:'12px'}}>Enquire About All Units →</a>
-          </div>
-        </div>
-      </div>
-
-      {/* Mshel listings grid */}
-      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'1.5rem'}} id="mshel-grid">
-
-      <div className="opp-card" data-source="developer" data-type="residential" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="80" data-date="2026-05-15"><div className="opp-media"><img src="/assets/illustrations/i5.svg" alt="Hutu Exclusive - 2-Bedroom Apartment - indicative illustration" loading="lazy"/><div className="opp-media-top"><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}><span className="img-badge">Mshel Homes · FDP Partner</span></div><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}><span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span><span className="img-badge">FCDA Approved</span></div></div><div className="opp-media-bot"><div className="opp-media-ttl">Hutu Exclusive - 2-Bedroom Apartment</div><div className="opp-media-sub">Residential · Abuja · Airport Road</div></div></div><div className="opp-card-body">
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>2-bedroom apartment</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>12 to 18 months</div>
-          <p className="opp-desc">Premium 2-bedroom apartment within the Hutu Exclusive Golf Resort Estate by Mshel Homes. FCDA-approved. Located on Airport Road before Centenary City, Abuja. Flexible 12-18 month payment plan. Current pricing is time-limited - a 25% price review takes effect from 7th June 2026.</p>
-          <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020',border:'none'}}>⚡ Price Review 7 Jun</span></div>
-          <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort Estate</span><span className="opp-am">🔒 Gated</span><span className="opp-am">⚡ Backup Power</span><span className="opp-am">🌿 Landscaped</span></div>
-          <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd has passed FDP partner vetting. FDP provides independent advisory - not developer sales. Advisory fee applies to facilitated engagements.</div>
-        </div>
-        <div className="opp-card-footer">
-          <div><div className="opp-price-label">Price (12-to mo. plan)</div><div className="opp-price">₦80,025,484</div></div>
-          <div style={{display:'flex',gap:'.5rem'}}>
-            <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Hutu Exclusive - 2-Bedroom Apartment')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
-            <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Hutu Exclusive - 2-Bedroom Apartment','₦80,025,484','Mshel Homes via FDP')}}>Enquire</button>
-          </div>
-        </div>
-      </div>
-      <div className="opp-card" data-source="developer" data-type="residential" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="102" data-date="2026-05-15"><div className="opp-media"><img src="/assets/illustrations/i5.svg" alt="Hutu Exclusive - 3-Bedroom Apartment - indicative illustration" loading="lazy"/><div className="opp-media-top"><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}><span className="img-badge">Mshel Homes · FDP Partner</span></div><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}><span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span><span className="img-badge">FCDA Approved</span></div></div><div className="opp-media-bot"><div className="opp-media-ttl">Hutu Exclusive - 3-Bedroom Apartment</div><div className="opp-media-sub">Residential · Abuja · Airport Road</div></div></div><div className="opp-card-body">
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>3-bedroom apartment</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>12 to 18 months</div>
-          <p className="opp-desc">Spacious 3-bedroom apartment in Mshel Hutu Exclusive Golf Resort Estate. FCDA-approved. Flexible 12-18 month payment plan. Prices increase by 25% effective 7th June 2026 - this is a time-sensitive opportunity at current pricing.</p>
-          <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020',border:'none'}}>⚡ Price Review 7 Jun</span></div>
-          <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort Estate</span><span className="opp-am">🔒 Gated</span><span className="opp-am">⚡ Backup Power</span><span className="opp-am">🌿 Landscaped</span></div>
-          <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd has passed FDP partner vetting. FDP provides independent advisory - not developer sales. Advisory fee applies to facilitated engagements.</div>
-        </div>
-        <div className="opp-card-footer">
-          <div><div className="opp-price-label">Price (12-to mo. plan)</div><div className="opp-price">₦102,199,875</div></div>
-          <div style={{display:'flex',gap:'.5rem'}}>
-            <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Hutu Exclusive - 3-Bedroom Apartment')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
-            <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Hutu Exclusive - 3-Bedroom Apartment','₦102,199,875','Mshel Homes via FDP')}}>Enquire</button>
-          </div>
-        </div>
-      </div>
-      <div className="opp-card" data-source="developer" data-type="land" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="54" data-date="2026-05-15"><div className="opp-media"><img src="/assets/illustrations/i4.svg" alt="Hutu Exclusive Land - 500SQM · 5-Bed Fully Detached Duplex - indicative illustration" loading="lazy"/><div className="opp-media-top"><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}><span className="img-badge">Mshel Homes · FDP Partner</span></div><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}><span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span><span className="img-badge">FCDA Approved</span></div></div><div className="opp-media-bot"><div className="opp-media-ttl">Hutu Exclusive Land - 500SQM · 5-Bed Fully Detached Duplex</div><div className="opp-media-sub">Land · Abuja · Airport Road</div></div></div><div className="opp-card-body">
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>500SQM · 5-Bed Fully Detached Duplex</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>4 to 8 months</div>
-          <p className="opp-desc">500SQM estate land within Hutu Exclusive Golf Resort Estate, approved for a 5-bedroom fully detached duplex. FCDA-approved. Outstanding build-to-own capital position in one of Abuja's fastest-appreciating corridors. 4-8 month payment plan. 25% price review effective 7th June 2026.</p>
-          <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020',border:'none'}}>⚡ Price Review 7 Jun</span></div>
-          <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort Estate</span><span className="opp-am">🏗️ Build-to-Own</span><span className="opp-am">🔒 Gated</span><span className="opp-am">🌿 Serviced</span></div>
-          <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd has passed FDP partner vetting. FDP provides independent advisory - not developer sales. Advisory fee applies to facilitated engagements.</div>
-        </div>
-        <div className="opp-card-footer">
-          <div><div className="opp-price-label">Price (4-to mo. plan)</div><div className="opp-price">₦54,432,000</div></div>
-          <div style={{display:'flex',gap:'.5rem'}}>
-            <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Hutu Exclusive Land - 500SQM · 5-Bed Fully Detached Duplex')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
-            <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Hutu Exclusive Land - 500SQM · 5-Bed Fully Detached Duplex','₦54,432,000','Mshel Homes via FDP')}}>Enquire</button>
-          </div>
-        </div>
-      </div>
-      <div className="opp-card" data-source="developer" data-type="land" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="true" data-offplan="true" data-price="16" data-date="2026-05-15"><div className="opp-media"><img src="/assets/illustrations/i4.svg" alt="Hutu Exclusive Land - 150SQM · 3-Bed Terrace Duplex - indicative illustration" loading="lazy"/><div className="opp-media-top"><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}><span className="img-badge">Mshel Homes · FDP Partner</span></div><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}><span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span><span className="img-badge">FCDA Approved</span></div></div><div className="opp-media-bot"><div className="opp-media-ttl">Hutu Exclusive Land - 150SQM · 3-Bed Terrace Duplex</div><div className="opp-media-sub">Land · Abuja · Airport Road</div></div></div><div className="opp-card-body">
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>150SQM · 3-Bed Terrace Duplex</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>4 to 8 months</div>
-          <p className="opp-desc">Entry-level estate land in Hutu Exclusive Golf Resort Estate for a 3-bedroom terrace duplex. FCDA-approved. The most accessible price point to own a premium Abuja Golf Estate address. 4-8 month payment plan. Subject to 25% price review from 7th June 2026.</p>
-          <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020',border:'none'}}>⚡ Price Review 7 Jun</span></div>
-          <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort Estate</span><span className="opp-am">🏘️ Terrace</span><span className="opp-am">🔒 Gated</span><span className="opp-am">🌿 Serviced</span></div>
-          <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd has passed FDP partner vetting. FDP provides independent advisory - not developer sales. Advisory fee applies to facilitated engagements.</div>
-        </div>
-        <div className="opp-card-footer">
-          <div><div className="opp-price-label">Price (4-to mo. plan)</div><div className="opp-price">₦16,329,600</div></div>
-          <div style={{display:'flex',gap:'.5rem'}}>
-            <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Hutu Exclusive Land - 150SQM · 3-Bed Terrace Duplex')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
-            <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Hutu Exclusive Land - 150SQM · 3-Bed Terrace Duplex','₦16,329,600','Mshel Homes via FDP')}}>Enquire</button>
-          </div>
-        </div>
-      </div>
-      <div className="opp-card" data-source="developer" data-type="land" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="27" data-date="2026-05-15"><div className="opp-media"><img src="/assets/illustrations/i4.svg" alt="Hutu Exclusive Land - 250SQM · 4-Bed Semi-Detached Duplex - indicative illustration" loading="lazy"/><div className="opp-media-top"><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}><span className="img-badge">Mshel Homes · FDP Partner</span></div><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}><span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span><span className="img-badge">FCDA Approved</span></div></div><div className="opp-media-bot"><div className="opp-media-ttl">Hutu Exclusive Land - 250SQM · 4-Bed Semi-Detached Duplex</div><div className="opp-media-sub">Land · Abuja · Airport Road</div></div></div><div className="opp-card-body">
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>250SQM · 4-Bed Semi-Detached Duplex</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>4 to 8 months</div>
-          <p className="opp-desc">250SQM estate land in Hutu Exclusive for a 4-bedroom semi-detached duplex. FCDA-approved. Intelligently priced mid-range position in one of Abuja's most prestigious emerging addresses. 4-8 month payment plan. 25% price review from 7th June 2026.</p>
-          <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020',border:'none'}}>⚡ Price Review 7 Jun</span></div>
-          <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort Estate</span><span className="opp-am">🏗️ Semi-Detached</span><span className="opp-am">🔒 Gated</span><span className="opp-am">🌿 Serviced</span></div>
-          <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd has passed FDP partner vetting. FDP provides independent advisory - not developer sales. Advisory fee applies to facilitated engagements.</div>
-        </div>
-        <div className="opp-card-footer">
-          <div><div className="opp-price-label">Price (4-to mo. plan)</div><div className="opp-price">₦27,216,000</div></div>
-          <div style={{display:'flex',gap:'.5rem'}}>
-            <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Hutu Exclusive Land - 250SQM · 4-Bed Semi-Detached Duplex')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
-            <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Hutu Exclusive Land - 250SQM · 4-Bed Semi-Detached Duplex','₦27,216,000','Mshel Homes via FDP')}}>Enquire</button>
-          </div>
-        </div>
-      </div>
-      <div className="opp-card" data-source="developer" data-type="land" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="38" data-date="2026-05-15"><div className="opp-media"><img src="/assets/illustrations/i4.svg" alt="Hutu Exclusive Land - 350SQM · 4-Bed Fully Detached Duplex - indicative illustration" loading="lazy"/><div className="opp-media-top"><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}><span className="img-badge">Mshel Homes · FDP Partner</span></div><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}><span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span><span className="img-badge">FCDA Approved</span></div></div><div className="opp-media-bot"><div className="opp-media-ttl">Hutu Exclusive Land - 350SQM · 4-Bed Fully Detached Duplex</div><div className="opp-media-sub">Land · Abuja · Airport Road</div></div></div><div className="opp-card-body">
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>350SQM · 4-Bed Fully Detached Duplex</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>4 to 8 months</div>
-          <p className="opp-desc">350SQM estate land in Hutu Exclusive Golf Resort Estate for a 4-bedroom fully detached duplex. FCDA-approved. Strong mid-premium land position. 4-8 month payment plan. Act before the 25% price review effective 7th June 2026.</p>
-          <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020',border:'none'}}>⚡ Price Review 7 Jun</span></div>
-          <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort Estate</span><span className="opp-am">🏗️ Fully Detached</span><span className="opp-am">🔒 Gated</span><span className="opp-am">🌿 Serviced</span></div>
-          <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd has passed FDP partner vetting. FDP provides independent advisory - not developer sales. Advisory fee applies to facilitated engagements.</div>
-        </div>
-        <div className="opp-card-footer">
-          <div><div className="opp-price-label">Price (4-to mo. plan)</div><div className="opp-price">₦38,102,400</div></div>
-          <div style={{display:'flex',gap:'.5rem'}}>
-            <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Hutu Exclusive Land - 350SQM · 4-Bed Fully Detached Duplex')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
-            <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Hutu Exclusive Land - 350SQM · 4-Bed Fully Detached Duplex','₦38,102,400','Mshel Homes via FDP')}}>Enquire</button>
-          </div>
-        </div>
-      </div>
-      <div className="opp-card" data-source="developer" data-type="land" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="44" data-date="2026-05-15"><div className="opp-media"><img src="/assets/illustrations/i4.svg" alt="Hutu Exclusive Land - 450SQM · 1-Bed Block of Apartments - indicative illustration" loading="lazy"/><div className="opp-media-top"><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}><span className="img-badge">Mshel Homes · FDP Partner</span></div><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}><span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span><span className="img-badge">FCDA Approved</span></div></div><div className="opp-media-bot"><div className="opp-media-ttl">Hutu Exclusive Land - 450SQM · 1-Bed Block of Apartments</div><div className="opp-media-sub">Land · Abuja · Airport Road</div></div></div><div className="opp-card-body">
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>450SQM · 1-Bed Block of Apartments</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>4 to 8 months</div>
-          <p className="opp-desc">450SQM estate land in Hutu Exclusive for a 1-bedroom block of apartments. FCDA-approved. Ideal for rental income investors building a portfolio within a premium Golf Estate address. 4-8 month payment plan. 25% price review from 7th June 2026.</p>
-          <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020',border:'none'}}>⚡ Price Review 7 Jun</span></div>
-          <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort Estate</span><span className="opp-am">🏢 Rental Income Plot</span><span className="opp-am">🔒 Gated</span><span className="opp-am">🌿 Serviced</span></div>
-          <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd has passed FDP partner vetting. FDP provides independent advisory - not developer sales. Advisory fee applies to facilitated engagements.</div>
-        </div>
-        <div className="opp-card-footer">
-          <div><div className="opp-price-label">Price (4-to mo. plan)</div><div className="opp-price">₦43,740,000</div></div>
-          <div style={{display:'flex',gap:'.5rem'}}>
-            <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Hutu Exclusive Land - 450SQM · 1-Bed Block of Apartments')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
-            <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Hutu Exclusive Land - 450SQM · 1-Bed Block of Apartments','₦43,740,000','Mshel Homes via FDP')}}>Enquire</button>
-          </div>
-        </div>
-      </div>
-      <div className="opp-card" data-source="developer" data-type="land" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="109" data-date="2026-05-15"><div className="opp-media"><img src="/assets/illustrations/i4.svg" alt="Hutu Exclusive Land - 1000SQM · 3-Bed Block of Apartments - indicative illustration" loading="lazy"/><div className="opp-media-top"><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}><span className="img-badge">Mshel Homes · FDP Partner</span></div><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}><span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span><span className="img-badge">FCDA Approved</span></div></div><div className="opp-media-bot"><div className="opp-media-ttl">Hutu Exclusive Land - 1000SQM · 3-Bed Block of Apartments</div><div className="opp-media-sub">Land · Abuja · Airport Road</div></div></div><div className="opp-card-body">
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>1000SQM · 3-Bed Block of Apartments</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>4 to 8 months</div>
-          <p className="opp-desc">1,000SQM premium estate land in Hutu Exclusive for a 3-bedroom block of apartments development. FCDA-approved. Institutional-grade land holding in one of Abuja's most prestigious emerging golf resort addresses. 4-8 month payment plan. Subject to 25% price review from 7th June 2026.</p>
-          <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020',border:'none'}}>⚡ Price Review 7 Jun</span></div>
-          <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort Estate</span><span className="opp-am">🏢 Institutional Land</span><span className="opp-am">🔒 Gated</span><span className="opp-am">🌿 Serviced</span></div>
-          <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd has passed FDP partner vetting. FDP provides independent advisory - not developer sales. Advisory fee applies to facilitated engagements.</div>
-        </div>
-        <div className="opp-card-footer">
-          <div><div className="opp-price-label">Price (4-to mo. plan)</div><div className="opp-price">₦108,864,000</div></div>
-          <div style={{display:'flex',gap:'.5rem'}}>
-            <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Hutu Exclusive Land - 1000SQM · 3-Bed Block of Apartments')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
-            <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Hutu Exclusive Land - 1000SQM · 3-Bed Block of Apartments','₦108,864,000','Mshel Homes via FDP')}}>Enquire</button>
-          </div>
-        </div>
-      </div>
-      </div>{/* end mshel-grid */}
-
-
-      {/* ══════════════════════════════════════════════════════════ */}
-      {/* MSHEL HOMES · HUTU EXCLUSIVE PHASE III - PARTNER LISTINGS  */}
-      {/* ══════════════════════════════════════════════════════════ */}
-
+      {/* Unified Master Header Banner */}
       <div className="mshel-section-header" style={{marginTop:'3rem',background:'linear-gradient(135deg,#0a1820 0%,#0f2535 60%,#0a1820 100%)'}}>
         <div style={{position:'relative',zIndex:'1',display:'flex',alignItems:'flex-start',justifyContent:'space-between',flexWrap:'wrap',gap:'1.5rem'}}>
           <div>
-            <div style={{fontSize:'10px',letterSpacing:'.25em',textTransform:'uppercase',color:'rgba(201,168,76,.7)',marginBottom:'.5rem'}}>FDP Partner Developer · Mshel Homes Ltd · NEW PHASE</div>
-            <h2 style={{fontFamily:'\'Palatino Linotype\',Palatino,Georgia,serif',fontSize:'clamp(1.8rem,4vw,2.8rem)',fontWeight:'300',color:'white',lineHeight:'1.1',marginBottom:'.75rem'}}>Hutu Exclusive <em style={{fontStyle:'italic',color:'#e8cc7a'}}>Phase III</em><br/><span style={{fontSize:'1.1rem',color:'rgba(255,255,255,.6)',fontWeight:'300'}}>Airport Road, Before Centenary City, Abuja</span></h2>
-            <p style={{color:'rgba(255,255,255,.6)',fontSize:'.9rem',lineHeight:'1.75',maxWidth:'620px'}}>Phase III launches the full product range - individual apartments, whole blocks of 6 units for institutional investors, and estate lands from 150SQM to 1,000SQM. Flexible 4-18 month payment plans across all categories. <strong style={{color:'#e8cc7a'}}>⚡ All Phase III prices subject to 25% review effective 7th June 2026.</strong></p>
+            <div style={{fontSize:'10px',letterSpacing:'.25em',textTransform:'uppercase',color:'rgba(201,168,76,.7)',marginBottom:'.5rem'}}>FDP Partner Developer · Mshel Homes Ltd · Master Estate Portfolio</div>
+            <h2 style={{fontFamily:'\'Palatino Linotype\',Palatino,Georgia,serif',fontSize:'clamp(1.8rem,4vw,2.8rem)',fontWeight:'300',color:'white',lineHeight:'1.1',marginBottom:'.75rem'}}>Hutu Exclusive Golf Resort Estate<br/><span style={{fontSize:'1.1rem',color:'rgba(255,255,255,.6)',fontWeight:'300'}}>Airport Road, Before Centenary City, Abuja</span></h2>
+            <p style={{color:'rgba(255,255,255,.6)',fontSize:'.9rem',lineHeight:'1.75',maxWidth:'620px'}}>Master-planned luxury golf resort development offering apartments, whole blocks of 6 units for institutional investors, and serviced estate lands across all development phases. Flexible 4–18 month payment plans across all categories. <strong style={{color:'#e8cc7a'}}>⚡ All prices subject to 25% review effective 7th June 2026.</strong> FDP provides independent advisory on all units — not developer sales.</p>
             <div style={{marginTop:'1.25rem',display:'flex',gap:'1rem',flexWrap:'wrap'}}>
               <div style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(201,168,76,.2)',borderRadius:'var(--radius-sm)',padding:'.6rem 1rem',fontSize:'12px',color:'rgba(255,255,255,.7)'}}>🏌️ Golf Resort Estate</div>
               <div style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(201,168,76,.2)',borderRadius:'var(--radius-sm)',padding:'.6rem 1rem',fontSize:'12px',color:'rgba(255,255,255,.7)'}}>✅ FCDA Approved</div>
-              <div style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(201,168,76,.2)',borderRadius:'var(--radius-sm)',padding:'.6rem 1rem',fontSize:'12px',color:'rgba(255,255,255,.7)'}}>🏠 12 Unit Types</div>
+              <div style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(201,168,76,.2)',borderRadius:'var(--radius-sm)',padding:'.6rem 1rem',fontSize:'12px',color:'rgba(255,255,255,.7)'}}>🏠 20 Unit Types Across Phases</div>
               <div style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(201,168,76,.2)',borderRadius:'var(--radius-sm)',padding:'.6rem 1rem',fontSize:'12px',color:'rgba(255,255,255,.7)'}}>💰 From ₦7.48M</div>
             </div>
           </div>
@@ -671,237 +541,813 @@ export default function MarketplaceContent() {
               <div style={{fontFamily:'\'Palatino Linotype\',Georgia,serif',fontSize:'1.6rem',color:'white',fontWeight:'400'}}>7th June 2026</div>
               <div style={{fontSize:'11px',color:'rgba(255,255,255,.4)',marginTop:'.2rem'}}>25% increase after this date</div>
             </div>
-            <a href="#" onClick={(event)=>{window.openEnquiry('Hutu Exclusive Phase III - General Enquiry','Multiple Units Available','Mshel Homes Phase III via FDP')}} className="btn btn-gold" style={{textAlign:'center',fontSize:'12px'}}>Enquire About All Phase III Units →</a>
+            <a href="#" onClick={(event)=>{event.preventDefault();window.openEnquiry('Hutu Exclusive Golf Resort - Master Portfolio','Multiple Units Available','Mshel Homes via FDP')}} className="btn btn-gold" style={{textAlign:'center',fontSize:'12px'}}>Enquire About All Hutu Units →</a>
           </div>
         </div>
       </div>
 
-      {/* Phase III listings sub-tabs */}
-      <div style={{display:'flex',gap:'.5rem',marginBottom:'1.5rem',flexWrap:'wrap'}}>
-        <button className="pill-filter active" onClick={(event)=>{window.filterP3('all',event.currentTarget)}}>All Phase III</button>
-        <button className="pill-filter" onClick={(event)=>{window.filterP3('apartment',event.currentTarget)}}>Apartments</button>
-        <button className="pill-filter" onClick={(event)=>{window.filterP3('block',event.currentTarget)}}>Whole Blocks</button>
-        <button className="pill-filter" onClick={(event)=>{window.filterP3('land',event.currentTarget)}}>Estate Lands</button>
+      {/* ── PHASE & CATEGORY TOGGLE CONTROLS ── */}
+      <div style={{marginTop:'2rem',marginBottom:'1.75rem',display:'flex',flexDirection:'column',gap:'1rem'}}>
+        {/* Primary Phase Toggle */}
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:'1rem',background:'var(--white)',padding:'1rem 1.25rem',borderRadius:'var(--radius-md)',border:'1px solid var(--border-light)'}}>
+          <div style={{display:'flex',alignItems:'center',gap:'.5rem',flexWrap:'wrap'}}>
+            <span style={{fontSize:'11px',letterSpacing:'.12em',textTransform:'uppercase',color:'var(--ink-muted)',fontWeight:700,marginRight:'.25rem'}}>Phase:</span>
+            <button
+              type="button"
+              className={`pill-filter ${hutuPhase === 'phase-3' ? 'active' : ''}`}
+              onClick={() => setHutuPhase('phase-3')}
+              style={{cursor:'pointer',fontSize:'12px',fontWeight:600}}
+            >
+              Phase III (New Release)
+            </button>
+            <button
+              type="button"
+              className={`pill-filter ${hutuPhase === 'phase-1-2' ? 'active' : ''}`}
+              onClick={() => setHutuPhase('phase-1-2')}
+              style={{cursor:'pointer',fontSize:'12px',fontWeight:600}}
+            >
+              Phase I &amp; II
+            </button>
+            <button
+              type="button"
+              className={`pill-filter ${hutuPhase === 'all' ? 'active' : ''}`}
+              onClick={() => setHutuPhase('all')}
+              style={{cursor:'pointer',fontSize:'12px',fontWeight:600}}
+            >
+              All Phases
+            </button>
+          </div>
+          <div style={{fontSize:'12px',color:'var(--ink-soft)'}}>
+            Showing <strong style={{color:'var(--forest)'}}>{visibleHutuCount}</strong> active {visibleHutuCount === 1 ? 'unit' : 'units'}
+          </div>
+        </div>
+
+        {/* Category Pills */}
+        <div style={{display:'flex',gap:'.5rem',flexWrap:'wrap',alignItems:'center'}}>
+          <span style={{fontSize:'11px',letterSpacing:'.12em',textTransform:'uppercase',color:'var(--ink-muted)',fontWeight:600,marginRight:'.25rem'}}>Category:</span>
+          <button
+            type="button"
+            className={`pill-filter ${hutuCategory === 'all' ? 'active' : ''}`}
+            onClick={() => setHutuCategory('all')}
+            style={{cursor:'pointer'}}
+          >
+            All Categories
+          </button>
+          <button
+            type="button"
+            className={`pill-filter ${hutuCategory === 'apartment' ? 'active' : ''}`}
+            onClick={() => setHutuCategory('apartment')}
+            style={{cursor:'pointer'}}
+          >
+            Apartments
+          </button>
+          <button
+            type="button"
+            className={`pill-filter ${hutuCategory === 'block' ? 'active' : ''}`}
+            onClick={() => setHutuCategory('block')}
+            style={{cursor:'pointer'}}
+          >
+            Whole Blocks (6 Units)
+          </button>
+          <button
+            type="button"
+            className={`pill-filter ${hutuCategory === 'land' ? 'active' : ''}`}
+            onClick={() => setHutuCategory('land')}
+            style={{cursor:'pointer'}}
+          >
+            Estate Lands
+          </button>
+        </div>
       </div>
 
-      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'1.5rem'}} id="p3-grid">
+      {/* Unified Hutu Listings Grid */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'1.5rem'}} id="hutu-unified-grid">
 
-      <div className="opp-card" data-source="developer" data-type="residential" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="50" data-date="2026-05-15"><div className="opp-media"><img src="/assets/illustrations/i5.svg" alt="Hutu Exclusive Phase III - 1-Bed Apartment - indicative illustration" loading="lazy"/><div className="opp-media-top"><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}><span className="img-badge">Mshel Homes · Phase III</span></div><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}><span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span><span className="img-badge">FCDA Approved</span></div></div><div className="opp-media-bot"><div className="opp-media-ttl">Hutu Exclusive Phase III - 1-Bed Apartment</div><div className="opp-media-sub">Phase III · Airport Road, Abuja</div></div></div><div className="opp-card-body">
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>1-Bedroom Apartment</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>12 to 18 months payment plan available</div>
-          <p className="opp-desc">Premium 1-bedroom apartment in Mshel Hutu Exclusive Phase III Golf Resort Estate. Airport Road, Abuja. Flexible 12-18 month payment plan. Subject to 25% price review effective 7th June 2026.</p>
-          <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020'}}>⚡ Price Review 7 Jun</span></div>
-          <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort</span><span className="opp-am">⚡ Backup Power</span><span className="opp-am">🔒 Gated</span><span className="opp-am">🌿 Landscaped</span></div>
-          <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd - FDP vetted partner. FDP provides independent advisory. Advisory fee applies to facilitated engagements.</div>
-        </div>
-        <div className="opp-card-footer">
-          <div><div className="opp-price-label">12 to 18 months plan available</div><div className="opp-price">₦49,988,480</div></div>
-          <div style={{display:'flex',gap:'.5rem'}}>
-            <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Hutu Exclusive Phase III - 1-Bed Apartment')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
-            <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Hutu Exclusive Phase III - 1-Bed Apartment','₦49,988,480','Mshel Homes Phase III via FDP')}}>Enquire</button>
+        {/* ── PHASE I & II LISTINGS ── */}
+        <div className="opp-card" style={{display: isHutuVisible('phase-1-2','apartment') ? 'flex' : 'none'}} data-source="developer" data-type="residential" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="80" data-date="2026-05-15">
+          <div className="opp-media">
+            <img src="/assets/illustrations/i5.svg" alt="Hutu Exclusive - 2-Bedroom Apartment - indicative illustration" loading="lazy"/>
+            <div className="opp-media-top">
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}>
+                <span className="img-badge">Mshel Homes · Phase I &amp; II</span>
+              </div>
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}>
+                <span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span>
+                <span className="img-badge">FCDA Approved</span>
+              </div>
+            </div>
+            <div className="opp-media-bot">
+              <div className="opp-media-ttl">Hutu Exclusive - 2-Bedroom Apartment</div>
+              <div className="opp-media-sub">Phase I &amp; II · Abuja · Airport Road</div>
+            </div>
+          </div>
+          <div className="opp-card-body">
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>2-bedroom apartment</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>12 to 18 months</div>
+            <p className="opp-desc">Premium 2-bedroom apartment within the Hutu Exclusive Golf Resort Estate by Mshel Homes. FCDA-approved. Located on Airport Road before Centenary City, Abuja. Flexible 12-18 month payment plan. Current pricing is time-limited - a 25% price review takes effect from 7th June 2026.</p>
+            <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020',border:'none'}}>⚡ Price Review 7 Jun</span></div>
+            <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort Estate</span><span className="opp-am">🔒 Gated</span><span className="opp-am">⚡ Backup Power</span><span className="opp-am">🌿 Landscaped</span></div>
+            <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd has passed FDP partner vetting. FDP provides independent advisory - not developer sales. Advisory fee applies to facilitated engagements.</div>
+          </div>
+          <div className="opp-card-footer">
+            <div><div className="opp-price-label">Price (12-18 mo. plan)</div><div className="opp-price">₦80,025,484</div></div>
+            <div style={{display:'flex',gap:'.5rem'}}>
+              <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Hutu Exclusive - 2-Bedroom Apartment')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+              <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Hutu Exclusive - 2-Bedroom Apartment','₦80,025,484','Mshel Homes via FDP')}}>Enquire</button>
+            </div>
           </div>
         </div>
-      </div>
-      <div className="opp-card" data-source="developer" data-type="residential" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="77" data-date="2026-05-15"><div className="opp-media"><img src="/assets/illustrations/i5.svg" alt="Hutu Exclusive Phase III - 2-Bed Apartment - indicative illustration" loading="lazy"/><div className="opp-media-top"><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}><span className="img-badge">Mshel Homes · Phase III</span></div><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}><span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span><span className="img-badge">FCDA Approved</span></div></div><div className="opp-media-bot"><div className="opp-media-ttl">Hutu Exclusive Phase III - 2-Bed Apartment</div><div className="opp-media-sub">Phase III · Airport Road, Abuja</div></div></div><div className="opp-card-body">
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>2-Bedroom Apartment</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>12 to 18 months payment plan available</div>
-          <p className="opp-desc">Contemporary 2-bedroom apartment in Mshel Hutu Exclusive Phase III. Airport Road, Abuja. Flexible 12-18 month payment plan. 25% price review effective 7th June 2026 - current pricing is time-limited.</p>
-          <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020'}}>⚡ Price Review 7 Jun</span></div>
-          <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort</span><span className="opp-am">⚡ Backup Power</span><span className="opp-am">🔒 Gated</span><span className="opp-am">🌿 Landscaped</span></div>
-          <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd - FDP vetted partner. FDP provides independent advisory. Advisory fee applies to facilitated engagements.</div>
-        </div>
-        <div className="opp-card-footer">
-          <div><div className="opp-price-label">12 to 18 months plan available</div><div className="opp-price">₦76,538,817</div></div>
-          <div style={{display:'flex',gap:'.5rem'}}>
-            <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Hutu Exclusive Phase III - 2-Bed Apartment')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
-            <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Hutu Exclusive Phase III - 2-Bed Apartment','₦76,538,817','Mshel Homes Phase III via FDP')}}>Enquire</button>
-          </div>
-        </div>
-      </div>
-      <div className="opp-card" data-source="developer" data-type="residential" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="98" data-date="2026-05-15"><div className="opp-media"><img src="/assets/illustrations/i5.svg" alt="Hutu Exclusive Phase III - 3-Bed Apartment - indicative illustration" loading="lazy"/><div className="opp-media-top"><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}><span className="img-badge">Mshel Homes · Phase III</span></div><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}><span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span><span className="img-badge">FCDA Approved</span></div></div><div className="opp-media-bot"><div className="opp-media-ttl">Hutu Exclusive Phase III - 3-Bed Apartment</div><div className="opp-media-sub">Phase III · Airport Road, Abuja</div></div></div><div className="opp-card-body">
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>3-Bedroom Apartment</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>12 to 18 months payment plan available</div>
-          <p className="opp-desc">Spacious 3-bedroom apartment in Mshel Hutu Exclusive Phase III Golf Resort Estate. Airport Road, Abuja. 12-18 month payment plan. Act before the 25% price review on 7th June 2026.</p>
-          <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020'}}>⚡ Price Review 7 Jun</span></div>
-          <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort</span><span className="opp-am">⚡ Backup Power</span><span className="opp-am">🔒 Gated</span><span className="opp-am">🌿 Landscaped</span></div>
-          <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd - FDP vetted partner. FDP provides independent advisory. Advisory fee applies to facilitated engagements.</div>
-        </div>
-        <div className="opp-card-footer">
-          <div><div className="opp-price-label">12 to 18 months plan available</div><div className="opp-price">₦97,551,073</div></div>
-          <div style={{display:'flex',gap:'.5rem'}}>
-            <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Hutu Exclusive Phase III - 3-Bed Apartment')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
-            <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Hutu Exclusive Phase III - 3-Bed Apartment','₦97,551,073','Mshel Homes Phase III via FDP')}}>Enquire</button>
-          </div>
-        </div>
-      </div>
-      <div className="opp-card" data-source="developer" data-type="residential" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="336" data-date="2026-05-15"><div className="opp-media"><img src="/assets/illustrations/i5.svg" alt="Phase III - 1-Bed Block of Apartments (6 Units) - indicative illustration" loading="lazy"/><div className="opp-media-top"><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}><span className="img-badge">Mshel Homes · Phase III</span></div><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}><span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span><span className="img-badge">FCDA Approved</span></div></div><div className="opp-media-bot"><div className="opp-media-ttl">Phase III - 1-Bed Block of Apartments (6 Units)</div><div className="opp-media-sub">Phase III · Airport Road, Abuja</div></div></div><div className="opp-card-body">
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>1-Bedroom Block of Apartments - 6 Units</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>12 to 18 months payment plan available</div>
-          <p className="opp-desc">Whole block of 6 × 1-bedroom apartments in Mshel Hutu Exclusive Phase III. Institutional-grade rental income investment in a premium Golf Resort Estate. 12-18 month plan. 25% price review 7th June 2026.</p>
-          <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020'}}>⚡ Price Review 7 Jun</span></div>
-          <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort</span><span className="opp-am">📊 6-Unit Block</span><span className="opp-am">💰 Rental Yield</span><span className="opp-am">🔒 Gated</span></div>
-          <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd - FDP vetted partner. FDP provides independent advisory. Advisory fee applies to facilitated engagements.</div>
-        </div>
-        <div className="opp-card-footer">
-          <div><div className="opp-price-label">12 to 18 months plan available</div><div className="opp-price">₦335,922,609</div></div>
-          <div style={{display:'flex',gap:'.5rem'}}>
-            <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Phase III - 1-Bed Block of Apartments (6 Units)')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
-            <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Phase III - 1-Bed Block of Apartments (6 Units)','₦335,922,609','Mshel Homes Phase III via FDP')}}>Enquire</button>
-          </div>
-        </div>
-      </div>
-      <div className="opp-card" data-source="developer" data-type="residential" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="512" data-date="2026-05-15"><div className="opp-media"><img src="/assets/illustrations/i5.svg" alt="Phase III - 2-Bed Block of Apartments (6 Units) - indicative illustration" loading="lazy"/><div className="opp-media-top"><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}><span className="img-badge">Mshel Homes · Phase III</span></div><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}><span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span><span className="img-badge">FCDA Approved</span></div></div><div className="opp-media-bot"><div className="opp-media-ttl">Phase III - 2-Bed Block of Apartments (6 Units)</div><div className="opp-media-sub">Phase III · Airport Road, Abuja</div></div></div><div className="opp-card-body">
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>2-Bedroom Block of Apartments - 6 Units</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>12 to 18 months payment plan available</div>
-          <p className="opp-desc">Whole block of 6 × 2-bedroom apartments in Mshel Hutu Exclusive Phase III. Premium rental income portfolio in a Golf Resort Estate, Airport Road, Abuja. 12-18 month plan. 25% price review 7th June 2026.</p>
-          <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020'}}>⚡ Price Review 7 Jun</span></div>
-          <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort</span><span className="opp-am">📊 6-Unit Block</span><span className="opp-am">💰 High Yield</span><span className="opp-am">🔒 Gated</span></div>
-          <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd - FDP vetted partner. FDP provides independent advisory. Advisory fee applies to facilitated engagements.</div>
-        </div>
-        <div className="opp-card-footer">
-          <div><div className="opp-price-label">12 to 18 months plan available</div><div className="opp-price">₦512,324,851</div></div>
-          <div style={{display:'flex',gap:'.5rem'}}>
-            <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Phase III - 2-Bed Block of Apartments (6 Units)')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
-            <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Phase III - 2-Bed Block of Apartments (6 Units)','₦512,324,851','Mshel Homes Phase III via FDP')}}>Enquire</button>
-          </div>
-        </div>
-      </div>
-      <div className="opp-card" data-source="developer" data-type="residential" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="656" data-date="2026-05-15"><div className="opp-media"><img src="/assets/illustrations/i5.svg" alt="Phase III - 3-Bed Block of Apartments (6 Units) - indicative illustration" loading="lazy"/><div className="opp-media-top"><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}><span className="img-badge">Mshel Homes · Phase III</span></div><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}><span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span><span className="img-badge">FCDA Approved</span></div></div><div className="opp-media-bot"><div className="opp-media-ttl">Phase III - 3-Bed Block of Apartments (6 Units)</div><div className="opp-media-sub">Phase III · Airport Road, Abuja</div></div></div><div className="opp-card-body">
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>3-Bedroom Block of Apartments - 6 Units</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>12 to 18 months payment plan available</div>
-          <p className="opp-desc">Flagship whole block of 6 × 3-bedroom apartments in Mshel Hutu Exclusive Phase III. Institutional capital in a premium Golf Resort Estate. The highest-yield block product in the development. 12-18 months. 25% price review 7th June 2026.</p>
-          <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020'}}>⚡ Price Review 7 Jun</span></div>
-          <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort</span><span className="opp-am">📊 6-Unit Block</span><span className="opp-am">💰 Institutional</span><span className="opp-am">🔒 Gated</span></div>
-          <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd - FDP vetted partner. FDP provides independent advisory. Advisory fee applies to facilitated engagements.</div>
-        </div>
-        <div className="opp-card-footer">
-          <div><div className="opp-price-label">12 to 18 months plan available</div><div className="opp-price">₦655,543,211</div></div>
-          <div style={{display:'flex',gap:'.5rem'}}>
-            <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Phase III - 3-Bed Block of Apartments (6 Units)')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
-            <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Phase III - 3-Bed Block of Apartments (6 Units)','₦655,543,211','Mshel Homes Phase III via FDP')}}>Enquire</button>
-          </div>
-        </div>
-      </div>
-      <div className="opp-card" data-source="developer" data-type="land" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="true" data-offplan="true" data-price="7" data-date="2026-05-15"><div className="opp-media"><img src="/assets/illustrations/i4.svg" alt="Phase III Estate Land - Azure 150SQM · 3-Bed Terrace Duplex - indicative illustration" loading="lazy"/><div className="opp-media-top"><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}><span className="img-badge">Mshel Homes · Phase III</span></div><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}><span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span><span className="img-badge">FCDA Approved</span></div></div><div className="opp-media-bot"><div className="opp-media-ttl">Phase III Estate Land - Azure 150SQM · 3-Bed Terrace Duplex</div><div className="opp-media-sub">Phase III · Airport Road, Abuja</div></div></div><div className="opp-card-body">
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>AZURE · 150SQM · Three Bedroom Terrace Duplex - Estate Land</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>4 to 18 months payment plan available</div>
-          <p className="opp-desc">AZURE - 150SQM estate land in Hutu Exclusive Phase III for a 3-bedroom terrace duplex. The most accessible entry point to own a premium Golf Resort Estate address in Abuja. 4-18 month plan. 25% review from 7th June 2026.</p>
-          <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className='opp-tag tag-green'>Affordable Entry</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020'}}>⚡ Price Review 7 Jun</span></div>
-          <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort</span><span className="opp-am">🏘️ Terrace</span><span className="opp-am">🔒 Gated</span><span className="opp-am">🌿 Serviced</span></div>
-          <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd - FDP vetted partner. FDP provides independent advisory. Advisory fee applies to facilitated engagements.</div>
-        </div>
-        <div className="opp-card-footer">
-          <div><div className="opp-price-label">4 to 18 months plan available</div><div className="opp-price">₦7,481,250</div></div>
-          <div style={{display:'flex',gap:'.5rem'}}>
-            <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Phase III Estate Land - Azure 150SQM · 3-Bed Terrace Duplex')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
-            <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Phase III Estate Land - Azure 150SQM · 3-Bed Terrace Duplex','₦7,481,250','Mshel Homes Phase III via FDP')}}>Enquire</button>
-          </div>
-        </div>
-      </div>
-      <div className="opp-card" data-source="developer" data-type="land" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="true" data-offplan="true" data-price="12" data-date="2026-05-15"><div className="opp-media"><img src="/assets/illustrations/i4.svg" alt="Phase III Estate Land - Starry 250SQM · 3-Bed Semi-Det. Pent House - indicative illustration" loading="lazy"/><div className="opp-media-top"><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}><span className="img-badge">Mshel Homes · Phase III</span></div><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}><span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span><span className="img-badge">FCDA Approved</span></div></div><div className="opp-media-bot"><div className="opp-media-ttl">Phase III Estate Land - Starry 250SQM · 3-Bed Semi-Det. Pent House</div><div className="opp-media-sub">Phase III · Airport Road, Abuja</div></div></div><div className="opp-card-body">
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>STARRY · 250SQM · 3-Bedroom Semi-Detached Pent House - Estate Land</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>4 to 18 months payment plan available</div>
-          <p className="opp-desc">STARRY - 250SQM estate land in Hutu Exclusive Phase III for a 3-bedroom semi-detached pent house. A rare pent house product in a Golf Estate setting. 4-18 month plan. 25% price review from 7th June 2026.</p>
-          <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className='opp-tag tag-green'>Affordable Entry</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020'}}>⚡ Price Review 7 Jun</span></div>
-          <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort</span><span className="opp-am">🏠 Pent House</span><span className="opp-am">🔒 Gated</span><span className="opp-am">🌿 Serviced</span></div>
-          <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd - FDP vetted partner. FDP provides independent advisory. Advisory fee applies to facilitated engagements.</div>
-        </div>
-        <div className="opp-card-footer">
-          <div><div className="opp-price-label">4 to 18 months plan available</div><div className="opp-price">₦12,468,750</div></div>
-          <div style={{display:'flex',gap:'.5rem'}}>
-            <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Phase III Estate Land - Starry 250SQM · 3-Bed Semi-Det. Pent House')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
-            <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Phase III Estate Land - Starry 250SQM · 3-Bed Semi-Det. Pent House','₦12,468,750','Mshel Homes Phase III via FDP')}}>Enquire</button>
-          </div>
-        </div>
-      </div>
-      <div className="opp-card" data-source="developer" data-type="land" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="15" data-date="2026-05-15"><div className="opp-media"><img src="/assets/illustrations/i4.svg" alt="Phase III Estate Land - 350SQM · 4-Bed Fully Detached Duplex - indicative illustration" loading="lazy"/><div className="opp-media-top"><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}><span className="img-badge">Mshel Homes · Phase III</span></div><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}><span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span><span className="img-badge">FCDA Approved</span></div></div><div className="opp-media-bot"><div className="opp-media-ttl">Phase III Estate Land - 350SQM · 4-Bed Fully Detached Duplex</div><div className="opp-media-sub">Phase III · Airport Road, Abuja</div></div></div><div className="opp-card-body">
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>350SQM · Four Bedroom Fully Detached Duplex - Estate Land</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>4 to 18 months payment plan available</div>
-          <p className="opp-desc">350SQM estate land in Hutu Exclusive Phase III for a 4-bedroom fully detached duplex. FCDA-approved Golf Resort Estate on Abuja's Airport Road corridor. Strong capital appreciation outlook. 4-18 months. 25% review 7th June 2026.</p>
-          <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020'}}>⚡ Price Review 7 Jun</span></div>
-          <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort</span><span className="opp-am">🏗️ Fully Detached</span><span className="opp-am">🔒 Gated</span><span className="opp-am">🌿 Serviced</span></div>
-          <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd - FDP vetted partner. FDP provides independent advisory. Advisory fee applies to facilitated engagements.</div>
-        </div>
-        <div className="opp-card-footer">
-          <div><div className="opp-price-label">4 to 18 months plan available</div><div className="opp-price">₦14,960,938</div></div>
-          <div style={{display:'flex',gap:'.5rem'}}>
-            <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Phase III Estate Land - 350SQM · 4-Bed Fully Detached Duplex')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
-            <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Phase III Estate Land - 350SQM · 4-Bed Fully Detached Duplex','₦14,960,938','Mshel Homes Phase III via FDP')}}>Enquire</button>
-          </div>
-        </div>
-      </div>
-      <div className="opp-card" data-source="developer" data-type="land" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="25" data-date="2026-05-15"><div className="opp-media"><img src="/assets/illustrations/i4.svg" alt="Phase III Estate Land - 500SQM · 5-Bed Fully Detached Duplex - indicative illustration" loading="lazy"/><div className="opp-media-top"><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}><span className="img-badge">Mshel Homes · Phase III</span></div><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}><span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span><span className="img-badge">FCDA Approved</span></div></div><div className="opp-media-bot"><div className="opp-media-ttl">Phase III Estate Land - 500SQM · 5-Bed Fully Detached Duplex</div><div className="opp-media-sub">Phase III · Airport Road, Abuja</div></div></div><div className="opp-card-body">
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>500SQM · Five Bedroom Fully Detached Duplex - Estate Land</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>4 to 18 months payment plan available</div>
-          <p className="opp-desc">500SQM estate land in Hutu Exclusive Phase III for a 5-bedroom fully detached duplex. FCDA-approved. Commanding mid-premium land position within one of Abuja's most prestigious Golf Resort developments. 4-18 months. 25% review 7th June 2026.</p>
-          <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020'}}>⚡ Price Review 7 Jun</span></div>
-          <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort</span><span className="opp-am">🏗️ Fully Detached</span><span className="opp-am">🔒 Gated</span><span className="opp-am">🌿 Serviced</span></div>
-          <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd - FDP vetted partner. FDP provides independent advisory. Advisory fee applies to facilitated engagements.</div>
-        </div>
-        <div className="opp-card-footer">
-          <div><div className="opp-price-label">4 to 18 months plan available</div><div className="opp-price">₦24,937,500</div></div>
-          <div style={{display:'flex',gap:'.5rem'}}>
-            <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Phase III Estate Land - 500SQM · 5-Bed Fully Detached Duplex')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
-            <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Phase III Estate Land - 500SQM · 5-Bed Fully Detached Duplex','₦24,937,500','Mshel Homes Phase III via FDP')}}>Enquire</button>
-          </div>
-        </div>
-      </div>
-      <div className="opp-card" data-source="developer" data-type="land" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="37" data-date="2026-05-15"><div className="opp-media"><img src="/assets/illustrations/i4.svg" alt="Phase III Estate Land - 750SQM · 2-Bed Block of Apartments - indicative illustration" loading="lazy"/><div className="opp-media-top"><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}><span className="img-badge">Mshel Homes · Phase III</span></div><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}><span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span><span className="img-badge">FCDA Approved</span></div></div><div className="opp-media-bot"><div className="opp-media-ttl">Phase III Estate Land - 750SQM · 2-Bed Block of Apartments</div><div className="opp-media-sub">Phase III · Airport Road, Abuja</div></div></div><div className="opp-card-body">
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>750SQM · Two Bedroom Block of Apartments - Estate Land</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>4 to 18 months payment plan available</div>
-          <p className="opp-desc">750SQM estate land in Hutu Exclusive Phase III for a 2-bedroom block of apartments development. Strong rental income plot within the Golf Resort Estate. Airport Road, Abuja. 4-18 month plan. 25% price review 7th June 2026.</p>
-          <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020'}}>⚡ Price Review 7 Jun</span></div>
-          <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort</span><span className="opp-am">🏢 Rental Block</span><span className="opp-am">🔒 Gated</span><span className="opp-am">🌿 Serviced</span></div>
-          <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd - FDP vetted partner. FDP provides independent advisory. Advisory fee applies to facilitated engagements.</div>
-        </div>
-        <div className="opp-card-footer">
-          <div><div className="opp-price-label">4 to 18 months plan available</div><div className="opp-price">₦37,400,000</div></div>
-          <div style={{display:'flex',gap:'.5rem'}}>
-            <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Phase III Estate Land - 750SQM · 2-Bed Block of Apartments')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
-            <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Phase III Estate Land - 750SQM · 2-Bed Block of Apartments','₦37,400,000','Mshel Homes Phase III via FDP')}}>Enquire</button>
-          </div>
-        </div>
-      </div>
-      <div className="opp-card" data-source="developer" data-type="land" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="50" data-date="2026-05-15"><div className="opp-media"><img src="/assets/illustrations/i4.svg" alt="Phase III Estate Land - 1000SQM · 7-Bed Fully Detached Duplex - indicative illustration" loading="lazy"/><div className="opp-media-top"><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}><span className="img-badge">Mshel Homes · Phase III</span></div><div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}><span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span><span className="img-badge">FCDA Approved</span></div></div><div className="opp-media-bot"><div className="opp-media-ttl">Phase III Estate Land - 1000SQM · 7-Bed Fully Detached Duplex</div><div className="opp-media-sub">Phase III · Airport Road, Abuja</div></div></div><div className="opp-card-body">
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>1000SQM · Seven Bedroom Fully Detached Duplex - Estate Land</div>
-          <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>4 to 18 months payment plan available</div>
-          <p className="opp-desc">1,000SQM flagship estate land in Hutu Exclusive Phase III for a 7-bedroom fully detached duplex. Institutional-grade holding in a premier Golf Resort Estate. The ultimate premium address on Abuja Airport Road. 4-18 months. 25% review 7th June 2026.</p>
-          <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020'}}>⚡ Price Review 7 Jun</span></div>
-          <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort</span><span className="opp-am">🏰 Flagship Plot</span><span className="opp-am">🔒 Gated</span><span className="opp-am">🌿 Serviced</span></div>
-          <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd - FDP vetted partner. FDP provides independent advisory. Advisory fee applies to facilitated engagements.</div>
-        </div>
-        <div className="opp-card-footer">
-          <div><div className="opp-price-label">4 to 18 months plan available</div><div className="opp-price">₦49,867,188</div></div>
-          <div style={{display:'flex',gap:'.5rem'}}>
-            <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Phase III Estate Land - 1000SQM · 7-Bed Fully Detached Duplex')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
-            <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Phase III Estate Land - 1000SQM · 7-Bed Fully Detached Duplex','₦49,867,188','Mshel Homes Phase III via FDP')}}>Enquire</button>
-          </div>
-        </div>
-      </div>
-      </div>
 
-      {/* Phase III footer note */}
-      <div style={{marginTop:'2rem',padding:'1.25rem 1.75rem',background:'rgba(10,24,32,.04)',border:'1px solid rgba(10,24,32,.1)',borderRadius:'var(--radius-md)',display:'flex',alignItems:'flex-start',gap:'12px'}}>
+        <div className="opp-card" style={{display: isHutuVisible('phase-1-2','apartment') ? 'flex' : 'none'}} data-source="developer" data-type="residential" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="102" data-date="2026-05-15">
+          <div className="opp-media">
+            <img src="/assets/illustrations/i5.svg" alt="Hutu Exclusive - 3-Bedroom Apartment - indicative illustration" loading="lazy"/>
+            <div className="opp-media-top">
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}>
+                <span className="img-badge">Mshel Homes · Phase I &amp; II</span>
+              </div>
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}>
+                <span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span>
+                <span className="img-badge">FCDA Approved</span>
+              </div>
+            </div>
+            <div className="opp-media-bot">
+              <div className="opp-media-ttl">Hutu Exclusive - 3-Bedroom Apartment</div>
+              <div className="opp-media-sub">Phase I &amp; II · Abuja · Airport Road</div>
+            </div>
+          </div>
+          <div className="opp-card-body">
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>3-bedroom apartment</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>12 to 18 months</div>
+            <p className="opp-desc">Spacious 3-bedroom apartment in Mshel Hutu Exclusive Golf Resort Estate. FCDA-approved. Flexible 12-18 month payment plan. Prices increase by 25% effective 7th June 2026 - this is a time-sensitive opportunity at current pricing.</p>
+            <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020',border:'none'}}>⚡ Price Review 7 Jun</span></div>
+            <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort Estate</span><span className="opp-am">🔒 Gated</span><span className="opp-am">⚡ Backup Power</span><span className="opp-am">🌿 Landscaped</span></div>
+            <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd has passed FDP partner vetting. FDP provides independent advisory - not developer sales. Advisory fee applies to facilitated engagements.</div>
+          </div>
+          <div className="opp-card-footer">
+            <div><div className="opp-price-label">Price (12-18 mo. plan)</div><div className="opp-price">₦102,199,875</div></div>
+            <div style={{display:'flex',gap:'.5rem'}}>
+              <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Hutu Exclusive - 3-Bedroom Apartment')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+              <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Hutu Exclusive - 3-Bedroom Apartment','₦102,199,875','Mshel Homes via FDP')}}>Enquire</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="opp-card" style={{display: isHutuVisible('phase-1-2','land') ? 'flex' : 'none'}} data-source="developer" data-type="land" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="54" data-date="2026-05-15">
+          <div className="opp-media">
+            <img src="/assets/illustrations/i4.svg" alt="Hutu Exclusive Land - 500SQM · 5-Bed Fully Detached Duplex - indicative illustration" loading="lazy"/>
+            <div className="opp-media-top">
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}>
+                <span className="img-badge">Mshel Homes · Phase I &amp; II</span>
+              </div>
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}>
+                <span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span>
+                <span className="img-badge">FCDA Approved</span>
+              </div>
+            </div>
+            <div className="opp-media-bot">
+              <div className="opp-media-ttl">Hutu Exclusive Land - 500SQM · 5-Bed Fully Detached Duplex</div>
+              <div className="opp-media-sub">Phase I &amp; II · Land · Abuja · Airport Road</div>
+            </div>
+          </div>
+          <div className="opp-card-body">
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>500SQM · 5-Bed Fully Detached Duplex</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>4 to 8 months</div>
+            <p className="opp-desc">500SQM estate land within Hutu Exclusive Golf Resort Estate, approved for a 5-bedroom fully detached duplex. FCDA-approved. Outstanding build-to-own capital position in one of Abuja's fastest-appreciating corridors. 4-8 month payment plan. 25% price review effective 7th June 2026.</p>
+            <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020',border:'none'}}>⚡ Price Review 7 Jun</span></div>
+            <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort Estate</span><span className="opp-am">🏗️ Build-to-Own</span><span className="opp-am">🔒 Gated</span><span className="opp-am">🌿 Serviced</span></div>
+            <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd has passed FDP partner vetting. FDP provides independent advisory - not developer sales. Advisory fee applies to facilitated engagements.</div>
+          </div>
+          <div className="opp-card-footer">
+            <div><div className="opp-price-label">Price (4-8 mo. plan)</div><div className="opp-price">₦54,432,000</div></div>
+            <div style={{display:'flex',gap:'.5rem'}}>
+              <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Hutu Exclusive Land - 500SQM · 5-Bed Fully Detached Duplex')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+              <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Hutu Exclusive Land - 500SQM · 5-Bed Fully Detached Duplex','₦54,432,000','Mshel Homes via FDP')}}>Enquire</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="opp-card" style={{display: isHutuVisible('phase-1-2','land') ? 'flex' : 'none'}} data-source="developer" data-type="land" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="true" data-offplan="true" data-price="16" data-date="2026-05-15">
+          <div className="opp-media">
+            <img src="/assets/illustrations/i4.svg" alt="Hutu Exclusive Land - 150SQM · 3-Bed Terrace Duplex - indicative illustration" loading="lazy"/>
+            <div className="opp-media-top">
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}>
+                <span className="img-badge">Mshel Homes · Phase I &amp; II</span>
+              </div>
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}>
+                <span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span>
+                <span className="img-badge">FCDA Approved</span>
+              </div>
+            </div>
+            <div className="opp-media-bot">
+              <div className="opp-media-ttl">Hutu Exclusive Land - 150SQM · 3-Bed Terrace Duplex</div>
+              <div className="opp-media-sub">Phase I &amp; II · Land · Abuja · Airport Road</div>
+            </div>
+          </div>
+          <div className="opp-card-body">
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>150SQM · 3-Bed Terrace Duplex</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>4 to 8 months</div>
+            <p className="opp-desc">Entry-level estate land in Hutu Exclusive Golf Resort Estate for a 3-bedroom terrace duplex. FCDA-approved. The most accessible price point to own a premium Abuja Golf Estate address. 4-8 month payment plan. Subject to 25% price review from 7th June 2026.</p>
+            <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020',border:'none'}}>⚡ Price Review 7 Jun</span></div>
+            <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort Estate</span><span className="opp-am">🏘️ Terrace</span><span className="opp-am">🔒 Gated</span><span className="opp-am">🌿 Serviced</span></div>
+            <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd has passed FDP partner vetting. FDP provides independent advisory - not developer sales. Advisory fee applies to facilitated engagements.</div>
+          </div>
+          <div className="opp-card-footer">
+            <div><div className="opp-price-label">Price (4-8 mo. plan)</div><div className="opp-price">₦16,329,600</div></div>
+            <div style={{display:'flex',gap:'.5rem'}}>
+              <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Hutu Exclusive Land - 150SQM · 3-Bed Terrace Duplex')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+              <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Hutu Exclusive Land - 150SQM · 3-Bed Terrace Duplex','₦16,329,600','Mshel Homes via FDP')}}>Enquire</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="opp-card" style={{display: isHutuVisible('phase-1-2','land') ? 'flex' : 'none'}} data-source="developer" data-type="land" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="27" data-date="2026-05-15">
+          <div className="opp-media">
+            <img src="/assets/illustrations/i4.svg" alt="Hutu Exclusive Land - 250SQM · 4-Bed Semi-Detached Duplex - indicative illustration" loading="lazy"/>
+            <div className="opp-media-top">
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}>
+                <span className="img-badge">Mshel Homes · Phase I &amp; II</span>
+              </div>
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}>
+                <span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span>
+                <span className="img-badge">FCDA Approved</span>
+              </div>
+            </div>
+            <div className="opp-media-bot">
+              <div className="opp-media-ttl">Hutu Exclusive Land - 250SQM · 4-Bed Semi-Detached Duplex</div>
+              <div className="opp-media-sub">Phase I &amp; II · Land · Abuja · Airport Road</div>
+            </div>
+          </div>
+          <div className="opp-card-body">
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>250SQM · 4-Bed Semi-Detached Duplex</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>4 to 8 months</div>
+            <p className="opp-desc">250SQM estate land in Hutu Exclusive for a 4-bedroom semi-detached duplex. FCDA-approved. Intelligently priced mid-range position in one of Abuja's most prestigious emerging addresses. 4-8 month payment plan. 25% price review from 7th June 2026.</p>
+            <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020',border:'none'}}>⚡ Price Review 7 Jun</span></div>
+            <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort Estate</span><span className="opp-am">🏗️ Semi-Detached</span><span className="opp-am">🔒 Gated</span><span className="opp-am">🌿 Serviced</span></div>
+            <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd has passed FDP partner vetting. FDP provides independent advisory - not developer sales. Advisory fee applies to facilitated engagements.</div>
+          </div>
+          <div className="opp-card-footer">
+            <div><div className="opp-price-label">Price (4-8 mo. plan)</div><div className="opp-price">₦27,216,000</div></div>
+            <div style={{display:'flex',gap:'.5rem'}}>
+              <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Hutu Exclusive Land - 250SQM · 4-Bed Semi-Detached Duplex')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+              <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Hutu Exclusive Land - 250SQM · 4-Bed Semi-Detached Duplex','₦27,216,000','Mshel Homes via FDP')}}>Enquire</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="opp-card" style={{display: isHutuVisible('phase-1-2','land') ? 'flex' : 'none'}} data-source="developer" data-type="land" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="38" data-date="2026-05-15">
+          <div className="opp-media">
+            <img src="/assets/illustrations/i4.svg" alt="Hutu Exclusive Land - 350SQM · 4-Bed Fully Detached Duplex - indicative illustration" loading="lazy"/>
+            <div className="opp-media-top">
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}>
+                <span className="img-badge">Mshel Homes · Phase I &amp; II</span>
+              </div>
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}>
+                <span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span>
+                <span className="img-badge">FCDA Approved</span>
+              </div>
+            </div>
+            <div className="opp-media-bot">
+              <div className="opp-media-ttl">Hutu Exclusive Land - 350SQM · 4-Bed Fully Detached Duplex</div>
+              <div className="opp-media-sub">Phase I &amp; II · Land · Abuja · Airport Road</div>
+            </div>
+          </div>
+          <div className="opp-card-body">
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>350SQM · 4-Bed Fully Detached Duplex</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>4 to 8 months</div>
+            <p className="opp-desc">350SQM estate land in Hutu Exclusive Golf Resort Estate for a 4-bedroom fully detached duplex. FCDA-approved. Strong mid-premium land position. 4-8 month payment plan. Act before the 25% price review effective 7th June 2026.</p>
+            <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020',border:'none'}}>⚡ Price Review 7 Jun</span></div>
+            <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort Estate</span><span className="opp-am">🏗️ Fully Detached</span><span className="opp-am">🔒 Gated</span><span className="opp-am">🌿 Serviced</span></div>
+            <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd has passed FDP partner vetting. FDP provides independent advisory - not developer sales. Advisory fee applies to facilitated engagements.</div>
+          </div>
+          <div className="opp-card-footer">
+            <div><div className="opp-price-label">Price (4-8 mo. plan)</div><div className="opp-price">₦38,102,400</div></div>
+            <div style={{display:'flex',gap:'.5rem'}}>
+              <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Hutu Exclusive Land - 350SQM · 4-Bed Fully Detached Duplex')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+              <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Hutu Exclusive Land - 350SQM · 4-Bed Fully Detached Duplex','₦38,102,400','Mshel Homes via FDP')}}>Enquire</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="opp-card" style={{display: isHutuVisible('phase-1-2','land') ? 'flex' : 'none'}} data-source="developer" data-type="land" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="44" data-date="2026-05-15">
+          <div className="opp-media">
+            <img src="/assets/illustrations/i4.svg" alt="Hutu Exclusive Land - 450SQM · 1-Bed Block of Apartments - indicative illustration" loading="lazy"/>
+            <div className="opp-media-top">
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}>
+                <span className="img-badge">Mshel Homes · Phase I &amp; II</span>
+              </div>
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}>
+                <span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span>
+                <span className="img-badge">FCDA Approved</span>
+              </div>
+            </div>
+            <div className="opp-media-bot">
+              <div className="opp-media-ttl">Hutu Exclusive Land - 450SQM · 1-Bed Block of Apartments</div>
+              <div className="opp-media-sub">Phase I &amp; II · Land · Abuja · Airport Road</div>
+            </div>
+          </div>
+          <div className="opp-card-body">
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>450SQM · 1-Bed Block of Apartments</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>4 to 8 months</div>
+            <p className="opp-desc">450SQM estate land in Hutu Exclusive for a 1-bedroom block of apartments. FCDA-approved. Ideal for rental income investors building a portfolio within a premium Golf Estate address. 4-8 month payment plan. 25% price review from 7th June 2026.</p>
+            <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020',border:'none'}}>⚡ Price Review 7 Jun</span></div>
+            <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort Estate</span><span className="opp-am">🏢 Rental Income Plot</span><span className="opp-am">🔒 Gated</span><span className="opp-am">🌿 Serviced</span></div>
+            <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd has passed FDP partner vetting. FDP provides independent advisory - not developer sales. Advisory fee applies to facilitated engagements.</div>
+          </div>
+          <div className="opp-card-footer">
+            <div><div className="opp-price-label">Price (4-8 mo. plan)</div><div className="opp-price">₦43,740,000</div></div>
+            <div style={{display:'flex',gap:'.5rem'}}>
+              <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Hutu Exclusive Land - 450SQM · 1-Bed Block of Apartments')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+              <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Hutu Exclusive Land - 450SQM · 1-Bed Block of Apartments','₦43,740,000','Mshel Homes via FDP')}}>Enquire</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="opp-card" style={{display: isHutuVisible('phase-1-2','land') ? 'flex' : 'none'}} data-source="developer" data-type="land" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="109" data-date="2026-05-15">
+          <div className="opp-media">
+            <img src="/assets/illustrations/i4.svg" alt="Hutu Exclusive Land - 1000SQM · 3-Bed Block of Apartments - indicative illustration" loading="lazy"/>
+            <div className="opp-media-top">
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}>
+                <span className="img-badge">Mshel Homes · Phase I &amp; II</span>
+              </div>
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}>
+                <span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span>
+                <span className="img-badge">FCDA Approved</span>
+              </div>
+            </div>
+            <div className="opp-media-bot">
+              <div className="opp-media-ttl">Hutu Exclusive Land - 1000SQM · 3-Bed Block of Apartments</div>
+              <div className="opp-media-sub">Phase I &amp; II · Land · Abuja · Airport Road</div>
+            </div>
+          </div>
+          <div className="opp-card-body">
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>1000SQM · 3-Bed Block of Apartments</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>4 to 8 months</div>
+            <p className="opp-desc">1,000SQM premium estate land in Hutu Exclusive for a 3-bedroom block of apartments development. FCDA-approved. Institutional-grade land holding in one of Abuja's most prestigious emerging golf resort addresses. 4-8 month payment plan. Subject to 25% price review from 7th June 2026.</p>
+            <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020',border:'none'}}>⚡ Price Review 7 Jun</span></div>
+            <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort Estate</span><span className="opp-am">🏢 Institutional Land</span><span className="opp-am">🔒 Gated</span><span className="opp-am">🌿 Serviced</span></div>
+            <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd has passed FDP partner vetting. FDP provides independent advisory - not developer sales. Advisory fee applies to facilitated engagements.</div>
+          </div>
+          <div className="opp-card-footer">
+            <div><div className="opp-price-label">Price (4-8 mo. plan)</div><div className="opp-price">₦108,864,000</div></div>
+            <div style={{display:'flex',gap:'.5rem'}}>
+              <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Hutu Exclusive Land - 1000SQM · 3-Bed Block of Apartments')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+              <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Hutu Exclusive Land - 1000SQM · 3-Bed Block of Apartments','₦108,864,000','Mshel Homes via FDP')}}>Enquire</button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── PHASE III LISTINGS ── */}
+        <div className="opp-card" style={{display: isHutuVisible('phase-3','apartment') ? 'flex' : 'none'}} data-source="developer" data-type="residential" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="50" data-date="2026-05-15">
+          <div className="opp-media">
+            <img src="/assets/illustrations/i5.svg" alt="Hutu Exclusive Phase III - 1-Bed Apartment - indicative illustration" loading="lazy"/>
+            <div className="opp-media-top">
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}>
+                <span className="img-badge">Mshel Homes · Phase III</span>
+              </div>
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}>
+                <span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span>
+                <span className="img-badge">FCDA Approved</span>
+              </div>
+            </div>
+            <div className="opp-media-bot">
+              <div className="opp-media-ttl">Hutu Exclusive Phase III - 1-Bed Apartment</div>
+              <div className="opp-media-sub">Phase III · Airport Road, Abuja</div>
+            </div>
+          </div>
+          <div className="opp-card-body">
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>1-Bedroom Apartment</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>12 to 18 months payment plan available</div>
+            <p className="opp-desc">Premium 1-bedroom apartment in Mshel Hutu Exclusive Phase III Golf Resort Estate. Airport Road, Abuja. Flexible 12-18 month payment plan. Subject to 25% price review effective 7th June 2026.</p>
+            <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020'}}>⚡ Price Review 7 Jun</span></div>
+            <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort</span><span className="opp-am">⚡ Backup Power</span><span className="opp-am">🔒 Gated</span><span className="opp-am">🌿 Landscaped</span></div>
+            <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd - FDP vetted partner. FDP provides independent advisory. Advisory fee applies to facilitated engagements.</div>
+          </div>
+          <div className="opp-card-footer">
+            <div><div className="opp-price-label">12 to 18 months plan available</div><div className="opp-price">₦49,988,480</div></div>
+            <div style={{display:'flex',gap:'.5rem'}}>
+              <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Hutu Exclusive Phase III - 1-Bed Apartment')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+              <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Hutu Exclusive Phase III - 1-Bed Apartment','₦49,988,480','Mshel Homes Phase III via FDP')}}>Enquire</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="opp-card" style={{display: isHutuVisible('phase-3','apartment') ? 'flex' : 'none'}} data-source="developer" data-type="residential" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="77" data-date="2026-05-15">
+          <div className="opp-media">
+            <img src="/assets/illustrations/i5.svg" alt="Hutu Exclusive Phase III - 2-Bed Apartment - indicative illustration" loading="lazy"/>
+            <div className="opp-media-top">
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}>
+                <span className="img-badge">Mshel Homes · Phase III</span>
+              </div>
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}>
+                <span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span>
+                <span className="img-badge">FCDA Approved</span>
+              </div>
+            </div>
+            <div className="opp-media-bot">
+              <div className="opp-media-ttl">Hutu Exclusive Phase III - 2-Bed Apartment</div>
+              <div className="opp-media-sub">Phase III · Airport Road, Abuja</div>
+            </div>
+          </div>
+          <div className="opp-card-body">
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>2-Bedroom Apartment</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>12 to 18 months payment plan available</div>
+            <p className="opp-desc">Contemporary 2-bedroom apartment in Mshel Hutu Exclusive Phase III. Airport Road, Abuja. Flexible 12-18 month payment plan. 25% price review effective 7th June 2026 - current pricing is time-limited.</p>
+            <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020'}}>⚡ Price Review 7 Jun</span></div>
+            <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort</span><span className="opp-am">⚡ Backup Power</span><span className="opp-am">🔒 Gated</span><span className="opp-am">🌿 Landscaped</span></div>
+            <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd - FDP vetted partner. FDP provides independent advisory. Advisory fee applies to facilitated engagements.</div>
+          </div>
+          <div className="opp-card-footer">
+            <div><div className="opp-price-label">12 to 18 months plan available</div><div className="opp-price">₦76,538,817</div></div>
+            <div style={{display:'flex',gap:'.5rem'}}>
+              <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Hutu Exclusive Phase III - 2-Bed Apartment')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+              <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Hutu Exclusive Phase III - 2-Bed Apartment','₦76,538,817','Mshel Homes Phase III via FDP')}}>Enquire</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="opp-card" style={{display: isHutuVisible('phase-3','apartment') ? 'flex' : 'none'}} data-source="developer" data-type="residential" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="98" data-date="2026-05-15">
+          <div className="opp-media">
+            <img src="/assets/illustrations/i5.svg" alt="Hutu Exclusive Phase III - 3-Bed Apartment - indicative illustration" loading="lazy"/>
+            <div className="opp-media-top">
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}>
+                <span className="img-badge">Mshel Homes · Phase III</span>
+              </div>
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}>
+                <span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span>
+                <span className="img-badge">FCDA Approved</span>
+              </div>
+            </div>
+            <div className="opp-media-bot">
+              <div className="opp-media-ttl">Hutu Exclusive Phase III - 3-Bed Apartment</div>
+              <div className="opp-media-sub">Phase III · Airport Road, Abuja</div>
+            </div>
+          </div>
+          <div className="opp-card-body">
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>3-Bedroom Apartment</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>12 to 18 months payment plan available</div>
+            <p className="opp-desc">Spacious 3-bedroom apartment in Mshel Hutu Exclusive Phase III Golf Resort Estate. Airport Road, Abuja. 12-18 month payment plan. Act before the 25% price review on 7th June 2026.</p>
+            <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020'}}>⚡ Price Review 7 Jun</span></div>
+            <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort</span><span className="opp-am">⚡ Backup Power</span><span className="opp-am">🔒 Gated</span><span className="opp-am">🌿 Landscaped</span></div>
+            <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd - FDP vetted partner. FDP provides independent advisory. Advisory fee applies to facilitated engagements.</div>
+          </div>
+          <div className="opp-card-footer">
+            <div><div className="opp-price-label">12 to 18 months plan available</div><div className="opp-price">₦97,551,073</div></div>
+            <div style={{display:'flex',gap:'.5rem'}}>
+              <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Hutu Exclusive Phase III - 3-Bed Apartment')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+              <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Hutu Exclusive Phase III - 3-Bed Apartment','₦97,551,073','Mshel Homes Phase III via FDP')}}>Enquire</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="opp-card" style={{display: isHutuVisible('phase-3','block') ? 'flex' : 'none'}} data-source="developer" data-type="residential" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="336" data-date="2026-05-15">
+          <div className="opp-media">
+            <img src="/assets/illustrations/i5.svg" alt="Phase III - 1-Bed Block of Apartments (6 Units) - indicative illustration" loading="lazy"/>
+            <div className="opp-media-top">
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}>
+                <span className="img-badge">Mshel Homes · Phase III</span>
+              </div>
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}>
+                <span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span>
+                <span className="img-badge">FCDA Approved</span>
+              </div>
+            </div>
+            <div className="opp-media-bot">
+              <div className="opp-media-ttl">Phase III - 1-Bed Block of Apartments (6 Units)</div>
+              <div className="opp-media-sub">Phase III · Airport Road, Abuja</div>
+            </div>
+          </div>
+          <div className="opp-card-body">
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>1-Bedroom Block of Apartments - 6 Units</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>12 to 18 months payment plan available</div>
+            <p className="opp-desc">Whole block of 6 × 1-bedroom apartments in Mshel Hutu Exclusive Phase III. Institutional-grade rental income investment in a premium Golf Resort Estate. 12-18 month plan. 25% price review 7th June 2026.</p>
+            <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020'}}>⚡ Price Review 7 Jun</span></div>
+            <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort</span><span className="opp-am">📊 6-Unit Block</span><span className="opp-am">💰 Rental Yield</span><span className="opp-am">🔒 Gated</span></div>
+            <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd - FDP vetted partner. FDP provides independent advisory. Advisory fee applies to facilitated engagements.</div>
+          </div>
+          <div className="opp-card-footer">
+            <div><div className="opp-price-label">12 to 18 months plan available</div><div className="opp-price">₦335,922,609</div></div>
+            <div style={{display:'flex',gap:'.5rem'}}>
+              <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Phase III - 1-Bed Block of Apartments (6 Units)')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+              <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Phase III - 1-Bed Block of Apartments (6 Units)','₦335,922,609','Mshel Homes Phase III via FDP')}}>Enquire</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="opp-card" style={{display: isHutuVisible('phase-3','block') ? 'flex' : 'none'}} data-source="developer" data-type="residential" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="512" data-date="2026-05-15">
+          <div className="opp-media">
+            <img src="/assets/illustrations/i5.svg" alt="Phase III - 2-Bed Block of Apartments (6 Units) - indicative illustration" loading="lazy"/>
+            <div className="opp-media-top">
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}>
+                <span className="img-badge">Mshel Homes · Phase III</span>
+              </div>
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}>
+                <span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span>
+                <span className="img-badge">FCDA Approved</span>
+              </div>
+            </div>
+            <div className="opp-media-bot">
+              <div className="opp-media-ttl">Phase III - 2-Bed Block of Apartments (6 Units)</div>
+              <div className="opp-media-sub">Phase III · Airport Road, Abuja</div>
+            </div>
+          </div>
+          <div className="opp-card-body">
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>2-Bedroom Block of Apartments - 6 Units</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>12 to 18 months payment plan available</div>
+            <p className="opp-desc">Whole block of 6 × 2-bedroom apartments in Mshel Hutu Exclusive Phase III. Premium rental income portfolio in a Golf Resort Estate, Airport Road, Abuja. 12-18 month plan. 25% price review 7th June 2026.</p>
+            <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020'}}>⚡ Price Review 7 Jun</span></div>
+            <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort</span><span className="opp-am">📊 6-Unit Block</span><span className="opp-am">💰 High Yield</span><span className="opp-am">🔒 Gated</span></div>
+            <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd - FDP vetted partner. FDP provides independent advisory. Advisory fee applies to facilitated engagements.</div>
+          </div>
+          <div className="opp-card-footer">
+            <div><div className="opp-price-label">12 to 18 months plan available</div><div className="opp-price">₦512,324,851</div></div>
+            <div style={{display:'flex',gap:'.5rem'}}>
+              <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Phase III - 2-Bed Block of Apartments (6 Units)')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+              <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Phase III - 2-Bed Block of Apartments (6 Units)','₦512,324,851','Mshel Homes Phase III via FDP')}}>Enquire</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="opp-card" style={{display: isHutuVisible('phase-3','block') ? 'flex' : 'none'}} data-source="developer" data-type="residential" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="656" data-date="2026-05-15">
+          <div className="opp-media">
+            <img src="/assets/illustrations/i5.svg" alt="Phase III - 3-Bed Block of Apartments (6 Units) - indicative illustration" loading="lazy"/>
+            <div className="opp-media-top">
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}>
+                <span className="img-badge">Mshel Homes · Phase III</span>
+              </div>
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}>
+                <span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span>
+                <span className="img-badge">FCDA Approved</span>
+              </div>
+            </div>
+            <div className="opp-media-bot">
+              <div className="opp-media-ttl">Phase III - 3-Bed Block of Apartments (6 Units)</div>
+              <div className="opp-media-sub">Phase III · Airport Road, Abuja</div>
+            </div>
+          </div>
+          <div className="opp-card-body">
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>3-Bedroom Block of Apartments - 6 Units</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>12 to 18 months payment plan available</div>
+            <p className="opp-desc">Flagship whole block of 6 × 3-bedroom apartments in Mshel Hutu Exclusive Phase III. Institutional capital in a premium Golf Resort Estate. The highest-yield block product in the development. 12-18 months. 25% price review 7th June 2026.</p>
+            <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020'}}>⚡ Price Review 7 Jun</span></div>
+            <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort</span><span className="opp-am">📊 6-Unit Block</span><span className="opp-am">💰 Institutional</span><span className="opp-am">🔒 Gated</span></div>
+            <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd - FDP vetted partner. FDP provides independent advisory. Advisory fee applies to facilitated engagements.</div>
+          </div>
+          <div className="opp-card-footer">
+            <div><div className="opp-price-label">12 to 18 months plan available</div><div className="opp-price">₦655,543,211</div></div>
+            <div style={{display:'flex',gap:'.5rem'}}>
+              <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Phase III - 3-Bed Block of Apartments (6 Units)')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+              <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Phase III - 3-Bed Block of Apartments (6 Units)','₦655,543,211','Mshel Homes Phase III via FDP')}}>Enquire</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="opp-card" style={{display: isHutuVisible('phase-3','land') ? 'flex' : 'none'}} data-source="developer" data-type="land" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="true" data-offplan="true" data-price="7" data-date="2026-05-15">
+          <div className="opp-media">
+            <img src="/assets/illustrations/i4.svg" alt="Phase III Estate Land - Azure 150SQM · 3-Bed Terrace Duplex - indicative illustration" loading="lazy"/>
+            <div className="opp-media-top">
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}>
+                <span className="img-badge">Mshel Homes · Phase III</span>
+              </div>
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}>
+                <span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span>
+                <span className="img-badge">FCDA Approved</span>
+              </div>
+            </div>
+            <div className="opp-media-bot">
+              <div className="opp-media-ttl">Phase III Estate Land - Azure 150SQM · 3-Bed Terrace Duplex</div>
+              <div className="opp-media-sub">Phase III · Airport Road, Abuja</div>
+            </div>
+          </div>
+          <div className="opp-card-body">
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>AZURE · 150SQM · Three Bedroom Terrace Duplex - Estate Land</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>4 to 18 months payment plan available</div>
+            <p className="opp-desc">AZURE - 150SQM estate land in Hutu Exclusive Phase III for a 3-bedroom terrace duplex. The most accessible entry point to own a premium Golf Resort Estate address in Abuja. 4-18 month plan. 25% review from 7th June 2026.</p>
+            <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className='opp-tag tag-green'>Affordable Entry</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020'}}>⚡ Price Review 7 Jun</span></div>
+            <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort</span><span className="opp-am">🏘️ Terrace</span><span className="opp-am">🔒 Gated</span><span className="opp-am">🌿 Serviced</span></div>
+            <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd - FDP vetted partner. FDP provides independent advisory. Advisory fee applies to facilitated engagements.</div>
+          </div>
+          <div className="opp-card-footer">
+            <div><div className="opp-price-label">4 to 18 months plan available</div><div className="opp-price">₦7,481,250</div></div>
+            <div style={{display:'flex',gap:'.5rem'}}>
+              <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Phase III Estate Land - Azure 150SQM · 3-Bed Terrace Duplex')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+              <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Phase III Estate Land - Azure 150SQM · 3-Bed Terrace Duplex','₦7,481,250','Mshel Homes Phase III via FDP')}}>Enquire</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="opp-card" style={{display: isHutuVisible('phase-3','land') ? 'flex' : 'none'}} data-source="developer" data-type="land" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="true" data-offplan="true" data-price="12" data-date="2026-05-15">
+          <div className="opp-media">
+            <img src="/assets/illustrations/i4.svg" alt="Phase III Estate Land - Starry 250SQM · 3-Bed Semi-Det. Pent House - indicative illustration" loading="lazy"/>
+            <div className="opp-media-top">
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}>
+                <span className="img-badge">Mshel Homes · Phase III</span>
+              </div>
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}>
+                <span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span>
+                <span className="img-badge">FCDA Approved</span>
+              </div>
+            </div>
+            <div className="opp-media-bot">
+              <div className="opp-media-ttl">Phase III Estate Land - Starry 250SQM · 3-Bed Semi-Det. Pent House</div>
+              <div className="opp-media-sub">Phase III · Airport Road, Abuja</div>
+            </div>
+          </div>
+          <div className="opp-card-body">
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>STARRY · 250SQM · 3-Bedroom Semi-Detached Pent House - Estate Land</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>4 to 18 months payment plan available</div>
+            <p className="opp-desc">STARRY - 250SQM estate land in Hutu Exclusive Phase III for a 3-bedroom semi-detached pent house. A rare pent house product in a Golf Estate setting. 4-18 month plan. 25% price review from 7th June 2026.</p>
+            <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className='opp-tag tag-green'>Affordable Entry</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020'}}>⚡ Price Review 7 Jun</span></div>
+            <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort</span><span className="opp-am">🏠 Pent House</span><span className="opp-am">🔒 Gated</span><span className="opp-am">🌿 Serviced</span></div>
+            <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd - FDP vetted partner. FDP provides independent advisory. Advisory fee applies to facilitated engagements.</div>
+          </div>
+          <div className="opp-card-footer">
+            <div><div className="opp-price-label">4 to 18 months plan available</div><div className="opp-price">₦12,468,750</div></div>
+            <div style={{display:'flex',gap:'.5rem'}}>
+              <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Phase III Estate Land - Starry 250SQM · 3-Bed Semi-Det. Pent House')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+              <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Phase III Estate Land - Starry 250SQM · 3-Bed Semi-Det. Pent House','₦12,468,750','Mshel Homes Phase III via FDP')}}>Enquire</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="opp-card" style={{display: isHutuVisible('phase-3','land') ? 'flex' : 'none'}} data-source="developer" data-type="land" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="15" data-date="2026-05-15">
+          <div className="opp-media">
+            <img src="/assets/illustrations/i4.svg" alt="Phase III Estate Land - 350SQM · 4-Bed Fully Detached Duplex - indicative illustration" loading="lazy"/>
+            <div className="opp-media-top">
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}>
+                <span className="img-badge">Mshel Homes · Phase III</span>
+              </div>
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}>
+                <span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span>
+                <span className="img-badge">FCDA Approved</span>
+              </div>
+            </div>
+            <div className="opp-media-bot">
+              <div className="opp-media-ttl">Phase III Estate Land - 350SQM · 4-Bed Fully Detached Duplex</div>
+              <div className="opp-media-sub">Phase III · Airport Road, Abuja</div>
+            </div>
+          </div>
+          <div className="opp-card-body">
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>350SQM · Four Bedroom Fully Detached Duplex - Estate Land</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>4 to 18 months payment plan available</div>
+            <p className="opp-desc">350SQM estate land in Hutu Exclusive Phase III for a 4-bedroom fully detached duplex. FCDA-approved Golf Resort Estate on Abuja's Airport Road corridor. Strong capital appreciation outlook. 4-18 months. 25% review 7th June 2026.</p>
+            <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020'}}>⚡ Price Review 7 Jun</span></div>
+            <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort</span><span className="opp-am">🏗️ Fully Detached</span><span className="opp-am">🔒 Gated</span><span className="opp-am">🌿 Serviced</span></div>
+            <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd - FDP vetted partner. FDP provides independent advisory. Advisory fee applies to facilitated engagements.</div>
+          </div>
+          <div className="opp-card-footer">
+            <div><div className="opp-price-label">4 to 18 months plan available</div><div className="opp-price">₦14,960,938</div></div>
+            <div style={{display:'flex',gap:'.5rem'}}>
+              <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Phase III Estate Land - 350SQM · 4-Bed Fully Detached Duplex')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+              <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Phase III Estate Land - 350SQM · 4-Bed Fully Detached Duplex','₦14,960,938','Mshel Homes Phase III via FDP')}}>Enquire</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="opp-card" style={{display: isHutuVisible('phase-3','land') ? 'flex' : 'none'}} data-source="developer" data-type="land" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="25" data-date="2026-05-15">
+          <div className="opp-media">
+            <img src="/assets/illustrations/i4.svg" alt="Phase III Estate Land - 500SQM · 5-Bed Fully Detached Duplex - indicative illustration" loading="lazy"/>
+            <div className="opp-media-top">
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}>
+                <span className="img-badge">Mshel Homes · Phase III</span>
+              </div>
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}>
+                <span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span>
+                <span className="img-badge">FCDA Approved</span>
+              </div>
+            </div>
+            <div className="opp-media-bot">
+              <div className="opp-media-ttl">Phase III Estate Land - 500SQM · 5-Bed Fully Detached Duplex</div>
+              <div className="opp-media-sub">Phase III · Airport Road, Abuja</div>
+            </div>
+          </div>
+          <div className="opp-card-body">
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>500SQM · Five Bedroom Fully Detached Duplex - Estate Land</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>4 to 18 months payment plan available</div>
+            <p className="opp-desc">500SQM estate land in Hutu Exclusive Phase III for a 5-bedroom fully detached duplex. FCDA-approved. Commanding mid-premium land position within one of Abuja's most prestigious Golf Resort developments. 4-18 months. 25% review 7th June 2026.</p>
+            <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020'}}>⚡ Price Review 7 Jun</span></div>
+            <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort</span><span className="opp-am">🏗️ Fully Detached</span><span className="opp-am">🔒 Gated</span><span className="opp-am">🌿 Serviced</span></div>
+            <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd - FDP vetted partner. FDP provides independent advisory. Advisory fee applies to facilitated engagements.</div>
+          </div>
+          <div className="opp-card-footer">
+            <div><div className="opp-price-label">4 to 18 months plan available</div><div className="opp-price">₦24,937,500</div></div>
+            <div style={{display:'flex',gap:'.5rem'}}>
+              <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Phase III Estate Land - 500SQM · 5-Bed Fully Detached Duplex')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+              <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Phase III Estate Land - 500SQM · 5-Bed Fully Detached Duplex','₦24,937,500','Mshel Homes Phase III via FDP')}}>Enquire</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="opp-card" style={{display: isHutuVisible('phase-3','land') ? 'flex' : 'none'}} data-source="developer" data-type="land" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="37" data-date="2026-05-15">
+          <div className="opp-media">
+            <img src="/assets/illustrations/i4.svg" alt="Phase III Estate Land - 750SQM · 2-Bed Block of Apartments - indicative illustration" loading="lazy"/>
+            <div className="opp-media-top">
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}>
+                <span className="img-badge">Mshel Homes · Phase III</span>
+              </div>
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}>
+                <span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span>
+                <span className="img-badge">FCDA Approved</span>
+              </div>
+            </div>
+            <div className="opp-media-bot">
+              <div className="opp-media-ttl">Phase III Estate Land - 750SQM · 2-Bed Block of Apartments</div>
+              <div className="opp-media-sub">Phase III · Airport Road, Abuja</div>
+            </div>
+          </div>
+          <div className="opp-card-body">
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>750SQM · Two Bedroom Block of Apartments - Estate Land</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>4 to 18 months payment plan available</div>
+            <p className="opp-desc">750SQM estate land in Hutu Exclusive Phase III for a 2-bedroom block of apartments development. Strong rental income plot within the Golf Resort Estate. Airport Road, Abuja. 4-18 month plan. 25% price review 7th June 2026.</p>
+            <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020'}}>⚡ Price Review 7 Jun</span></div>
+            <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort</span><span className="opp-am">🏢 Rental Block</span><span className="opp-am">🔒 Gated</span><span className="opp-am">🌿 Serviced</span></div>
+            <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd - FDP vetted partner. FDP provides independent advisory. Advisory fee applies to facilitated engagements.</div>
+          </div>
+          <div className="opp-card-footer">
+            <div><div className="opp-price-label">4 to 18 months plan available</div><div className="opp-price">₦37,400,000</div></div>
+            <div style={{display:'flex',gap:'.5rem'}}>
+              <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Phase III Estate Land - 750SQM · 2-Bed Block of Apartments')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+              <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Phase III Estate Land - 750SQM · 2-Bed Block of Apartments','₦37,400,000','Mshel Homes Phase III via FDP')}}>Enquire</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="opp-card" style={{display: isHutuVisible('phase-3','land') ? 'flex' : 'none'}} data-source="developer" data-type="land" data-city="abuja" data-diaspora="true" data-mortgage="false" data-affordable="false" data-offplan="true" data-price="50" data-date="2026-05-15">
+          <div className="opp-media">
+            <img src="/assets/illustrations/i4.svg" alt="Phase III Estate Land - 1000SQM · 7-Bed Fully Detached Duplex - indicative illustration" loading="lazy"/>
+            <div className="opp-media-top">
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}>
+                <span className="img-badge">Mshel Homes · Phase III</span>
+              </div>
+              <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}>
+                <span className="img-badge" style={{background:'rgba(201,168,76,.92)',color:'#0a1208',borderColor:'var(--gold)'}}>PRICE RISES 7 JUN</span>
+                <span className="img-badge">FCDA Approved</span>
+              </div>
+            </div>
+            <div className="opp-media-bot">
+              <div className="opp-media-ttl">Phase III Estate Land - 1000SQM · 7-Bed Fully Detached Duplex</div>
+              <div className="opp-media-sub">Phase III · Airport Road, Abuja</div>
+            </div>
+          </div>
+          <div className="opp-card-body">
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Airport Road, Before Centenary City, Abuja</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>1000SQM · Seven Bedroom Fully Detached Duplex - Estate Land</div>
+            <div className="opp-meta-row"><svg className="opp-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>4 to 18 months payment plan available</div>
+            <p className="opp-desc">1,000SQM flagship estate land in Hutu Exclusive Phase III for a 7-bedroom fully detached duplex. Institutional-grade holding in a premier Golf Resort Estate. The ultimate premium address on Abuja Airport Road. 4-18 months. 25% review 7th June 2026.</p>
+            <div className="opp-tags"><span className="opp-tag tag-gold">Off-Plan</span><span className="opp-tag">Diaspora Friendly</span><span className="opp-tag">Dev. Vetted</span><span className="opp-tag" style={{background:'rgba(200,30,30,.08)',color:'#8b2020'}}>⚡ Price Review 7 Jun</span></div>
+            <div className="opp-amenities"><span className="opp-am">🏌️ Golf Resort</span><span className="opp-am">🏰 Flagship Plot</span><span className="opp-am">🔒 Gated</span><span className="opp-am">🌿 Serviced</span></div>
+            <div className="opp-partner-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Mshel Homes Ltd - FDP vetted partner. FDP provides independent advisory. Advisory fee applies to facilitated engagements.</div>
+          </div>
+          <div className="opp-card-footer">
+            <div><div className="opp-price-label">4 to 18 months plan available</div><div className="opp-price">₦49,867,188</div></div>
+            <div style={{display:'flex',gap:'.5rem'}}>
+              <button className="opp-save-btn" onClick={(event)=>{window.saveProperty(event.currentTarget,'Phase III Estate Land - 1000SQM · 7-Bed Fully Detached Duplex')}} title="Save"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+              <button className="opp-enquire-btn" onClick={(event)=>{window.openEnquiry('Phase III Estate Land - 1000SQM · 7-Bed Fully Detached Duplex','₦49,867,188','Mshel Homes Phase III via FDP')}}>Enquire</button>
+            </div>
+          </div>
+        </div>
+
+        {/* Empty State when no units match selected category */}
+        {visibleHutuCount === 0 && (
+          <div style={{gridColumn:'1 / -1',textAlign:'center',padding:'3.5rem 2rem',background:'var(--white)',borderRadius:'var(--radius-lg)',border:'1px dashed var(--border-light)'}}>
+            <div style={{fontSize:'2.2rem',marginBottom:'.5rem'}}>🏢</div>
+            <h4 style={{fontFamily:'var(--font-display)',marginBottom:'.5rem',color:'var(--forest)'}}>No units found in this category for the selected phase</h4>
+            <p style={{fontSize:'.88rem',color:'var(--ink-soft)',maxWidth:'480px',margin:'0 auto 1.25rem'}}>Try switching to "All Categories" or selecting "Phase III" to view whole blocks and full estate inventory.</p>
+            <button
+              type="button"
+              className="btn btn-gold btn-sm"
+              onClick={() => { setHutuCategory('all'); }}
+              style={{fontSize:'12px'}}
+            >
+              Reset Category Filter
+            </button>
+          </div>
+        )}
+
+      </div>{/* end hutu-unified-grid */}
+
+      {/* Unified Hutu & Mshel Disclosure note */}
+      <div style={{marginTop:'2.5rem',padding:'1.25rem 1.75rem',background:'var(--cream-mid)',border:'1px solid var(--border-light)',borderRadius:'var(--radius-md)',display:'flex',alignItems:'flex-start',gap:'12px'}}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--forest)" strokeWidth="2" style={{flexShrink:'0',marginTop:'2px'}}><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-        <p style={{fontSize:'.82rem',color:'var(--ink-muted)',lineHeight:'1.7'}}><strong style={{color:'var(--ink-soft)'}}>Phase III Disclosure:</strong> All Hutu Exclusive Phase III listings are presented by Fair Deal Properties as an authorised advisory partner of Mshel Homes Ltd. Prices are as of May 2026 and subject to a confirmed 25% developer price review effective 7th June 2026. Block-of-apartment prices represent whole-block acquisition (6 units). Estate land prices are for bare land - construction costs are separate. FDP provides independent advisory and is not the developer's sales agent. FDP earns a facilitation advisory fee on successful engagements. All listings are subject to FCDA approval conditions. Independent legal due diligence is recommended prior to any commitment.</p>
-      </div>
-
-      {/* Mshel Footer note */}
-      <div style={{marginTop:'2rem',padding:'1.25rem 1.75rem',background:'var(--cream-mid)',border:'1px solid var(--border-light)',borderRadius:'var(--radius-md)',display:'flex',alignItems:'flex-start',gap:'12px'}}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--forest)" strokeWidth="2" style={{flexShrink:'0',marginTop:'2px'}}><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-        <p style={{fontSize:'.82rem',color:'var(--ink-muted)',lineHeight:'1.7'}}><strong style={{color:'var(--ink-soft)'}}>Important Disclosure:</strong> These listings are presented by Fair Deal Properties as an authorised advisory partner of Mshel Homes Ltd. All prices quoted are as of May 2026 and are subject to a 25% developer price review effective 7th June 2026. FDP earns a facilitation advisory fee on successful engagements. FDP's role is independent advisory - we do not act as the developer's sales agent. All units are subject to FCDA approval conditions. Interested parties are advised to conduct independent legal due diligence on documentation before committing capital. FDP will assist with this process as part of our standard engagement.</p>
+        <p style={{fontSize:'.82rem',color:'var(--ink-muted)',lineHeight:'1.7'}}><strong style={{color:'var(--ink-soft)'}}>Hutu Exclusive Estate Disclosure:</strong> All Hutu Exclusive listings across Phase I, Phase II, and Phase III are presented by Fair Deal Properties as an authorised advisory partner of Mshel Homes Ltd. Prices quoted reflect May 2026 pricing and are subject to a confirmed 25% developer price review effective 7th June 2026. Block-of-apartment pricing reflects whole-block acquisition (6 units). Estate land prices are for titled, serviced land plots; building construction packages are structured separately. FDP provides independent advisory and due diligence facilitation — not developer sales. All units are subject to FCDA development approval conditions. Independent title verification is conducted by FDP for each client prior to capital commitment.</p>
       </div>
 
         

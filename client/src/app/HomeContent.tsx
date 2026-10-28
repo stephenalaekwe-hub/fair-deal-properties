@@ -150,14 +150,6 @@ export default function HomeContent() {
         </Link>
       </div>
     </div>
-    <div className="hero-trust-bar">
-      <div className="hero-trust-inner">
-        <div className="hero-stat"><span className="hero-stat-val">₦12B+</span><span className="hero-stat-label">In Transactions Facilitated</span></div>
-        <div className="hero-stat"><span className="hero-stat-val">100%</span><span className="hero-stat-label">Title-Verified Listings</span></div>
-        <div className="hero-stat"><span className="hero-stat-val">3</span><span className="hero-stat-label">Key Nigerian Markets</span></div>
-        <div className="hero-stat"><span className="hero-stat-val">15+</span><span className="hero-stat-label">Years Advisory Experience</span></div>
-      </div>
-    </div>
   </section>
 
   {/* Position Banner */}
@@ -220,18 +212,6 @@ export default function HomeContent() {
             <p className="body-sm">Remote transaction management, document custody, on-the-ground presence - purpose-built for investors who cannot be physically present.</p>
           </div>
         </div>
-      </div>
-    </div>
-  </section>
-
-  {/* Stats */}
-  <section className="section-sm" style={{background:'var(--cream-mid)'}}>
-    <div className="container">
-      <div className="stats-grid">
-        <div className="stat-item"><div className="stat-val">₦12B+</div><div className="stat-label">Transactions Facilitated</div></div>
-        <div className="stat-item"><div className="stat-val">100%</div><div className="stat-label">Title-Verified Listings</div></div>
-        <div className="stat-item"><div className="stat-val">3</div><div className="stat-label">Active Market Cities</div></div>
-        <div className="stat-item"><div className="stat-val">15+</div><div className="stat-label">Years of Experience</div></div>
       </div>
     </div>
   </section>
