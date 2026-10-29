@@ -405,8 +405,8 @@ export const listings: Listing[] =
   },
   {
     "slug": "hutu-exclusive-2-bedroom-apartment",
-    "title": "Hutu Exclusive - 2-Bedroom Apartment",
-    "subtitle": "Residential · Abuja · Airport Road",
+    "title": "Hutu Exclusive Phase I - 2-Bedroom Apartment",
+    "subtitle": "Residential · Abuja · Airport Road · Phase I",
     "source": "developer",
     "propertyType": "residential",
     "city": "abuja",
@@ -421,13 +421,13 @@ export const listings: Listing[] =
     "image": "/assets/illustrations/i5.svg",
     "imageAlt": "Hutu Exclusive - 2-Bedroom Apartment - indicative illustration",
     "badges": [
-      "Mshel Homes · FDP Partner",
+      "Mshel Homes · Phase I",
       "PRICE RISES 7 JUN",
       "FCDA Approved"
     ],
     "location": "Airport Road, Before Centenary City, Abuja",
-    "specification": "2-bedroom apartment",
-    "description": "Premium 2-bedroom apartment within the Hutu Exclusive Golf Resort Estate by Mshel Homes. FCDA-approved. Located on Airport Road before Centenary City, Abuja. Flexible 12-18 month payment plan. Current pricing is time-limited - a 25% price review takes effect from 7th June 2026.",
+    "specification": "2-bedroom apartment (Phase I)",
+    "description": "Premium 2-bedroom apartment within the Hutu Exclusive Golf Resort Estate Phase I by Mshel Homes. FCDA-approved. Located on Airport Road before Centenary City, Abuja. Flexible 12-18 month payment plan. Current pricing is time-limited - a 25% price review takes effect from 7th June 2026.",
     "tags": [
       "Off-Plan",
       "Diaspora Friendly",
@@ -439,12 +439,12 @@ export const listings: Listing[] =
       "⚡ Backup Power",
       "🌿 Landscaped"
     ],
-    "verificationStatus": "Mshel Homes via FDP"
+    "verificationStatus": "Mshel Homes Phase I via FDP"
   },
   {
     "slug": "hutu-exclusive-3-bedroom-apartment",
-    "title": "Hutu Exclusive - 3-Bedroom Apartment",
-    "subtitle": "Residential · Abuja · Airport Road",
+    "title": "Hutu Exclusive Phase I - 3-Bedroom Apartment",
+    "subtitle": "Residential · Abuja · Airport Road · Phase I",
     "source": "developer",
     "propertyType": "residential",
     "city": "abuja",
@@ -459,13 +459,13 @@ export const listings: Listing[] =
     "image": "/assets/illustrations/i5.svg",
     "imageAlt": "Hutu Exclusive - 3-Bedroom Apartment - indicative illustration",
     "badges": [
-      "Mshel Homes · FDP Partner",
+      "Mshel Homes · Phase I",
       "PRICE RISES 7 JUN",
       "FCDA Approved"
     ],
     "location": "Airport Road, Before Centenary City, Abuja",
-    "specification": "3-bedroom apartment",
-    "description": "Spacious 3-bedroom apartment in Mshel Hutu Exclusive Golf Resort Estate. FCDA-approved. Flexible 12-18 month payment plan. Prices increase by 25% effective 7th June 2026 - this is a time-sensitive opportunity at current pricing.",
+    "specification": "3-bedroom apartment (Phase I)",
+    "description": "Spacious 3-bedroom apartment in Mshel Hutu Exclusive Golf Resort Estate Phase I. FCDA-approved. Flexible 12-18 month payment plan. Prices increase by 25% effective 7th June 2026 - this is a time-sensitive opportunity at current pricing.",
     "tags": [
       "Off-Plan",
       "Diaspora Friendly",
@@ -477,12 +477,12 @@ export const listings: Listing[] =
       "⚡ Backup Power",
       "🌿 Landscaped"
     ],
-    "verificationStatus": "Mshel Homes via FDP"
+    "verificationStatus": "Mshel Homes Phase I via FDP"
   },
   {
     "slug": "hutu-exclusive-land-500sqm-5-bed-fully-detached-duplex",
-    "title": "Hutu Exclusive Land - 500SQM · 5-Bed Fully Detached Duplex",
-    "subtitle": "Land · Abuja · Airport Road",
+    "title": "Hutu Exclusive Phase II Land - 500SQM · 5-Bed Fully Detached Duplex",
+    "subtitle": "Land · Abuja · Airport Road · Phase II",
     "source": "developer",
     "propertyType": "land",
     "city": "abuja",
@@ -495,15 +495,15 @@ export const listings: Listing[] =
     "priceLabel": "Price (4-to mo. plan)",
     "listedOn": "2026-05-15",
     "image": "/assets/illustrations/i4.svg",
-    "imageAlt": "Hutu Exclusive Land - 500SQM · 5-Bed Fully Detached Duplex - indicative illustration",
+    "imageAlt": "Hutu Exclusive Phase II Land - 500SQM · 5-Bed Fully Detached Duplex - indicative illustration",
     "badges": [
-      "Mshel Homes · FDP Partner",
+      "Mshel Homes · Phase II",
       "PRICE RISES 7 JUN",
       "FCDA Approved"
     ],
     "location": "Airport Road, Before Centenary City, Abuja",
-    "specification": "500SQM · 5-Bed Fully Detached Duplex",
-    "description": "500SQM estate land within Hutu Exclusive Golf Resort Estate, approved for a 5-bedroom fully detached duplex. FCDA-approved. Outstanding build-to-own capital position in one of Abuja's fastest-appreciating corridors. 4-8 month payment plan. 25% price review effective 7th June 2026.",
+    "specification": "500SQM · 5-Bed Fully Detached Duplex (Phase II)",
+    "description": "500SQM estate land within Hutu Exclusive Golf Resort Estate Phase II, approved for a 5-bedroom fully detached duplex. FCDA-approved. Outstanding build-to-own capital position in one of Abuja's fastest-appreciating corridors. 4-8 month payment plan. 25% price review effective 7th June 2026.",
     "tags": [
       "Off-Plan",
       "Diaspora Friendly",
@@ -515,12 +515,12 @@ export const listings: Listing[] =
       "🔒 Gated",
       "🌿 Serviced"
     ],
-    "verificationStatus": "Mshel Homes via FDP"
+    "verificationStatus": "Mshel Homes Phase II via FDP"
   },
   {
     "slug": "hutu-exclusive-land-150sqm-3-bed-terrace-duplex",
-    "title": "Hutu Exclusive Land - 150SQM · 3-Bed Terrace Duplex",
-    "subtitle": "Land · Abuja · Airport Road",
+    "title": "Hutu Exclusive Phase II Land - 150SQM · 3-Bed Terrace Duplex",
+    "subtitle": "Land · Abuja · Airport Road · Phase II",
     "source": "developer",
     "propertyType": "land",
     "city": "abuja",
@@ -533,15 +533,15 @@ export const listings: Listing[] =
     "priceLabel": "Price (4-to mo. plan)",
     "listedOn": "2026-05-15",
     "image": "/assets/illustrations/i4.svg",
-    "imageAlt": "Hutu Exclusive Land - 150SQM · 3-Bed Terrace Duplex - indicative illustration",
+    "imageAlt": "Hutu Exclusive Phase II Land - 150SQM · 3-Bed Terrace Duplex - indicative illustration",
     "badges": [
-      "Mshel Homes · FDP Partner",
+      "Mshel Homes · Phase II",
       "PRICE RISES 7 JUN",
       "FCDA Approved"
     ],
     "location": "Airport Road, Before Centenary City, Abuja",
-    "specification": "150SQM · 3-Bed Terrace Duplex",
-    "description": "Entry-level estate land in Hutu Exclusive Golf Resort Estate for a 3-bedroom terrace duplex. FCDA-approved. The most accessible price point to own a premium Abuja Golf Estate address. 4-8 month payment plan. Subject to 25% price review from 7th June 2026.",
+    "specification": "150SQM · 3-Bed Terrace Duplex (Phase II)",
+    "description": "Entry-level estate land in Hutu Exclusive Golf Resort Estate Phase II for a 3-bedroom terrace duplex. FCDA-approved. The most accessible price point to own a premium Abuja Golf Estate address. 4-8 month payment plan. Subject to 25% price review from 7th June 2026.",
     "tags": [
       "Off-Plan",
       "Diaspora Friendly",
@@ -553,12 +553,12 @@ export const listings: Listing[] =
       "🔒 Gated",
       "🌿 Serviced"
     ],
-    "verificationStatus": "Mshel Homes via FDP"
+    "verificationStatus": "Mshel Homes Phase II via FDP"
   },
   {
     "slug": "hutu-exclusive-land-250sqm-4-bed-semi-detached-duplex",
-    "title": "Hutu Exclusive Land - 250SQM · 4-Bed Semi-Detached Duplex",
-    "subtitle": "Land · Abuja · Airport Road",
+    "title": "Hutu Exclusive Phase II Land - 250SQM · 4-Bed Semi-Detached Duplex",
+    "subtitle": "Land · Abuja · Airport Road · Phase II",
     "source": "developer",
     "propertyType": "land",
     "city": "abuja",
@@ -571,15 +571,15 @@ export const listings: Listing[] =
     "priceLabel": "Price (4-to mo. plan)",
     "listedOn": "2026-05-15",
     "image": "/assets/illustrations/i4.svg",
-    "imageAlt": "Hutu Exclusive Land - 250SQM · 4-Bed Semi-Detached Duplex - indicative illustration",
+    "imageAlt": "Hutu Exclusive Phase II Land - 250SQM · 4-Bed Semi-Detached Duplex - indicative illustration",
     "badges": [
-      "Mshel Homes · FDP Partner",
+      "Mshel Homes · Phase II",
       "PRICE RISES 7 JUN",
       "FCDA Approved"
     ],
     "location": "Airport Road, Before Centenary City, Abuja",
-    "specification": "250SQM · 4-Bed Semi-Detached Duplex",
-    "description": "250SQM estate land in Hutu Exclusive for a 4-bedroom semi-detached duplex. FCDA-approved. Intelligently priced mid-range position in one of Abuja's most prestigious emerging addresses. 4-8 month payment plan. 25% price review from 7th June 2026.",
+    "specification": "250SQM · 4-Bed Semi-Detached Duplex (Phase II)",
+    "description": "250SQM estate land in Hutu Exclusive Phase II for a 4-bedroom semi-detached duplex. FCDA-approved. Intelligently priced mid-range position in one of Abuja's most prestigious emerging addresses. 4-8 month payment plan. 25% price review from 7th June 2026.",
     "tags": [
       "Off-Plan",
       "Diaspora Friendly",
@@ -591,12 +591,12 @@ export const listings: Listing[] =
       "🔒 Gated",
       "🌿 Serviced"
     ],
-    "verificationStatus": "Mshel Homes via FDP"
+    "verificationStatus": "Mshel Homes Phase II via FDP"
   },
   {
     "slug": "hutu-exclusive-land-350sqm-4-bed-fully-detached-duplex",
-    "title": "Hutu Exclusive Land - 350SQM · 4-Bed Fully Detached Duplex",
-    "subtitle": "Land · Abuja · Airport Road",
+    "title": "Hutu Exclusive Phase II Land - 350SQM · 4-Bed Fully Detached Duplex",
+    "subtitle": "Land · Abuja · Airport Road · Phase II",
     "source": "developer",
     "propertyType": "land",
     "city": "abuja",
@@ -609,15 +609,15 @@ export const listings: Listing[] =
     "priceLabel": "Price (4-to mo. plan)",
     "listedOn": "2026-05-15",
     "image": "/assets/illustrations/i4.svg",
-    "imageAlt": "Hutu Exclusive Land - 350SQM · 4-Bed Fully Detached Duplex - indicative illustration",
+    "imageAlt": "Hutu Exclusive Phase II Land - 350SQM · 4-Bed Fully Detached Duplex - indicative illustration",
     "badges": [
-      "Mshel Homes · FDP Partner",
+      "Mshel Homes · Phase II",
       "PRICE RISES 7 JUN",
       "FCDA Approved"
     ],
     "location": "Airport Road, Before Centenary City, Abuja",
-    "specification": "350SQM · 4-Bed Fully Detached Duplex",
-    "description": "350SQM estate land in Hutu Exclusive Golf Resort Estate for a 4-bedroom fully detached duplex. FCDA-approved. Strong mid-premium land position. 4-8 month payment plan. Act before the 25% price review effective 7th June 2026.",
+    "specification": "350SQM · 4-Bed Fully Detached Duplex (Phase II)",
+    "description": "350SQM estate land in Hutu Exclusive Golf Resort Estate Phase II for a 4-bedroom fully detached duplex. FCDA-approved. Strong mid-premium land position. 4-8 month payment plan. Act before the 25% price review effective 7th June 2026.",
     "tags": [
       "Off-Plan",
       "Diaspora Friendly",
@@ -629,12 +629,12 @@ export const listings: Listing[] =
       "🔒 Gated",
       "🌿 Serviced"
     ],
-    "verificationStatus": "Mshel Homes via FDP"
+    "verificationStatus": "Mshel Homes Phase II via FDP"
   },
   {
     "slug": "hutu-exclusive-land-450sqm-1-bed-block-of-apartments",
-    "title": "Hutu Exclusive Land - 450SQM · 1-Bed Block of Apartments",
-    "subtitle": "Land · Abuja · Airport Road",
+    "title": "Hutu Exclusive Phase II Land - 450SQM · 1-Bed Block of Apartments",
+    "subtitle": "Land · Abuja · Airport Road · Phase II",
     "source": "developer",
     "propertyType": "land",
     "city": "abuja",
@@ -647,15 +647,15 @@ export const listings: Listing[] =
     "priceLabel": "Price (4-to mo. plan)",
     "listedOn": "2026-05-15",
     "image": "/assets/illustrations/i4.svg",
-    "imageAlt": "Hutu Exclusive Land - 450SQM · 1-Bed Block of Apartments - indicative illustration",
+    "imageAlt": "Hutu Exclusive Phase II Land - 450SQM · 1-Bed Block of Apartments - indicative illustration",
     "badges": [
-      "Mshel Homes · FDP Partner",
+      "Mshel Homes · Phase II",
       "PRICE RISES 7 JUN",
       "FCDA Approved"
     ],
     "location": "Airport Road, Before Centenary City, Abuja",
-    "specification": "450SQM · 1-Bed Block of Apartments",
-    "description": "450SQM estate land in Hutu Exclusive for a 1-bedroom block of apartments. FCDA-approved. Ideal for rental income investors building a portfolio within a premium Golf Estate address. 4-8 month payment plan. 25% price review from 7th June 2026.",
+    "specification": "450SQM · 1-Bed Block of Apartments (Phase II)",
+    "description": "450SQM estate land in Hutu Exclusive Phase II for a 1-bedroom block of apartments. FCDA-approved. Ideal for rental income investors building a portfolio within a premium Golf Estate address. 4-8 month payment plan. 25% price review from 7th June 2026.",
     "tags": [
       "Off-Plan",
       "Diaspora Friendly",
@@ -667,12 +667,12 @@ export const listings: Listing[] =
       "🔒 Gated",
       "🌿 Serviced"
     ],
-    "verificationStatus": "Mshel Homes via FDP"
+    "verificationStatus": "Mshel Homes Phase II via FDP"
   },
   {
     "slug": "hutu-exclusive-land-1000sqm-3-bed-block-of-apartments",
-    "title": "Hutu Exclusive Land - 1000SQM · 3-Bed Block of Apartments",
-    "subtitle": "Land · Abuja · Airport Road",
+    "title": "Hutu Exclusive Phase II Land - 1000SQM · 3-Bed Block of Apartments",
+    "subtitle": "Land · Abuja · Airport Road · Phase II",
     "source": "developer",
     "propertyType": "land",
     "city": "abuja",
@@ -685,15 +685,15 @@ export const listings: Listing[] =
     "priceLabel": "Price (4-to mo. plan)",
     "listedOn": "2026-05-15",
     "image": "/assets/illustrations/i4.svg",
-    "imageAlt": "Hutu Exclusive Land - 1000SQM · 3-Bed Block of Apartments - indicative illustration",
+    "imageAlt": "Hutu Exclusive Phase II Land - 1000SQM · 3-Bed Block of Apartments - indicative illustration",
     "badges": [
-      "Mshel Homes · FDP Partner",
+      "Mshel Homes · Phase II",
       "PRICE RISES 7 JUN",
       "FCDA Approved"
     ],
     "location": "Airport Road, Before Centenary City, Abuja",
-    "specification": "1000SQM · 3-Bed Block of Apartments",
-    "description": "1,000SQM premium estate land in Hutu Exclusive for a 3-bedroom block of apartments development. FCDA-approved. Institutional-grade land holding in one of Abuja's most prestigious emerging golf resort addresses. 4-8 month payment plan. Subject to 25% price review from 7th June 2026.",
+    "specification": "1000SQM · 3-Bed Block of Apartments (Phase II)",
+    "description": "1,000SQM premium estate land in Hutu Exclusive Phase II for a 3-bedroom block of apartments development. FCDA-approved. Institutional-grade land holding in one of Abuja's most prestigious emerging golf resort addresses. 4-8 month payment plan. Subject to 25% price review from 7th June 2026.",
     "tags": [
       "Off-Plan",
       "Diaspora Friendly",
@@ -705,7 +705,7 @@ export const listings: Listing[] =
       "🔒 Gated",
       "🌿 Serviced"
     ],
-    "verificationStatus": "Mshel Homes via FDP"
+    "verificationStatus": "Mshel Homes Phase II via FDP"
   },
   {
     "slug": "hutu-exclusive-phase-iii-1-bed-apartment",
@@ -1162,6 +1162,196 @@ export const listings: Listing[] =
       "🌿 Serviced"
     ],
     "verificationStatus": "Mshel Homes Phase III via FDP"
+  },
+  {
+    "slug": "hutu-exclusive-phase-v-land-150sqm",
+    "title": "Hutu Exclusive Phase V Land - 150SQM · 3-Bed Terrace Duplex",
+    "subtitle": "Land · Abuja · Lugbe South / Airport Rd · Phase V",
+    "source": "developer",
+    "propertyType": "land",
+    "city": "abuja",
+    "diasporaFriendly": true,
+    "mortgageEligible": false,
+    "affordable": true,
+    "offPlan": true,
+    "priceMillionsNGN": 8.25,
+    "priceDisplay": "₦8,250,000",
+    "priceLabel": "Price (6-12 mo. plan)",
+    "listedOn": "2026-05-15",
+    "image": "/assets/illustrations/i4.svg",
+    "imageAlt": "Hutu Exclusive Phase V Land - 150SQM · 3-Bed Terrace Duplex - indicative illustration",
+    "badges": [
+      "Mshel Homes · Phase V",
+      "FCDA R of O",
+      "Lugbe South Corridor"
+    ],
+    "location": "Lugbe South / Airport Road, Before Centenary City, Abuja",
+    "specification": "150SQM · 3-Bed Terrace Duplex Plot (Phase V)",
+    "description": "150SQM estate land in Hutu Exclusive Phase V (Phase 5) by Mshel Homes. Approved for a 3-bedroom terrace duplex. Titled under FCDA R of O. Highly strategic investment along the fast-growing Airport Road / Lugbe South corridor before Centenary City. Flexible 6-12 month payment plan available.",
+    "tags": [
+      "Off-Plan",
+      "Diaspora Friendly",
+      "Dev. Vetted"
+    ],
+    "amenities": [
+      "🏌️ Golf Resort Access",
+      "🏗️ Build-to-Own",
+      "🔒 Gated & Secured",
+      "🌿 Serviced Infrastructure"
+    ],
+    "verificationStatus": "Mshel Homes Phase V via FDP"
+  },
+  {
+    "slug": "hutu-exclusive-phase-v-land-250sqm",
+    "title": "Hutu Exclusive Phase V Land - 250SQM · 4-Bed Semi-Detached Duplex",
+    "subtitle": "Land · Abuja · Lugbe South / Airport Rd · Phase V",
+    "source": "developer",
+    "propertyType": "land",
+    "city": "abuja",
+    "diasporaFriendly": true,
+    "mortgageEligible": false,
+    "affordable": false,
+    "offPlan": true,
+    "priceMillionsNGN": 13.75,
+    "priceDisplay": "₦13,750,000",
+    "priceLabel": "Price (6-12 mo. plan)",
+    "listedOn": "2026-05-15",
+    "image": "/assets/illustrations/i4.svg",
+    "imageAlt": "Hutu Exclusive Phase V Land - 250SQM · 4-Bed Semi-Detached Duplex - indicative illustration",
+    "badges": [
+      "Mshel Homes · Phase V",
+      "FCDA R of O",
+      "Lugbe South Corridor"
+    ],
+    "location": "Lugbe South / Airport Road, Before Centenary City, Abuja",
+    "specification": "250SQM · 4-Bed Semi-Detached Duplex Plot (Phase V)",
+    "description": "250SQM estate land plot in Hutu Exclusive Phase V (Phase 5) by Mshel Homes, tailored for a 4-bedroom semi-detached duplex. Verified FCDA Right of Occupancy (R of O). Positioned in the prime Airport Road development belt with flexible 6-12 month payment options.",
+    "tags": [
+      "Off-Plan",
+      "Diaspora Friendly",
+      "Dev. Vetted"
+    ],
+    "amenities": [
+      "🏌️ Golf Resort Access",
+      "🏗️ Semi-Detached",
+      "🔒 Gated & Secured",
+      "🌿 Serviced Infrastructure"
+    ],
+    "verificationStatus": "Mshel Homes Phase V via FDP"
+  },
+  {
+    "slug": "hutu-exclusive-phase-v-land-350sqm",
+    "title": "Hutu Exclusive Phase V Land - 350SQM · 4-Bed Fully Detached Duplex",
+    "subtitle": "Land · Abuja · Lugbe South / Airport Rd · Phase V",
+    "source": "developer",
+    "propertyType": "land",
+    "city": "abuja",
+    "diasporaFriendly": true,
+    "mortgageEligible": false,
+    "affordable": false,
+    "offPlan": true,
+    "priceMillionsNGN": 19.25,
+    "priceDisplay": "₦19,250,000",
+    "priceLabel": "Price (6-12 mo. plan)",
+    "listedOn": "2026-05-15",
+    "image": "/assets/illustrations/i4.svg",
+    "imageAlt": "Hutu Exclusive Phase V Land - 350SQM · 4-Bed Fully Detached Duplex - indicative illustration",
+    "badges": [
+      "Mshel Homes · Phase V",
+      "FCDA R of O",
+      "Lugbe South Corridor"
+    ],
+    "location": "Lugbe South / Airport Road, Before Centenary City, Abuja",
+    "specification": "350SQM · 4-Bed Fully Detached Duplex Plot (Phase V)",
+    "description": "350SQM estate land in Hutu Exclusive Phase V (Phase 5) approved for a 4-bedroom fully detached duplex. FCDA R of O title. Excellent capital appreciation potential in one of Abuja's most sought-after expansion sectors. 6-12 month installment structure.",
+    "tags": [
+      "Off-Plan",
+      "Diaspora Friendly",
+      "Dev. Vetted"
+    ],
+    "amenities": [
+      "🏌️ Golf Resort Access",
+      "🏗️ Fully Detached",
+      "🔒 Gated & Secured",
+      "🌿 Serviced Infrastructure"
+    ],
+    "verificationStatus": "Mshel Homes Phase V via FDP"
+  },
+  {
+    "slug": "hutu-exclusive-phase-v-land-500sqm",
+    "title": "Hutu Exclusive Phase V Land - 500SQM · 5-Bed Fully Detached Duplex",
+    "subtitle": "Land · Abuja · Lugbe South / Airport Rd · Phase V",
+    "source": "developer",
+    "propertyType": "land",
+    "city": "abuja",
+    "diasporaFriendly": true,
+    "mortgageEligible": false,
+    "affordable": false,
+    "offPlan": true,
+    "priceMillionsNGN": 27.5,
+    "priceDisplay": "₦27,500,000",
+    "priceLabel": "Price (6-12 mo. plan)",
+    "listedOn": "2026-05-15",
+    "image": "/assets/illustrations/i4.svg",
+    "imageAlt": "Hutu Exclusive Phase V Land - 500SQM · 5-Bed Fully Detached Duplex - indicative illustration",
+    "badges": [
+      "Mshel Homes · Phase V",
+      "FCDA R of O",
+      "Lugbe South Corridor"
+    ],
+    "location": "Lugbe South / Airport Road, Before Centenary City, Abuja",
+    "specification": "500SQM · 5-Bed Fully Detached Duplex Plot (Phase V)",
+    "description": "500SQM estate plot in Hutu Exclusive Phase V (Phase 5) dedicated for an expansive 5-bedroom fully detached duplex. FCDA R of O title. High-demand corridor along Airport Road before Centenary City. Available with 6-12 month installment plans.",
+    "tags": [
+      "Off-Plan",
+      "Diaspora Friendly",
+      "Dev. Vetted"
+    ],
+    "amenities": [
+      "🏌️ Golf Resort Access",
+      "🏗️ Fully Detached",
+      "🔒 Gated & Secured",
+      "🌿 Serviced Infrastructure"
+    ],
+    "verificationStatus": "Mshel Homes Phase V via FDP"
+  },
+  {
+    "slug": "hutu-exclusive-phase-v-land-1000sqm",
+    "title": "Hutu Exclusive Phase V Land - 1,000SQM · 3-Bed Apartment Block / Luxury Villa",
+    "subtitle": "Land · Abuja · Lugbe South / Airport Rd · Phase V",
+    "source": "developer",
+    "propertyType": "land",
+    "city": "abuja",
+    "diasporaFriendly": true,
+    "mortgageEligible": false,
+    "affordable": false,
+    "offPlan": true,
+    "priceMillionsNGN": 55.0,
+    "priceDisplay": "₦55,000,000",
+    "priceLabel": "Price (6-12 mo. plan)",
+    "listedOn": "2026-05-15",
+    "image": "/assets/illustrations/i4.svg",
+    "imageAlt": "Hutu Exclusive Phase V Land - 1,000SQM · 3-Bed Apartment Block / Luxury Villa - indicative illustration",
+    "badges": [
+      "Mshel Homes · Phase V",
+      "FCDA R of O",
+      "Lugbe South Corridor"
+    ],
+    "location": "Lugbe South / Airport Road, Before Centenary City, Abuja",
+    "specification": "1,000SQM · 3-Bed Apartment Block / Luxury Villa Plot (Phase V)",
+    "description": "1,000SQM institutional-grade parcel in Hutu Exclusive Phase V (Phase 5), ideal for a 3-bedroom apartment block development or custom luxury estate villa. Backed by FCDA R of O. Prime Airport Road frontage. 6-12 month structured payments.",
+    "tags": [
+      "Off-Plan",
+      "Diaspora Friendly",
+      "Dev. Vetted"
+    ],
+    "amenities": [
+      "🏌️ Golf Resort Access",
+      "🏢 Institutional Land",
+      "🔒 Gated & Secured",
+      "🌿 Serviced Infrastructure"
+    ],
+    "verificationStatus": "Mshel Homes Phase V via FDP"
   }
 ]
 ;
