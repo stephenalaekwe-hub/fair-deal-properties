@@ -151,6 +151,28 @@ export default function AlertForm() {
     }
   }
 
+  const [copiedRef, setCopiedRef] = useState(false);
+
+  const handleCopyRef = async () => {
+    if (!reference) return;
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(reference);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = reference;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      setCopiedRef(true);
+      setTimeout(() => setCopiedRef(false), 2500);
+    } catch (err) {
+      console.warn('Could not copy alert reference:', err);
+    }
+  };
+
   return (
     <div style={{ marginTop: '4rem', padding: '3rem', background: 'var(--forest)',
                   borderRadius: 'var(--radius-xl)', color: 'var(--white)' }}>
@@ -166,15 +188,67 @@ export default function AlertForm() {
       </p>
 
       {state === 'done' ? (
-        <div style={{ background: 'rgba(255,255,255,.08)', padding: '1.5rem',
+        <div style={{ background: 'rgba(255,255,255,.08)', padding: '2rem',
                       borderRadius: 'var(--radius-md)' }}>
-          <p style={{ color: 'var(--white)', marginBottom: '.5rem', fontWeight: 500 }}>
-            Alert registered.
+          <p style={{ color: 'var(--white)', marginBottom: '.75rem', fontWeight: 600, fontSize: '1.2rem' }}>
+            ✓ Listing Alert Registered
           </p>
-          <p style={{ color: 'rgba(255,255,255,.65)', fontSize: '.88rem' }}>
-            Reference <strong>{reference}</strong>. You may withdraw it at any time from any alert
-            email or through the <Link href="/data-rights" style={{ color: 'var(--gold-light)' }}>
-            data rights portal</Link>, with no effect on any other service.
+
+          <div style={{
+            background: 'rgba(201,168,76,0.18)',
+            border: '1px solid rgba(201,168,76,0.35)',
+            borderRadius: 'var(--radius-sm)',
+            padding: '10px 14px',
+            color: 'var(--gold-light)',
+            fontSize: '12.5px',
+            fontWeight: 600,
+            marginBottom: '1rem',
+            lineHeight: 1.5,
+          }}>
+            📌 <strong>Please copy your tracking reference below:</strong> Save this code to modify or withdraw your alert anytime.
+          </div>
+
+          <div style={{
+            background: 'rgba(0,0,0,0.25)',
+            border: '1px solid rgba(255,255,255,0.15)',
+            borderRadius: 'var(--radius-sm)',
+            padding: '.75rem 1.25rem',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '.75rem',
+            marginBottom: '1rem',
+            flexWrap: 'wrap',
+          }}>
+            <span style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', color: 'var(--gold-light)', fontWeight: 700 }}>
+              Tracking Reference: <strong>{reference}</strong>
+            </span>
+            <button
+              type="button"
+              onClick={handleCopyRef}
+              style={{
+                background: copiedRef ? 'var(--gold)' : '#ffffff',
+                color: copiedRef ? '#000000' : 'var(--forest)',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '5px 12px',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              {copiedRef ? '✓ Copied!' : '📋 Copy Code'}
+            </button>
+          </div>
+
+          <p style={{ color: 'rgba(255,255,255,.75)', fontSize: '.88rem' }}>
+            You may withdraw it at any time from any alert email or through the{' '}
+            <Link href="/data-rights" style={{ color: 'var(--gold-light)', textDecoration: 'underline' }}>
+              data rights portal
+            </Link>, with no effect on any other service.
           </p>
         </div>
       ) : (

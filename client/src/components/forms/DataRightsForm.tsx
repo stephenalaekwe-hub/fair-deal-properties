@@ -38,6 +38,7 @@ const STORAGE_KEY = 'fdp_dsr_form_draft';
 export default function DataRightsForm() {
   const [state, setState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
   const [result, setResult] = useState<{ reference: string; responseDueAt: string } | null>(null);
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [isRestored, setIsRestored] = useState(false);
@@ -149,16 +150,84 @@ export default function DataRightsForm() {
 
   if (state === 'done' && result) {
     return (
-      <div className="form-success" style={{ display: 'block' }} id="dsrDone">
-        <h4>Request received and logged</h4>
+      <div className="form-success" style={{ display: 'block', padding: '1.75rem', borderRadius: 'var(--radius-md)' }} id="dsrDone">
+        <h4 style={{ color: 'var(--forest)', fontSize: '1.3rem', marginBottom: '.75rem' }}>✓ Data Subject Request Logged</h4>
+        
+        <div style={{
+          background: '#ecfdf5',
+          border: '1px solid #a7f3d0',
+          borderRadius: 'var(--radius-sm)',
+          padding: '10px 14px',
+          color: '#065f46',
+          fontSize: '12.5px',
+          fontWeight: 600,
+          marginBottom: '1rem',
+          lineHeight: 1.5,
+        }}>
+          📌 <strong>Please copy your tracking reference below:</strong> Quote this reference in any follow-up or correspondence with our Data Protection Officer.
+        </div>
+
+        <div style={{
+          background: 'var(--cream)',
+          border: '1px solid var(--border-light)',
+          borderRadius: 'var(--radius-sm)',
+          padding: '.75rem 1.25rem',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '.75rem',
+          marginBottom: '1rem',
+          flexWrap: 'wrap',
+        }}>
+          <span style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', color: 'var(--forest)', fontWeight: 700 }}>
+            Tracking Reference: <strong>{result.reference}</strong>
+          </span>
+          <button
+            type="button"
+            onClick={async () => {
+              if (!result?.reference) return;
+              try {
+                if (navigator?.clipboard?.writeText) {
+                  await navigator.clipboard.writeText(result.reference);
+                } else {
+                  const ta = document.createElement('textarea');
+                  ta.value = result.reference;
+                  document.body.appendChild(ta);
+                  ta.select();
+                  document.execCommand('copy');
+                  document.body.removeChild(ta);
+                }
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2500);
+              } catch (err) {
+                console.warn(err);
+              }
+            }}
+            style={{
+              background: copied ? 'var(--forest)' : '#ffffff',
+              color: copied ? '#ffffff' : 'var(--forest)',
+              border: '1px solid var(--forest)',
+              borderRadius: '4px',
+              padding: '5px 12px',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+          >
+            {copied ? '✓ Copied!' : '📋 Copy Code'}
+          </button>
+        </div>
+
         <p className="body-sm">
-          Your reference is <strong>{result.reference}</strong>. We commit to acknowledging within
-          5 business days and responding substantively by{' '}
+          We commit to acknowledging within 5 business days and responding substantively by{' '}
           <strong>{new Date(result.responseDueAt).toLocaleDateString('en-GB', {
             day: '2-digit', month: 'long', year: 'numeric',
           })}</strong>. There is no charge.
         </p>
-        <p className="body-sm" style={{ marginTop: '.75rem' }}>
+        <p className="body-sm" style={{ marginTop: '.75rem', color: 'var(--ink-muted)' }}>
           If you are not satisfied with our response, you may complain to the Nigeria Data Protection
           Commission. You may do so at any time, including before we have responded.
         </p>

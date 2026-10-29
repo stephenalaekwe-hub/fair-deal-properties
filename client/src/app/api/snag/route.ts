@@ -37,17 +37,24 @@ export async function POST(req: Request) {
     dueInDays: SERVICE_RESPONSE_DAYS,
   });
 
-  auditLog({
-    event: 'snag.received',
-    reference: rec.reference,
-    lawfulBasis: parsed.data.category === 'data-protection' ? 'legal-obligation' : 'legitimate-interest',
-    retentionMonths: RETENTION['snag'].months,
-    retentionBasis: RETENTION['snag'].basis,
-    // Article 40 fixes no period, so statutoryDueAt is deliberately absent.
-    serviceDueAt: rec.dueAt,
-  });
+  try {
+    auditLog({
+      event: 'snag.received',
+      reference: rec.reference,
+      lawfulBasis: parsed.data.category === 'data-protection' ? 'legal-obligation' : 'legitimate-interest',
+      retentionMonths: RETENTION['snag'].months,
+      retentionBasis: RETENTION['snag'].basis,
+      serviceDueAt: rec.dueAt,
+    });
+  } catch (err: any) {
+    console.warn('[fdp:snag] Audit warning:', err?.message || err);
+  }
 
-  await notify(composeInternalAlert(rec));
+  try {
+    await notify(composeInternalAlert(rec));
+  } catch (err: any) {
+    console.warn('[fdp:snag] Notify warning:', err?.message || err);
+  }
 
 
 

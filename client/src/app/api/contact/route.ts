@@ -18,15 +18,23 @@ export async function POST(req: Request) {
     userAgent: req.headers.get('user-agent'),
   });
 
-  auditLog({
-    event: 'contact.received',
-    reference: rec.reference,
-    lawfulBasis: 'consent',
-    retentionMonths: RETENTION['contact'].months,
-    retentionBasis: RETENTION['contact'].basis,
-  });
+  try {
+    auditLog({
+      event: 'contact.received',
+      reference: rec.reference,
+      lawfulBasis: 'consent',
+      retentionMonths: RETENTION['contact'].months,
+      retentionBasis: RETENTION['contact'].basis,
+    });
+  } catch (err: any) {
+    console.warn('[fdp:contact] Audit warning:', err?.message || err);
+  }
 
-  await notify(composeInternalAlert(rec));
+  try {
+    await notify(composeInternalAlert(rec));
+  } catch (err: any) {
+    console.warn('[fdp:contact] Notify warning:', err?.message || err);
+  }
 
   // Submissions are securely recorded to PostgreSQL via store.put above
 

@@ -14,6 +14,7 @@ const SCOPES = [
 export default function InspectionRequestForm() {
   const [state, setState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
   const [result, setResult] = useState<{ reference: string; stageName: string } | null>(null);
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
@@ -117,11 +118,80 @@ export default function InspectionRequestForm() {
 
   if (state === 'done' && result) {
     return (
-      <div className="form-success" style={{ display: 'block' }}>
-        <h4>Inspection request logged</h4>
+      <div className="form-success" style={{ display: 'block', padding: '1.75rem', borderRadius: 'var(--radius-md)' }}>
+        <h4 style={{ color: 'var(--forest)', fontSize: '1.3rem', marginBottom: '.75rem' }}>✓ Inspection Request Logged</h4>
+
+        <div style={{
+          background: '#ecfdf5',
+          border: '1px solid #a7f3d0',
+          borderRadius: 'var(--radius-sm)',
+          padding: '10px 14px',
+          color: '#065f46',
+          fontSize: '12.5px',
+          fontWeight: 600,
+          marginBottom: '1rem',
+          lineHeight: 1.5,
+        }}>
+          📌 <strong>Please copy your tracking reference below:</strong> Save this reference to track officer dispatch and field inspection reports.
+        </div>
+
+        <div style={{
+          background: 'var(--cream)',
+          border: '1px solid var(--border-light)',
+          borderRadius: 'var(--radius-sm)',
+          padding: '.75rem 1.25rem',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '.75rem',
+          marginBottom: '1rem',
+          flexWrap: 'wrap',
+        }}>
+          <span style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', color: 'var(--forest)', fontWeight: 700 }}>
+            Tracking Reference: <strong>{result.reference}</strong>
+          </span>
+          <button
+            type="button"
+            onClick={async () => {
+              if (!result?.reference) return;
+              try {
+                if (navigator?.clipboard?.writeText) {
+                  await navigator.clipboard.writeText(result.reference);
+                } else {
+                  const ta = document.createElement('textarea');
+                  ta.value = result.reference;
+                  document.body.appendChild(ta);
+                  ta.select();
+                  document.execCommand('copy');
+                  document.body.removeChild(ta);
+                }
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2500);
+              } catch (err) {
+                console.warn(err);
+              }
+            }}
+            style={{
+              background: copied ? 'var(--forest)' : '#ffffff',
+              color: copied ? '#ffffff' : 'var(--forest)',
+              border: '1px solid var(--forest)',
+              borderRadius: '4px',
+              padding: '5px 12px',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+          >
+            {copied ? '✓ Copied!' : '📋 Copy Code'}
+          </button>
+        </div>
+
         <p className="body-sm">
-          Your reference is <strong>{result.reference}</strong>, currently at stage
-          {' '}<strong>{result.stageName}</strong>. Scope and fee will be confirmed in writing before
+          Your request is currently at stage{' '}
+          <strong>{result.stageName}</strong>. Scope and fee will be confirmed in writing before
           any officer is assigned. Track progress using this reference in the tracker on this page.
         </p>
       </div>

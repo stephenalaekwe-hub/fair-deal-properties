@@ -14,6 +14,7 @@ const STORAGE_KEY = 'fdp_enquiry_modal_draft';
 export default function EnquiryModal({ listing, onClose }: Props) {
   const [state, setState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
   const [reference, setReference] = useState('');
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
   const [isRestored, setIsRestored] = useState(false);
   const [formValues, setFormValues] = useState({
@@ -175,14 +176,85 @@ export default function EnquiryModal({ listing, onClose }: Props) {
         )}
 
         {state === 'done' ? (
-          <div className="form-success" style={{ display: 'block' }}>
-            <h4>Enquiry logged</h4>
-            <p className="body-sm">
-              Your reference is <strong>{reference}</strong>. We will confirm current availability and
-              the verification record before responding substantively. Please quote the reference in
-              any follow-up.
+          <div className="form-success" style={{ display: 'block', padding: '1.5rem', textAlign: 'center' }}>
+            <div style={{ fontSize: '2.5rem', marginBottom: '.5rem', color: 'var(--forest)' }}>✓</div>
+            <h4 style={{ marginBottom: '.5rem', fontSize: '1.3rem' }}>Enquiry Logged</h4>
+
+            <div style={{
+              background: '#ecfdf5',
+              border: '1px solid #a7f3d0',
+              borderRadius: 'var(--radius-sm)',
+              padding: '10px 14px',
+              color: '#065f46',
+              fontSize: '12.5px',
+              fontWeight: 600,
+              maxWidth: '430px',
+              margin: '0 auto 1.25rem auto',
+              lineHeight: 1.5,
+              textAlign: 'center',
+            }}>
+              📌 <strong>Please copy your tracking reference below:</strong> Save this unique code for your records and follow-ups.
+            </div>
+
+            <div style={{
+              background: 'var(--cream)',
+              border: '1px solid var(--border-light)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '.75rem 1.25rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '.75rem',
+              marginBottom: '1rem',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+            }}>
+              <span style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', color: 'var(--forest)', fontWeight: 700 }}>
+                Tracking Reference: <strong>{reference}</strong>
+              </span>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!reference) return;
+                  try {
+                    if (navigator?.clipboard?.writeText) {
+                      await navigator.clipboard.writeText(reference);
+                    } else {
+                      const ta = document.createElement('textarea');
+                      ta.value = reference;
+                      document.body.appendChild(ta);
+                      ta.select();
+                      document.execCommand('copy');
+                      document.body.removeChild(ta);
+                    }
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2500);
+                  } catch (err) {
+                    console.warn(err);
+                  }
+                }}
+                style={{
+                  background: copied ? 'var(--forest)' : '#ffffff',
+                  color: copied ? '#ffffff' : 'var(--forest)',
+                  border: '1px solid var(--forest)',
+                  borderRadius: '4px',
+                  padding: '5px 12px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                {copied ? '✓ Copied!' : '📋 Copy Code'}
+              </button>
+            </div>
+
+            <p className="body-sm" style={{ color: 'var(--ink-muted)', marginBottom: '1.25rem' }}>
+              We will confirm current availability and the verification record before responding substantively. Please quote the reference in any follow-up.
             </p>
-            <button className="btn btn-outline" onClick={onClose} style={{ marginTop: '1rem' }} type="button">
+            <button className="btn btn-primary" onClick={onClose} style={{ padding: '10px 28px' }} type="button">
               Close
             </button>
           </div>

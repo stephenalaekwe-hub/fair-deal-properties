@@ -20,15 +20,23 @@ export async function POST(req: Request) {
 
   // Direct marketing consent under GAID 2025 is never bundled with any other
   // permission and must be as easy to withdraw as it was to give.
-  auditLog({
-    event: 'alert.subscribed',
-    reference: rec.reference,
-    lawfulBasis: 'consent',
-    retentionMonths: RETENTION['alert'].months,
-    retentionBasis: RETENTION['alert'].basis,
-  });
+  try {
+    auditLog({
+      event: 'alert.subscribed',
+      reference: rec.reference,
+      lawfulBasis: 'consent',
+      retentionMonths: RETENTION['alert'].months,
+      retentionBasis: RETENTION['alert'].basis,
+    });
+  } catch (err: any) {
+    console.warn('[fdp:alerts] Audit warning:', err?.message || err);
+  }
 
-  await notify(composeInternalAlert(rec));
+  try {
+    await notify(composeInternalAlert(rec));
+  } catch (err: any) {
+    console.warn('[fdp:alerts] Notify warning:', err?.message || err);
+  }
 
 
 

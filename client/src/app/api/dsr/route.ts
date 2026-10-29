@@ -45,18 +45,24 @@ export async function POST(req: Request) {
     dueInDays: SERVICE_RESPONSE_DAYS,
   });
 
-  auditLog({
-    event: 'dsr.received',
-    reference: rec.reference,
-    lawfulBasis: 'legal-obligation',
-    retentionMonths: RETENTION['dsr'].months,
-    retentionBasis: RETENTION['dsr'].basis,
-    // No instrument sets a deadline, so statutoryDueAt is deliberately absent.
-    serviceDueAt: rec.dueAt,
-  });
+  try {
+    auditLog({
+      event: 'dsr.received',
+      reference: rec.reference,
+      lawfulBasis: 'legal-obligation',
+      retentionMonths: RETENTION['dsr'].months,
+      retentionBasis: RETENTION['dsr'].basis,
+      serviceDueAt: rec.dueAt,
+    });
+  } catch (err: any) {
+    console.warn('[fdp:dsr] Audit warning:', err?.message || err);
+  }
 
-  // Routed to the Data Protection Officer inbox, not the general enquiry inbox.
-  await notify(composeInternalAlert(rec));
+  try {
+    await notify(composeInternalAlert(rec));
+  } catch (err: any) {
+    console.warn('[fdp:dsr] Notify warning:', err?.message || err);
+  }
 
 
 

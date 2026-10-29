@@ -162,11 +162,86 @@ export default function ContactForm() {
     }
   }
 
+  const [copiedRef, setCopiedRef] = useState(false);
+
+  const handleCopyRef = async () => {
+    if (!reference) return;
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(reference);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = reference;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      setCopiedRef(true);
+      setTimeout(() => setCopiedRef(false), 2500);
+    } catch (err) {
+      console.warn('Could not copy:', err);
+    }
+  };
+
   if (state === 'done') {
     return (
-      <div className="success-msg" id="success-msg" style={{ display: 'block' }}>
-        ✓ Thank you - your enquiry has been received under reference <strong>{reference}</strong>.
-        A named advisor will contact you promptly. We look forward to our conversation.
+      <div className="success-msg" id="success-msg" style={{ display: 'block', padding: '1.75rem', borderRadius: 'var(--radius-md)' }}>
+        <h4 style={{ color: 'var(--forest)', marginBottom: '.5rem', fontSize: '1.25rem' }}>✓ Consultation Request Received</h4>
+        
+        <div style={{
+          background: '#ecfdf5',
+          border: '1px solid #a7f3d0',
+          borderRadius: 'var(--radius-sm)',
+          padding: '10px 14px',
+          color: '#065f46',
+          fontSize: '12.5px',
+          fontWeight: 600,
+          marginBottom: '1rem',
+          lineHeight: 1.5,
+        }}>
+          📌 <strong>Please copy your tracking reference below:</strong> Quote this unique reference in any follow-up with your assigned advisor.
+        </div>
+
+        <div style={{
+          background: 'var(--cream)',
+          border: '1px solid var(--border-light)',
+          borderRadius: 'var(--radius-sm)',
+          padding: '.75rem 1.25rem',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '.75rem',
+          marginBottom: '1rem',
+          flexWrap: 'wrap',
+        }}>
+          <span style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', color: 'var(--forest)', fontWeight: 700 }}>
+            Tracking Reference: <strong>{reference}</strong>
+          </span>
+          <button
+            type="button"
+            onClick={handleCopyRef}
+            style={{
+              background: copiedRef ? 'var(--forest)' : '#ffffff',
+              color: copiedRef ? '#ffffff' : 'var(--forest)',
+              border: '1px solid var(--forest)',
+              borderRadius: '4px',
+              padding: '5px 12px',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+          >
+            {copiedRef ? '✓ Copied!' : '📋 Copy Code'}
+          </button>
+        </div>
+
+        <p className="body-sm" style={{ color: 'var(--ink)' }}>
+          A named advisor will contact you promptly. We look forward to our conversation.
+        </p>
       </div>
     );
   }

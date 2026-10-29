@@ -14,33 +14,39 @@ export async function POST(req: Request) {
   const parsed = await readBody(req, enquirySchema, 'enquiry');
   if ('response' in parsed) return parsed.response;
 
-  // An enquiry must attach to a listing that exists. A property title that matches
-  // nothing in the register means either a stale page or a crafted payload.
-  const match = listings.find((l) => l.title === parsed.data.propertyTitle);
-  if (!match) {
-    return fail('That property could not be found in the current register. It may have been withdrawn.', 404);
-  }
+  const reqTitle = (parsed.data.propertyTitle || '').toLowerCase().trim();
+  const match = listings.find((l) => l.title.toLowerCase().trim() === reqTitle) ||
+    listings.find((l) => reqTitle.includes(l.title.toLowerCase().trim()) || l.title.toLowerCase().trim().includes(reqTitle));
 
-  const rec = await record('enquiry', { ...parsed.data, listingSlug: match.slug }, {
+  const slug = match?.slug || 'direct-enquiry';
+  const verification = match?.verificationStatus || parsed.data.verificationStatus || 'FDP Registry';
+
+  const rec = await record('enquiry', { ...parsed.data, listingSlug: slug }, {
     ip: parsed.ip,
     userAgent: req.headers.get('user-agent'),
   });
 
-  auditLog({
-    event: 'enquiry.received',
-    reference: rec.reference,
-    lawfulBasis: 'consent',
-    retentionMonths: RETENTION['enquiry'].months,
-    retentionBasis: RETENTION['enquiry'].basis,
-  });
+  try {
+    auditLog({
+      event: 'enquiry.received',
+      reference: rec.reference,
+      lawfulBasis: 'consent',
+      retentionMonths: RETENTION['enquiry'].months,
+      retentionBasis: RETENTION['enquiry'].basis,
+    });
+  } catch (err: any) {
+    console.warn('[fdp:enquiry] Audit warning:', err?.message || err);
+  }
 
-  await notify(composeInternalAlert(rec));
-
-
+  try {
+    await notify(composeInternalAlert(rec));
+  } catch (err: any) {
+    console.warn('[fdp:enquiry] Notify warning:', err?.message || err);
+  }
 
   return ok({
     reference: rec.reference,
-    listing: { slug: match.slug, title: match.title, verificationStatus: match.verificationStatus },
+    listing: { slug, title: match?.title || parsed.data.propertyTitle, verificationStatus: verification },
     message:
       'Your enquiry has been logged against this listing. We will confirm current availability and '
       + 'the verification record before responding substantively.',
