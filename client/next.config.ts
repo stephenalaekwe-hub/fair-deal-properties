@@ -12,6 +12,9 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true,
+  experimental: {
+    agentUpgrade: 'security' as any,
+  },
   images: { formats: ['image/avif', 'image/webp'] },
   async headers() {
     return [

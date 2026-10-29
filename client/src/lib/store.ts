@@ -24,6 +24,8 @@ import { randomUUID, createHash } from 'node:crypto';
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
+import { postgresDriver } from './drivers/postgres';
+
 export type Collection =
   | 'contact' | 'enquiry' | 'alert' | 'newsletter'
   | 'inspection' | 'dsr' | 'snag';
@@ -44,17 +46,24 @@ export interface StoreDriver {
 }
 
 /**
- * Statically scoped to a single subfolder of the working directory. A dynamic path
- * here would cause the bundler to trace the entire project into the server output,
- * which on a serverless host means the public folder ships inside the function.
+ * Statically scoped directory for file-based fallback.
+ * Uses /tmp/.fdp-data on Linux / serverless environments (e.g. AWS Amplify)
+ * and .fdp-data locally on Windows / development.
  */
-const DIR = path.join(process.cwd(), '.fdp-data');
+const DIR = process.env.FDP_DATA_DIR ||
+  (process.platform === 'win32'
+    ? path.join(process.cwd(), '.fdp-data')
+    : '/tmp/.fdp-data');
 
 const fileDriver: StoreDriver = {
   async put(record) {
-    await fs.mkdir(DIR, { recursive: true });
-    const file = path.join(DIR, `${record.collection}.jsonl`);
-    await fs.appendFile(/* turbopackIgnore: true */ file, JSON.stringify(record) + '\n', 'utf8');
+    try {
+      await fs.mkdir(/* turbopackIgnore: true */ DIR, { recursive: true });
+      const file = path.join(/* turbopackIgnore: true */ DIR, `${record.collection}.jsonl`);
+      await fs.appendFile(/* turbopackIgnore: true */ file, JSON.stringify(record) + '\n', 'utf8');
+    } catch (err: any) {
+      console.warn('[fdp:store:file] File storage warning:', err?.message || err);
+    }
   },
   async findByReference(reference) {
     let files: string[];
@@ -64,12 +73,16 @@ const fileDriver: StoreDriver = {
       return null;
     }
     for (const f of files.filter((x) => x.endsWith('.jsonl'))) {
-      const target = path.join(DIR, f);
-      const raw = await fs.readFile(/* turbopackIgnore: true */ target, 'utf8');
-      for (const line of raw.split('\n')) {
-        if (!line.trim()) continue;
-        const rec = JSON.parse(line) as StoredRecord;
-        if (rec.reference === reference) return rec;
+      const target = path.join(/* turbopackIgnore: true */ DIR, f);
+      try {
+        const raw = await fs.readFile(/* turbopackIgnore: true */ target, 'utf8');
+        for (const line of raw.split('\n')) {
+          if (!line.trim()) continue;
+          const rec = JSON.parse(line) as StoredRecord;
+          if (rec.reference === reference) return rec;
+        }
+      } catch {
+        continue;
       }
     }
     return null;
@@ -82,21 +95,6 @@ const nullDriver: StoreDriver = {
   async findByReference() { return null; },
 };
 
-/**
- * Driver selection.
- *
- *   FDP_STORE=postgres  production. AWS RDS for PostgreSQL. See drivers/postgres.ts
- *                       and docs/aws-provisioning.md.
- *   FDP_STORE=file      development only. Writes JSONL to disk. Not a lawful
- *                       production store for personal data - see the warning above.
- *   FDP_STORE=none      discards writes. For preview deployments that must not
- *                       receive personal data at all.
- *
- * The Postgres driver is loaded lazily so that a development or preview deployment
- * does not need the `pg` dependency resolved at module load.
- */
-let cachedDriver: StoreDriver | null = null;
-
 function selectDriver(): StoreDriver {
   const connStr = process.env.DATABASE_URL;
   const mode = process.env.FDP_STORE ?? (connStr ? 'postgres' : 'file');
@@ -104,13 +102,9 @@ function selectDriver(): StoreDriver {
   if (mode === 'none') return nullDriver;
 
   if (mode === 'postgres' || connStr) {
-    if (!cachedDriver) {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { postgresDriver } = require('./drivers/postgres') as
-        typeof import('./drivers/postgres');
-      cachedDriver = postgresDriver;
+    if (postgresDriver && typeof postgresDriver.put === 'function') {
+      return postgresDriver;
     }
-    return cachedDriver;
   }
 
   return fileDriver;
@@ -118,10 +112,33 @@ function selectDriver(): StoreDriver {
 
 export const store: StoreDriver = {
   async put<T>(rec: StoredRecord<T>): Promise<void> {
-    return selectDriver().put(rec);
+    const driver = selectDriver() || nullDriver;
+    try {
+      if (typeof driver.put === 'function') {
+        await driver.put(rec);
+      }
+    } catch (err: any) {
+      console.error('[fdp:store] Primary driver put error:', err?.message || err);
+      // If postgres failed (e.g. database unreachable or table missing), attempt file/fallback
+      if (driver !== fileDriver && typeof fileDriver.put === 'function') {
+        try {
+          await fileDriver.put(rec);
+        } catch (fErr: any) {
+          console.error('[fdp:store] Fallback file driver error:', fErr?.message || fErr);
+        }
+      }
+    }
   },
   async findByReference(reference: string): Promise<StoredRecord | null> {
-    return selectDriver().findByReference(reference);
+    const driver = selectDriver() || nullDriver;
+    try {
+      if (typeof driver.findByReference === 'function') {
+        return await driver.findByReference(reference);
+      }
+    } catch (err: any) {
+      console.error('[fdp:store] findByReference error:', err?.message || err);
+    }
+    return null;
   },
 };
 

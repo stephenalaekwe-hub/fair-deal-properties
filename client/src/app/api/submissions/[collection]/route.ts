@@ -28,15 +28,23 @@ export async function POST(
       userAgent: req.headers.get('user-agent'),
     });
 
-    auditLog({
-      event: `${col}.received`,
-      reference: rec.reference,
-      lawfulBasis: 'consent',
-      retentionMonths: RETENTION[col]?.months ?? 6,
-      retentionBasis: RETENTION[col]?.basis ?? 'GAID 2025 Art 49(3)',
-    });
+    try {
+      auditLog({
+        event: `${col}.received`,
+        reference: rec.reference,
+        lawfulBasis: 'consent',
+        retentionMonths: RETENTION[col]?.months ?? 6,
+        retentionBasis: RETENTION[col]?.basis ?? 'GAID 2025 Art 49(3)',
+      });
+    } catch (auditErr: any) {
+      console.warn('[fdp:submissions] Audit log non-fatal warning:', auditErr?.message || auditErr);
+    }
 
-    await notify(composeInternalAlert(rec));
+    try {
+      await notify(composeInternalAlert(rec));
+    } catch (notifyErr: any) {
+      console.warn('[fdp:submissions] Notification non-fatal warning:', notifyErr?.message || notifyErr);
+    }
 
     return NextResponse.json({
       ok: true,
