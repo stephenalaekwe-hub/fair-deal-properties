@@ -7,9 +7,31 @@ import { fetchApi } from '@/lib/api';
 export default function MarketplaceContent() {
   const [submitting, setSubmitting] = useState(false);
   const [submissionRef, setSubmissionRef] = useState('');
+  const [copiedRef, setCopiedRef] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [alertSubmitting, setAlertSubmitting] = useState(false);
   const [alertRef, setAlertRef] = useState('');
+
+  const handleCopyRef = async () => {
+    const refToCopy = submissionRef || document.getElementById('modal-ref-val')?.textContent || '';
+    if (!refToCopy) return;
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(refToCopy);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = refToCopy;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      setCopiedRef(true);
+      setTimeout(() => setCopiedRef(false), 2500);
+    } catch (err) {
+      console.warn('Could not copy to clipboard:', err);
+    }
+  };
 
   const initialEnquiryValues = {
     firstName: '',
@@ -1899,14 +1921,70 @@ export default function MarketplaceContent() {
         {submitting ? 'Transmitting Enquiry…' : "Send Enquiry – We'll Respond Promptly →"}
       </button>
     </form>
-    <div id="modal-success" style={{display:'none',padding:'3rem 2rem',textAlign:'center'}}>
-      <div style={{fontSize:'3rem',marginBottom:'1rem'}}>✓</div>
-      <h3 style={{fontFamily:'var(--font-display)',marginBottom:'.75rem'}}>Enquiry Received</h3>
-      <div style={{background:'var(--cream)',border:'1px solid var(--border-light)',borderRadius:'var(--radius-sm)',padding:'.65rem 1.25rem',display:'inline-block',marginBottom:'1.25rem',fontSize:'13px',fontFamily:'var(--font-mono)',color:'var(--forest)',fontWeight:600}}>
-        Tracking Reference: <span id="modal-ref-val">{submissionRef || 'FDP-ENQ-RECORDED'}</span>
+    <div id="modal-success" style={{display:'none',padding:'2.5rem 1.75rem',textAlign:'center'}}>
+      <div style={{fontSize:'3rem',marginBottom:'1rem',color:'var(--forest)'}}>✓</div>
+      <h3 style={{fontFamily:'var(--font-display)',fontSize:'1.8rem',marginBottom:'.5rem'}}>Enquiry Received</h3>
+      
+      {/* Explicit instruction telling the user to copy their reference code */}
+      <div style={{
+        background: '#ecfdf5',
+        border: '1px solid #a7f3d0',
+        borderRadius: 'var(--radius-sm)',
+        padding: '10px 14px',
+        color: '#065f46',
+        fontSize: '12.5px',
+        fontWeight: 600,
+        maxWidth: '430px',
+        margin: '0 auto 1.25rem auto',
+        lineHeight: 1.5,
+      }}>
+        📌 <strong>Please copy your tracking reference below:</strong> Keep this code safe for your records and follow-ups with our advisors.
       </div>
-      <p className="body-sm" style={{marginBottom:'1.5rem',maxWidth:'380px',marginLeft:'auto',marginRight:'auto'}}>A named Fair Deal Properties advisor will contact you promptly. Thank you for your interest.</p>
-      <button onClick={(event)=>{window.closeEnquiry()}} className="btn btn-primary">Close</button>
+
+      <div style={{
+        background:'var(--cream)',
+        border:'1px solid var(--border-light)',
+        borderRadius:'var(--radius-sm)',
+        padding:'.75rem 1.25rem',
+        display:'inline-flex',
+        alignItems:'center',
+        justifyContent:'center',
+        gap:'.75rem',
+        marginBottom:'1.25rem',
+        flexWrap:'wrap',
+      }}>
+        <span style={{fontSize:'13px',fontFamily:'var(--font-mono)',color:'var(--forest)',fontWeight:700}}>
+          Tracking Reference: <span id="modal-ref-val">{submissionRef || 'FDP-ENQ-RECORDED'}</span>
+        </span>
+        <button
+          type="button"
+          onClick={handleCopyRef}
+          style={{
+            background: copiedRef ? 'var(--forest)' : '#ffffff',
+            color: copiedRef ? '#ffffff' : 'var(--forest)',
+            border: '1px solid var(--forest)',
+            borderRadius: '4px',
+            padding: '5px 12px',
+            fontSize: '12px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+          }}
+          title="Copy tracking code"
+        >
+          {copiedRef ? '✓ Copied!' : '📋 Copy Code'}
+        </button>
+      </div>
+
+      <p className="body-sm" style={{marginBottom:'1.5rem',maxWidth:'400px',marginLeft:'auto',marginRight:'auto',color:'var(--ink-muted)'}}>
+        A named Fair Deal Properties advisor will contact you promptly. Thank you for your interest.
+      </p>
+      <button onClick={() => { if (typeof window !== 'undefined' && typeof window.closeEnquiry === 'function') window.closeEnquiry(); }} className="btn btn-primary" style={{padding:'12px 32px'}}>
+        Close
+      </button>
     </div>
   </div>
 </div>

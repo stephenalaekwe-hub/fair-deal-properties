@@ -171,6 +171,29 @@ export default function InspectionsContent() {
     }
   };
 
+  const [copiedInsRef, setCopiedInsRef] = useState(false);
+
+  const handleCopyInsRef = async () => {
+    const refToCopy = insRef || document.getElementById('insRefOut')?.textContent || '';
+    if (!refToCopy || refToCopy === '-') return;
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(refToCopy);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = refToCopy;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      setCopiedInsRef(true);
+      setTimeout(() => setCopiedInsRef(false), 2500);
+    } catch (err) {
+      console.warn('Could not copy inspection reference:', err);
+    }
+  };
+
   const [trackRefInput, setTrackRefInput] = useState('');
   const [trackLoading, setTrackLoading] = useState(false);
   const [trackError, setTrackError] = useState('');
@@ -636,10 +659,61 @@ export default function InspectionsContent() {
               </button>
             </form>
             <div id="insDone" style={{display:'none',textAlign:'center',padding:'2rem 0'}}>
-              <div style={{fontSize:'2.6rem',marginBottom:'.75rem'}}>✓</div>
-              <h4 style={{marginBottom:'.5rem'}}>Request logged</h4>
-              <p className="body-sm" style={{marginBottom:'1rem'}}>Your tracking reference is</p>
-              <div style={{fontFamily:'var(--font-mono)',fontSize:'1.3rem',color:'var(--forest)',background:'var(--cream)',padding:'.85rem',borderRadius:'var(--radius-sm)',letterSpacing:'.09em',marginBottom:'1.25rem'}} id="insRefOut">-</div>
+              <div style={{fontSize:'2.6rem',marginBottom:'.75rem',color:'var(--forest)'}}>✓</div>
+              <h4 style={{marginBottom:'.5rem'}}>Inspection Request Logged</h4>
+
+              {/* Explicit instruction telling the user to copy their reference code */}
+              <div style={{
+                background: '#ecfdf5',
+                border: '1px solid #a7f3d0',
+                borderRadius: 'var(--radius-sm)',
+                padding: '10px 14px',
+                color: '#065f46',
+                fontSize: '12.5px',
+                fontWeight: 600,
+                maxWidth: '430px',
+                margin: '0 auto 1.25rem auto',
+                lineHeight: 1.5,
+              }}>
+                📌 <strong>Please copy your tracking reference below:</strong> Save this code to track officer dispatch and verification milestones.
+              </div>
+
+              <div style={{
+                background:'var(--cream)',
+                border:'1px solid var(--border-light)',
+                borderRadius:'var(--radius-sm)',
+                padding:'.85rem 1.25rem',
+                display:'inline-flex',
+                alignItems:'center',
+                justifyContent:'center',
+                gap:'.75rem',
+                marginBottom:'1.25rem',
+                flexWrap:'wrap',
+              }}>
+                <div style={{fontFamily:'var(--font-mono)',fontSize:'1.25rem',color:'var(--forest)',fontWeight:700,letterSpacing:'.09em'}} id="insRefOut">-</div>
+                <button
+                  type="button"
+                  onClick={handleCopyInsRef}
+                  style={{
+                    background: copiedInsRef ? 'var(--forest)' : '#ffffff',
+                    color: copiedInsRef ? '#ffffff' : 'var(--forest)',
+                    border: '1px solid var(--forest)',
+                    borderRadius: '4px',
+                    padding: '6px 12px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                  title="Copy tracking reference"
+                >
+                  {copiedInsRef ? '✓ Copied!' : '📋 Copy Code'}
+                </button>
+              </div>
+
               <p className="body-sm" style={{marginBottom:'1.25rem'}}>Prompt acknowledgement & officer dispatch. Track progress at any time using this reference.</p>
               <button
                 onClick={() => {
