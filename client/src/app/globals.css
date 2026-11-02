@@ -771,3 +771,327 @@ footer img { max-width: 100%; }
   animation: tourPulse 1.2s infinite ease-out !important;
   transition: all .3s ease !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DASHBOARD SHELL — Agent & Admin portal layout classes
+   Used by /agent/layout.tsx and /admin/layout.tsx.
+   These work alongside existing inline styles and provide the hooks that
+   the mobile media queries below can target.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Outer wrapper — full-viewport flex row */
+.dash-shell {
+  display: flex;
+  min-height: 100vh;
+  background: #f8fafc;
+  color: var(--ink);
+}
+
+/* Sidebar */
+.dash-sidebar {
+  width: 260px;
+  background: var(--forest);
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  border-right: 1px solid rgba(255,255,255,0.1);
+  position: relative;
+  z-index: 50;
+  transition: transform .3s cubic-bezier(.4,0,.2,1);
+}
+.dash-sidebar-brand {
+  padding: 24px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.dash-sidebar-label {
+  font-size: 11px;
+  color: var(--gold-light);
+  letter-spacing: 0.08em;
+  margin-top: 6px;
+  font-weight: 600;
+}
+.dash-sidebar-nav {
+  padding: 20px 12px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dash-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: #94a3b8;
+  background: transparent;
+  border-left: 3px solid transparent;
+  transition: all 0.15s ease;
+}
+.dash-nav-link:hover { color: #fff; background: rgba(255,255,255,0.06); }
+.dash-nav-link.active {
+  font-weight: 600;
+  color: #ffffff;
+  background: var(--forest-light);
+  border-left: 3px solid var(--gold);
+}
+.dash-sidebar-foot {
+  padding: 16px;
+  background: rgba(0,0,0,0.2);
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+/* Main area */
+.dash-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.dash-header {
+  height: 64px;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  flex-shrink: 0;
+}
+.dash-header-title {
+  font-weight: 600;
+  color: var(--forest);
+  font-size: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dash-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+.dash-content {
+  padding: 32px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Mobile hamburger toggle (hidden on desktop) */
+.dash-mobile-toggle {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: var(--forest);
+  flex-direction: column;
+  gap: 5px;
+}
+.dash-mobile-toggle span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: currentColor;
+  border-radius: 2px;
+  transition: all .3s;
+}
+
+/* Mobile overlay backdrop */
+.dash-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(10,24,16,0.55);
+  z-index: 45;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+.dash-overlay.open { display: block; }
+
+/* Bottom nav (mobile only — rendered by JS toggle) */
+.dash-bottom-nav {
+  display: none; /* shown via media query */
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  background: var(--forest);
+  border-top: 1px solid rgba(255,255,255,0.12);
+  padding: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.dash-bottom-nav-inner {
+  display: flex;
+  align-items: stretch;
+  height: 60px;
+}
+.dash-bottom-nav-link {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  text-decoration: none;
+  color: rgba(255,255,255,0.5);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  padding: 6px 4px;
+  border-top: 2px solid transparent;
+  transition: all .15s;
+}
+.dash-bottom-nav-link .bnav-icon { font-size: 18px; line-height: 1; }
+.dash-bottom-nav-link:hover { color: rgba(255,255,255,.8); }
+.dash-bottom-nav-link.active {
+  color: var(--gold-light);
+  border-top-color: var(--gold);
+  background: rgba(255,255,255,0.04);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE MEDIA QUERIES — Agent & Admin portals (≤ 768px)
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+  /* ── Dashboard shell ── */
+  .dash-shell {
+    flex-direction: column;
+  }
+
+  /* Sidebar becomes a slide-in drawer from the left */
+  .dash-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(280px, 85vw);
+    z-index: 55;
+    transform: translateX(-100%);
+    box-shadow: 4px 0 32px rgba(0,0,0,0.35);
+  }
+  .dash-sidebar.open {
+    transform: translateX(0);
+  }
+
+  /* Show hamburger button in the header */
+  .dash-mobile-toggle {
+    display: flex;
+  }
+
+  /* Main area fills full width; add bottom padding so content clears the bottom nav */
+  .dash-main {
+    width: 100%;
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Compact header */
+  .dash-header {
+    height: 56px;
+    padding: 0 16px;
+    gap: 12px;
+  }
+  .dash-header-title {
+    font-size: 13px;
+  }
+  /* Hide the "View Public Website" button on very small screens */
+  .dash-header-actions .dash-view-site-btn {
+    display: none;
+  }
+
+  /* Reduce content padding */
+  .dash-content {
+    padding: 16px;
+  }
+
+  /* Show the fixed bottom navigation bar */
+  .dash-bottom-nav {
+    display: block;
+  }
+
+  /* ── Agent / Admin page-level adjustments ── */
+
+  /* KPI grids: 2 columns on mobile instead of 4 */
+  .dash-kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  /* Title + action row: stack vertically */
+  .dash-page-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+
+  /* Tables: allow horizontal scroll rather than wrapping */
+  .dash-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .dash-table-wrap table {
+    min-width: 560px;
+  }
+
+  /* Stats summary row inside agent pages */
+  .dash-stat-row {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* Inspection viewer shell — collapse 3-col to single col */
+  .vw-shell {
+    grid-template-columns: 1fr !important;
+  }
+  .vw-rail, .vw-log {
+    max-height: 220px !important;
+    border-right: none !important;
+    border-left: none !important;
+  }
+  .vw-rail { border-bottom: 1px solid var(--border) !important; }
+  .vw-log  { border-top:    1px solid var(--border) !important; }
+
+  /* Sidebar footer user card: hide role detail to save space */
+  .dash-sidebar-foot .dash-role-line {
+    display: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   EXTRA-SMALL — ≤ 480px refinements
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+
+  /* KPI grid → single column on very small phones */
+  .dash-kpi-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Bottom nav labels — hide text, show icon only */
+  .dash-bottom-nav-link .bnav-label {
+    display: none;
+  }
+  .dash-bottom-nav-link .bnav-icon {
+    font-size: 22px;
+  }
+
+  /* Content padding: tighter */
+  .dash-content {
+    padding: 12px;
+  }
+
+  /* Section padding adjustments */
+  .section  { padding: 3.5rem 0; }
+  .section-sm { padding: 2.5rem 0; }
+}
