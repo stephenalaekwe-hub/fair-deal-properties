@@ -255,19 +255,45 @@ export async function getLiveSubmissions(collection?: string): Promise<any[]> {
   const p = getDbPool();
   if (!p) return [];
 
-  const cond = collection ? 'WHERE collection = $1' : '';
+  try {
+    await p.query(`
+      ALTER TABLE submissions 
+      ADD COLUMN IF NOT EXISTS assigned_agent text,
+      ADD COLUMN IF NOT EXISTS assigned_agent_id text;
+    `);
+  } catch (e) {
+    // Ignore if column exists or schema is read-only
+  }
+
+  const cond = collection ? 'WHERE s.collection = $1' : '';
   const params = collection ? [collection] : [];
 
   const res = await p.query(
-    `SELECT id, reference, collection, received_at as "receivedAt", due_at as "dueAt",
-            payload, ip_hash as "ipHash", user_agent as "userAgent",
-            closed_at as "closedAt", closed_by as "closedBy", outcome, created_at as "createdAt"
-     FROM submissions
+    `SELECT s.id, s.reference, s.collection, s.received_at as "receivedAt", s.due_at as "dueAt",
+            s.payload, s.ip_hash as "ipHash", s.user_agent as "userAgent",
+            s.closed_at as "closedAt", s.closed_by as "closedBy", s.outcome, s.created_at as "createdAt",
+            s.assigned_agent as "assignedAgentName", s.assigned_agent_id as "assignedAgentId"
+     FROM submissions s
      ${cond}
-     ORDER BY received_at DESC`,
+     ORDER BY s.received_at DESC`,
     params
   );
-  return res.rows;
+  return res.rows.map((row) => {
+    const p = row.payload || {};
+    const assignedAgentId = row.assignedAgentId || p.assignedAgentId || null;
+    const assignedAgentName = row.assignedAgentName || p.assignedAgent || null;
+    return {
+      ...row,
+      assignedAgentId,
+      assignedAgent: (assignedAgentId || assignedAgentName) ? {
+        id: assignedAgentId,
+        name: assignedAgentName || 'Assigned Officer',
+      } : null,
+      clientName: p.fullName || p.name || p.clientName || null,
+      clientEmail: p.email || p.clientEmail || null,
+      clientPhone: p.phone || p.clientPhone || p.telephone || null,
+    };
+  });
 }
 
 export async function closeLiveSubmission(id: string, outcome: string, closedBy: string): Promise<any> {
@@ -309,6 +335,46 @@ export async function getLiveFinancingRoutes(): Promise<FinancingRoute[]> {
     console.error('[fdp:db] getLiveFinancingRoutes error:', err);
     return defaultFinancingRoutes;
   }
+}
+
+export async function updateLiveFinancingRoute(id: string, updates: {
+  name?: string;
+  institution?: string;
+  interestRatePct?: number | null;
+  maxTermYears?: number | null;
+  minEquityPct?: number | null;
+  verificationNote?: string;
+  lastVerified?: string;
+}): Promise<any> {
+  const p = getDbPool();
+  if (!p) throw new Error('Database connection not available');
+
+  const res = await p.query(
+    `UPDATE financing_routes
+     SET name = COALESCE($2, name),
+         institution = COALESCE($3, institution),
+         interest_rate_pct = COALESCE($4, interest_rate_pct),
+         max_term_years = COALESCE($5, max_term_years),
+         min_equity_pct = COALESCE($6, min_equity_pct),
+         verification_note = COALESCE($7, verification_note),
+         last_verified = COALESCE($8, last_verified),
+         updated_at = now()
+     WHERE id = $1
+     RETURNING id, name, institution, interest_rate_pct as "interestRatePct",
+               max_term_years as "maxTermYears", min_equity_pct as "minEquityPct",
+               last_verified as "lastVerified", verification_note as "verificationNote"`,
+    [
+      id,
+      updates.name || null,
+      updates.institution || null,
+      updates.interestRatePct !== undefined ? updates.interestRatePct : null,
+      updates.maxTermYears !== undefined ? updates.maxTermYears : null,
+      updates.minEquityPct !== undefined ? updates.minEquityPct : null,
+      updates.verificationNote || null,
+      updates.lastVerified || new Date().toISOString().slice(0, 10),
+    ]
+  );
+  return res.rows[0];
 }
 
 // ─── Analytics Overview ──────────────────────────────────────────────────────

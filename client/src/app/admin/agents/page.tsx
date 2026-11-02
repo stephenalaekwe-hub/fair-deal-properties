@@ -54,12 +54,19 @@ export default function AdminAgentsPage() {
     setSubmitting(false);
   };
 
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
   const handleToggleStatus = async (agent: any) => {
-    await fetchApi(`/admin/agents/${agent.id}/status`, {
+    setTogglingId(agent.id);
+    const res = await fetchApi(`/admin/agents/${agent.id}/status`, {
       method: 'PATCH',
       body: JSON.stringify({ active: !agent.active }),
     });
+    if (!res.ok) {
+      alert(res.error || 'Failed to update agent account status.');
+    }
     await loadAgents();
+    setTogglingId(null);
   };
 
   return (
@@ -171,6 +178,7 @@ export default function AdminAgentsPage() {
                         </Link>
                         <button
                           onClick={() => handleToggleStatus(ag)}
+                          disabled={togglingId === ag.id}
                           style={{
                             padding: '6px 12px',
                             background: ag.active ? '#fee2e2' : '#dcfce7',
@@ -179,10 +187,11 @@ export default function AdminAgentsPage() {
                             borderRadius: '4px',
                             fontSize: '12px',
                             fontWeight: 600,
-                            cursor: 'pointer',
+                            cursor: togglingId === ag.id ? 'not-allowed' : 'pointer',
+                            opacity: togglingId === ag.id ? 0.7 : 1,
                           }}
                         >
-                          {ag.active ? 'Deactivate' : 'Activate'}
+                          {togglingId === ag.id ? 'Updating...' : (ag.active ? 'Deactivate' : 'Activate')}
                         </button>
                       </div>
                     </td>

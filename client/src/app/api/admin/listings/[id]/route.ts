@@ -4,9 +4,9 @@ import { getDbPool } from '@/lib/db';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function PUT(
+async function handleUpdateListing(
   req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  params: Promise<{ id: string }>
 ) {
   try {
     const { id } = await params;
@@ -18,10 +18,19 @@ export async function PUT(
         `UPDATE listings
          SET title = COALESCE($2, title),
              price_display = COALESCE($3, price_display),
-             verification_status = COALESCE($4, verification_status),
+             price_millions_ngn = COALESCE($4, price_millions_ngn),
+             image = COALESCE($5, image),
+             verification_status = COALESCE($6, verification_status),
              updated_at = now()
-         WHERE id = $1`,
-        [id, body.title, body.priceDisplay, body.verificationStatus]
+         WHERE id::text = $1 OR slug = $1`,
+        [
+          id,
+          body.title || null,
+          body.priceDisplay || null,
+          body.priceMillionsNGN !== undefined && body.priceMillionsNGN !== null ? body.priceMillionsNGN : null,
+          body.image || null,
+          body.verificationStatus || null,
+        ]
       );
     }
 
@@ -36,4 +45,18 @@ export async function PUT(
       { status: 500 }
     );
   }
+}
+
+export async function PUT(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return handleUpdateListing(req, params);
+}
+
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return handleUpdateListing(req, params);
 }

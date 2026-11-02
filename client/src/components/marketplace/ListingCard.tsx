@@ -17,9 +17,10 @@ export default function ListingCard({ listing, view, saved, onToggleSave, onEnqu
       <div className="opp-media">
         <Image
           src={listing.image}
-          alt={listing.imageAlt}
+          alt={listing.imageAlt || listing.title}
           width={800}
           height={450}
+          unoptimized={listing.image?.startsWith('data:') || listing.image?.startsWith('http')}
           sizes="(max-width: 768px) 100vw, 33vw"
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         />

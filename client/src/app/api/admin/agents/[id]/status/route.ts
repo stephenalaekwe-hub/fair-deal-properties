@@ -4,9 +4,9 @@ import { getDbPool } from '@/lib/db';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function PATCH(
+async function handleStatusUpdate(
   req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  params: Promise<{ id: string }>
 ) {
   try {
     const { id } = await params;
@@ -14,16 +14,34 @@ export async function PATCH(
     const active = Boolean(body.active);
 
     const p = getDbPool();
-    if (p) {
-      await p.query(
-        `UPDATE agents SET active = $2, updated_at = now() WHERE id = $1`,
-        [id, active]
+    if (!p) {
+      throw new Error('Database connection not available');
+    }
+
+    // Agents and staff are stored in the 'users' table
+    const result = await p.query(
+      `UPDATE users 
+       SET active = $2, updated_at = now() 
+       WHERE id::text = $1 OR email = $1
+       RETURNING id, name, email, role, active`,
+      [id, active]
+    );
+
+    if (result.rowCount === 0) {
+      return NextResponse.json(
+        { ok: false, error: 'Agent account not found in system.' },
+        { status: 404 }
       );
     }
 
     return NextResponse.json({
       ok: true,
-      data: { id, active, message: 'Agent status updated successfully.' },
+      data: { 
+        id, 
+        active, 
+        user: result.rows[0], 
+        message: `Agent account ${active ? 'activated' : 'deactivated'} successfully.` 
+      },
     });
   } catch (err: any) {
     console.error('[fdp:admin:agents:status] Error:', err);
@@ -32,4 +50,18 @@ export async function PATCH(
       { status: 500 }
     );
   }
+}
+
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return handleStatusUpdate(req, params);
+}
+
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return handleStatusUpdate(req, params);
 }
