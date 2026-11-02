@@ -39,7 +39,7 @@
   --max-w:1240px;
 }
 html{scroll-behavior:smooth;font-size:16px}
-body{font-family:var(--font-body);background:var(--cream);color:var(--ink);line-height:1.7;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body{font-family:var(--font-body);background:var(--cream);color:var(--ink);line-height:1.7;-webkit-font-smoothing:antialiased;overflow-x:hidden;max-width:100vw}
 
 /* ── Scrollbar ── */
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--cream-mid)}::-webkit-scrollbar-thumb{background:var(--forest-light);border-radius:3px}
@@ -122,7 +122,7 @@ h4,.h4{font-family:var(--font-display);font-size:1.2rem;font-weight:500;line-hei
 .muted{color:var(--ink-muted)}
 
 /* ── Hero ── */
-.hero{background:var(--forest);min-height:100vh;display:flex;flex-direction:column;justify-content:flex-end;position:relative;overflow:hidden;padding-bottom:8rem}
+.hero{background:var(--forest);min-height:100vh;display:flex;flex-direction:column;justify-content:flex-end;position:relative;overflow:hidden;padding-bottom:8rem;width:100%;box-sizing:border-box}
 .hero-bg-pattern{position:absolute;inset:0;background-image:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c9a84c' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")}
 .hero-glow{position:absolute;top:-20%;right:-10%;width:700px;height:700px;background:radial-gradient(circle,rgba(201,168,76,.12) 0%,transparent 70%);pointer-events:none}
 .hero-glow-2{position:absolute;bottom:-10%;left:-5%;width:500px;height:500px;background:radial-gradient(circle,rgba(201,168,76,.08) 0%,transparent 70%);pointer-events:none}
@@ -368,6 +368,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.7);padding:5rem 0 3rem}
   .section{padding:5rem 0}
   .grid-2{grid-template-columns:1fr}
   .grid-3{grid-template-columns:1fr}
+  .grid-4{grid-template-columns:1fr}
   .pain-grid{grid-template-columns:1fr}
   .process-grid{grid-template-columns:1fr}
   .hero-trust-inner{grid-template-columns:repeat(2,1fr)}
@@ -388,11 +389,14 @@ footer{background:var(--ink);color:rgba(255,255,255,.7);padding:5rem 0 3rem}
   .page-hero{padding:6rem 0 4rem}
   .page-hero::after{display:none}
   /* Hero fixes */
-  .hero{min-height:auto;padding-bottom:5rem}
+  .hero{min-height:auto;padding-bottom:5rem;width:100%}
   .hero h1{font-size:clamp(2.4rem,9vw,3.8rem);word-break:break-word;overflow-wrap:break-word}
   .hero-sub{font-size:1rem;max-width:100%}
   .hero-actions{gap:1rem}
   .btn-hero-primary,.btn-hero-secondary{font-size:13px}
+  /* Service card 05 — reset the span-2 and inner 2-col grid */
+  .service-card-wide{grid-column:1 !important}
+  .service-card-wide-inner{grid-template-columns:1fr !important;gap:1.5rem !important}
 }
 
 /* ── Mobile menu ── */
