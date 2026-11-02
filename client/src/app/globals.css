@@ -90,6 +90,12 @@ nav.site-nav{position:sticky;top:0;z-index:100;background:rgba(250,248,243,.92);
 .nav-cta-gold:hover{background:var(--gold-light)}
 .hamburger{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:4px}
 .hamburger span{display:block;width:22px;height:1.5px;background:var(--ink);transition:all .3s;border-radius:2px}
+/* Hide the Book Consultation CTA on mobile — only hamburger + logo shows */
+@media(max-width:768px){
+  .nav-cta,.nav-cta-gold{display:none}
+  .hamburger{display:flex}
+  .nav-inner{gap:0}
+}
 
 /* ── Pages ── */
 .page{display:none}
@@ -99,7 +105,7 @@ nav.site-nav{position:sticky;top:0;z-index:100;background:rgba(250,248,243,.92);
 .section{padding:7rem 0}
 .section-sm{padding:4rem 0}
 .section-lg{padding:10rem 0}
-.container{max-width:var(--max-w);margin:0 auto;padding:0 2rem}
+.container{max-width:var(--max-w);margin:0 auto;padding:0 clamp(1rem,4vw,2rem)}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center}
 .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem}
 .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:1.5rem}
@@ -120,11 +126,11 @@ h4,.h4{font-family:var(--font-display);font-size:1.2rem;font-weight:500;line-hei
 .hero-bg-pattern{position:absolute;inset:0;background-image:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c9a84c' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")}
 .hero-glow{position:absolute;top:-20%;right:-10%;width:700px;height:700px;background:radial-gradient(circle,rgba(201,168,76,.12) 0%,transparent 70%);pointer-events:none}
 .hero-glow-2{position:absolute;bottom:-10%;left:-5%;width:500px;height:500px;background:radial-gradient(circle,rgba(201,168,76,.08) 0%,transparent 70%);pointer-events:none}
-.hero-content{position:relative;z-index:2;max-width:var(--max-w);margin:0 auto;padding:0 2rem;width:100%}
+.hero-content{position:relative;z-index:2;max-width:var(--max-w);margin:0 auto;padding:0 clamp(1rem,4vw,2rem);width:100%}
 .hero-overline{display:flex;align-items:center;gap:16px;margin-bottom:2rem}
 .hero-overline-line{width:48px;height:1px;background:var(--gold);opacity:.6}
 .hero-overline-text{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:rgba(201,168,76,.8);font-weight:400}
-.hero h1{color:var(--white);font-size:clamp(3.5rem,8vw,7rem);font-weight:300;max-width:900px;margin-bottom:2rem}
+.hero h1{color:var(--white);font-size:clamp(2.4rem,8vw,7rem);font-weight:300;max-width:900px;margin-bottom:2rem;overflow-wrap:break-word;word-break:break-word}
 .hero h1 em{font-style:italic;color:var(--gold-light)}
 .hero-sub{font-size:1.1rem;color:rgba(255,255,255,.6);font-weight:300;max-width:540px;line-height:1.75;margin-bottom:3.5rem}
 .hero-actions{display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap}
@@ -368,7 +374,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.7);padding:5rem 0 3rem}
   .hero-stat{border-right:none;padding:0;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:1rem}
   .hero-stat:last-child{border-bottom:none}
   .nav-links{display:none}
-  .hamburger{display:flex}
+  /* Hamburger shown via rule above */
   .aud-panel.active{grid-template-columns:1fr}
   .team-grid{grid-template-columns:1fr}
   .values-grid{grid-template-columns:1fr}
@@ -381,6 +387,12 @@ footer{background:var(--ink);color:rgba(255,255,255,.7);padding:5rem 0 3rem}
   .pos-divider{display:none}
   .page-hero{padding:6rem 0 4rem}
   .page-hero::after{display:none}
+  /* Hero fixes */
+  .hero{min-height:auto;padding-bottom:5rem}
+  .hero h1{font-size:clamp(2.4rem,9vw,3.8rem);word-break:break-word;overflow-wrap:break-word}
+  .hero-sub{font-size:1rem;max-width:100%}
+  .hero-actions{gap:1rem}
+  .btn-hero-primary,.btn-hero-secondary{font-size:13px}
 }
 
 /* ── Mobile menu ── */
