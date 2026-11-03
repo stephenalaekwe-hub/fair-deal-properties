@@ -41,10 +41,10 @@ export default function AgentSubmissionsPage() {
     if (!activeModal) return;
     setSaving(true);
 
-    if (outcome && !activeModal.closedAt) {
+    if (outcome || activeModal.outcome) {
       await fetchApi(`/admin/submissions/${activeModal.id}/close`, {
         method: 'PATCH',
-        body: JSON.stringify({ outcome }),
+        body: JSON.stringify({ outcome: outcome || '', status: 'closed' }),
       });
     }
 

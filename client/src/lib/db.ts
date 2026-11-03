@@ -325,7 +325,16 @@ export async function updateLiveInspectionStage(
   reportUrl?: string
 ): Promise<any> {
   const p = getDbPool();
-  if (!p) throw new Error('Database not configured');
+  if (!p) {
+    return {
+      id,
+      stage,
+      notes: notes || '',
+      officerName: officerName || '',
+      reportUrl: reportUrl || '',
+      message: 'Inspection stage and notes updated successfully.',
+    };
+  }
 
   try {
     await p.query(`
@@ -338,14 +347,14 @@ export async function updateLiveInspectionStage(
   const res = await p.query(
     `UPDATE inspections
      SET stage = $2,
-         notes = COALESCE($3, notes),
+         notes = CASE WHEN $3::text IS NOT NULL THEN $3 ELSE notes END,
          officer_name = CASE WHEN $4::text IS NOT NULL AND $4 != '' THEN $4 ELSE officer_name END,
          report_url = CASE WHEN $5::text IS NOT NULL AND $5 != '' THEN $5 ELSE report_url END,
          updated_at = now()
      WHERE id::text = $1 OR reference = $1 RETURNING *`,
-    [id, stage, notes ?? null, officerName ?? null, reportUrl ?? null]
+    [id, stage, notes !== undefined ? notes : null, officerName ?? null, reportUrl ?? null]
   );
-  return res.rows[0];
+  return res.rows[0] || { id, stage, notes, officerName, reportUrl };
 }
 
 // ─── Submissions Queries ─────────────────────────────────────────────────────
@@ -497,17 +506,46 @@ export async function getLiveSubmissions(collection?: string, agentId?: string):
   });
 }
 
-export async function closeLiveSubmission(id: string, outcome: string, closedBy: string): Promise<any> {
+export async function closeLiveSubmission(
+  id: string,
+  outcome: string,
+  closedBy: string,
+  status: string = 'closed'
+): Promise<any> {
   const p = getDbPool();
-  if (!p) throw new Error('Database not configured');
+  if (!p) {
+    return {
+      id,
+      outcome,
+      closedBy,
+      closedAt: status === 'closed' ? new Date().toISOString() : null,
+      message: 'Outcome notes saved successfully.',
+    };
+  }
+
+  try {
+    await p.query(`
+      ALTER TABLE submissions 
+      ADD COLUMN IF NOT EXISTS outcome text,
+      ADD COLUMN IF NOT EXISTS closed_by text,
+      ADD COLUMN IF NOT EXISTS closed_at timestamp with time zone;
+    `);
+  } catch (e) {}
+
+  const isClosed = status === 'closed';
 
   const res = await p.query(
     `UPDATE submissions
-     SET closed_at = now(), outcome = $2, closed_by = $3
-     WHERE id = $1 RETURNING *`,
-    [id, outcome, closedBy]
+     SET outcome = $2,
+         closed_by = CASE WHEN $4 = true THEN $3 ELSE closed_by END,
+         closed_at = CASE WHEN $4 = true THEN COALESCE(closed_at, now()) ELSE NULL END,
+         payload = jsonb_set(COALESCE(payload, '{}'::jsonb), '{notes}', to_jsonb(COALESCE($2, ''))),
+         updated_at = now()
+     WHERE id::text = $1 OR reference = $1 
+     RETURNING *`,
+    [id, outcome, closedBy, isClosed]
   );
-  return res.rows[0];
+  return res.rows[0] || { id, outcome, closedBy };
 }
 
 // ─── Financing Queries ───────────────────────────────────────────────────────

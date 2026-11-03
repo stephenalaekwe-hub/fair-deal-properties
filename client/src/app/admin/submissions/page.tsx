@@ -71,13 +71,14 @@ export default function AdminSubmissionsPage() {
       });
     }
 
-    // 2. Close submission if closed selected or outcome provided
-    if (statusChoice === 'closed' || (outcome && !activeModal.closedAt)) {
-      await fetchApi(`/admin/submissions/${activeModal.id}/close`, {
-        method: 'PATCH',
-        body: JSON.stringify({ outcome: outcome || 'Submission processed and closed.' }),
-      });
-    }
+    // 2. Update status and follow-up outcome notes
+    await fetchApi(`/admin/submissions/${activeModal.id}/close`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        outcome: outcome || '',
+        status: statusChoice,
+      }),
+    });
 
     setActiveModal(null);
     setSaving(false);
