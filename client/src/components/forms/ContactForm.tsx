@@ -57,6 +57,7 @@ export default function ContactForm() {
     lastName: '',
     email: '',
     phone: '',
+    preferredDate: '',
     profile: '',
     interest: '',
     budget: '',
@@ -163,6 +164,7 @@ export default function ContactForm() {
           name: `${first} ${last}`.trim(),
           email: formValues.email.trim(),
           phone: formValues.phone.trim() || undefined,
+          preferredDate: formValues.preferredDate || undefined,
           subject: interest || undefined,
           interest: interestKey(interest),
           message,
@@ -362,6 +364,19 @@ export default function ContactForm() {
           placeholder="08012345678 or +2348012345678"
           autoComplete="tel"
           value={formValues.phone}
+          onChange={handleChange}
+        />
+      </div>
+
+      <div className="form-group">
+        <label className="form-label" htmlFor="c-date">Preferred Consultation Date</label>
+        <input
+          id="c-date"
+          name="preferredDate"
+          type="date"
+          min={new Date().toISOString().split('T')[0]}
+          className="form-input"
+          value={formValues.preferredDate}
           onChange={handleChange}
         />
       </div>

@@ -299,7 +299,7 @@ export async function getLiveInspectionByRef(reference: string): Promise<any | n
             END as "assignedAgent"
      FROM inspections i
      LEFT JOIN users u ON u.id::text = COALESCE(i.assigned_agent_id, i.agent_id)
-     WHERE i.reference = $1 LIMIT 1`,
+     WHERE LOWER(i.reference) = LOWER($1) LIMIT 1`,
     [reference]
   );
   if (!res.rows[0]) return null;

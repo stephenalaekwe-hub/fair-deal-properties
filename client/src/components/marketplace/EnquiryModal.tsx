@@ -24,6 +24,7 @@ export default function EnquiryModal({ listing, onClose }: Props) {
     name: '',
     email: '',
     phone: '',
+    preferredDate: '',
     message: '',
     financing: false,
     consent: false,
@@ -81,6 +82,7 @@ export default function EnquiryModal({ listing, onClose }: Props) {
       name: '',
       email: '',
       phone: '',
+      preferredDate: '',
       message: '',
       financing: false,
       consent: false,
@@ -118,6 +120,7 @@ export default function EnquiryModal({ listing, onClose }: Props) {
           name: String(fd.get('name') ?? ''),
           email: String(fd.get('email') ?? ''),
           phone: fd.get('phone') ? String(fd.get('phone')) : undefined,
+          preferredDate: fd.get('preferredDate') ? String(fd.get('preferredDate')) : undefined,
           propertyTitle: listing.title,
           propertyPrice: listing.priceDisplay,
           verificationStatus: listing.verificationStatus,
@@ -318,6 +321,17 @@ export default function EnquiryModal({ listing, onClose }: Props) {
                 placeholder="08012345678 or +2348012345678"
                 autoComplete="tel" 
                 value={formValues.phone}
+                onChange={handleChange}
+              />
+            </div>
+            <div className="form-row">
+              <label htmlFor="enq-date">Preferred Viewing / Consultation Date</label>
+              <input 
+                id="enq-date" 
+                name="preferredDate" 
+                type="date" 
+                min={new Date().toISOString().split('T')[0]}
+                value={formValues.preferredDate}
                 onChange={handleChange}
               />
             </div>

@@ -49,17 +49,21 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const navItems = isAgent
     ? [
         { label: 'My Overview', path: '/admin', icon: '📊' },
+        { label: 'Book a Consultation', path: '/admin/consultations', icon: '📅' },
+        { label: 'Property Enquiries', path: '/admin/enquiries', icon: '💬' },
+        { label: 'Physical Inspections', path: '/admin/inspections', icon: '🔍' },
         { label: 'Property Portfolio', path: '/admin/listings', icon: '🏢' },
-        { label: 'Field Inspections', path: '/admin/inspections', icon: '🔍' },
-        { label: 'Client Leads & Enquiries', path: '/admin/submissions', icon: '📬' },
+        { label: 'All Submissions', path: '/admin/submissions', icon: '📬' },
       ]
     : [
         { label: 'Overview', path: '/admin', icon: '📊' },
+        { label: 'Book a Consultation', path: '/admin/consultations', icon: '📅' },
+        { label: 'Property Enquiries', path: '/admin/enquiries', icon: '💬' },
+        { label: 'Physical Inspections', path: '/admin/inspections', icon: '🔍' },
         { label: 'Property Portfolio', path: '/admin/listings', icon: '🏢' },
-        { label: 'Inspection Hub', path: '/admin/inspections', icon: '🔍' },
-        { label: 'Client Inquiries & DSR', path: '/admin/submissions', icon: '📬' },
         { label: 'Field Agents', path: '/admin/agents', icon: '👥' },
         { label: 'Rates & Scraper', path: '/admin/rates', icon: '⚡' },
+        { label: 'All Submissions & DSR', path: '/admin/submissions', icon: '📬' },
       ];
 
   return (

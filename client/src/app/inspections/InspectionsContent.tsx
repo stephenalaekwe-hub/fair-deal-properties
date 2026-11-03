@@ -49,6 +49,7 @@ export default function InspectionsContent() {
     loc: 'Abuja FCT - within city',
     scope: 'Standard site inspection - evidence capture and checklist',
     window: 'Next available',
+    preferredDate: '',
     notes: '',
   };
 
@@ -78,6 +79,19 @@ export default function InspectionsContent() {
     } catch {
       // ignore JSON error
     }
+
+    // Auto-track if ?ref=... is in the URL query string
+    try {
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const urlRef = params.get('ref');
+        if (urlRef) {
+          setTab('track');
+          setTrackRefInput(urlRef);
+          void handleTrackLookup(urlRef);
+        }
+      }
+    } catch {}
   }, []);
 
   // Auto-save form draft whenever values change
@@ -151,7 +165,7 @@ export default function InspectionsContent() {
     const propertyTitle = formValues.addr.trim();
     const propertyLocation = formValues.loc.trim();
     const scope = formValues.scope.trim();
-    const preferredDate = formValues.window.trim();
+    const preferredDate = formValues.preferredDate || formValues.window.trim();
     const notes = formValues.notes.trim();
 
     try {
@@ -259,20 +273,20 @@ export default function InspectionsContent() {
         return;
       }
 
-      const res = await fetchApi<{
-        reference: string;
-        propertyTitle: string;
-        propertyLocation: string;
-        stage: number;
-        stageTitle: string;
-        stageDescription: string;
-        officerName: string | null;
-        scheduledDate: string | null;
-        updatedAt: string;
-      }>(`/inspections/track/${encodeURIComponent(refToTrack)}`);
+      const res = await fetchApi<any>(`/inspections/${encodeURIComponent(refToTrack)}`);
 
       if (res && res.ok && res.data) {
-        setTrackData(res.data);
+        setTrackData({
+          reference: res.data.reference,
+          propertyTitle: res.data.propertyTitle || 'Subject Property',
+          propertyLocation: res.data.propertyLocation || 'Abuja FCT',
+          stage: res.data.stage || 1,
+          stageTitle: res.data.stageTitle || res.data.stageName || `Stage ${res.data.stage || 1}`,
+          stageDescription: res.data.stageDescription || '',
+          officerName: res.data.officerName || res.data.officer || null,
+          scheduledDate: res.data.scheduledDate || res.data.scheduledFor || null,
+          updatedAt: res.data.updatedAt || new Date().toISOString(),
+        });
       } else {
         setTrackError(res?.error || 'No inspection found against that reference. Check the reference or contact the firm.');
         setTrackData(null);
@@ -642,12 +656,25 @@ export default function InspectionsContent() {
                 </select>
               </div>
               <div className="form-group">
-                <label className="form-label">Preferred window</label>
+                <label className="form-label">Preferred Inspection Date *</label>
+                <input
+                  type="date"
+                  name="preferredDate"
+                  min={new Date().toISOString().split('T')[0]}
+                  required={true}
+                  className="form-input"
+                  value={formValues.preferredDate}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Preferred window / Timing</label>
                 <select className="form-select" name="window" id="insWindow" value={formValues.window} onChange={handleInputChange}>
+                  <option>Morning (9am - 12pm)</option>
+                  <option>Afternoon (1pm - 4pm)</option>
                   <option>Next available</option>
                   <option>Within 72 hours</option>
                   <option>This week</option>
-                  <option>Specific date - state in notes</option>
                 </select>
               </div>
               <div className="form-group">

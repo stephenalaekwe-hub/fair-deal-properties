@@ -40,6 +40,7 @@ export default function MarketplaceContent() {
     lastName: '',
     email: '',
     phone: '',
+    preferredDate: '',
     buyerType: 'Local buyer (Nigeria-based)',
     financing: 'Full cash purchase',
     message: '',
@@ -242,6 +243,7 @@ export default function MarketplaceContent() {
       fullName,
       email,
       phone,
+      preferredDate: enquiryValues.preferredDate || undefined,
       propertyTitle,
       propertyPrice,
       propertySource,
@@ -1888,6 +1890,18 @@ export default function MarketplaceContent() {
           className="form-input"
           style={{width:'100%'}}
           value={enquiryValues.phone}
+          onChange={handleEnquiryChange}
+        />
+      </div>
+      <div>
+        <label className="form-label">Preferred Viewing / Consultation Date</label>
+        <input
+          type="date"
+          name="preferredDate"
+          min={new Date().toISOString().split('T')[0]}
+          className="form-input"
+          style={{width:'100%'}}
+          value={enquiryValues.preferredDate}
           onChange={handleEnquiryChange}
         />
       </div>

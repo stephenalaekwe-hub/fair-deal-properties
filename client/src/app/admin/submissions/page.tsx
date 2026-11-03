@@ -164,18 +164,46 @@ export default function AdminSubmissionsPage() {
                           )}
                         </td>
                         <td style={{ padding: '14px 16px' }}>
-                          <span
-                            style={{
-                              background: sub.closedAt ? '#f1f5f9' : '#fef3c7',
-                              color: sub.closedAt ? '#64748b' : '#b45309',
-                              padding: '3px 8px',
-                              borderRadius: '4px',
-                              fontWeight: 700,
-                              fontSize: '11px',
-                            }}
-                          >
-                            {sub.closedAt ? 'Closed' : 'Pending'}
-                          </span>
+                          {sub.closedAt ? (
+                            <span
+                              style={{
+                                background: '#ecfdf5',
+                                color: '#065f46',
+                                padding: '3px 8px',
+                                borderRadius: '4px',
+                                fontWeight: 700,
+                                fontSize: '11px',
+                              }}
+                            >
+                              ✓ Closed
+                            </span>
+                          ) : assignedAgentName ? (
+                            <span
+                              style={{
+                                background: '#eff6ff',
+                                color: '#1d4ed8',
+                                padding: '3px 8px',
+                                borderRadius: '4px',
+                                fontWeight: 700,
+                                fontSize: '11px',
+                              }}
+                            >
+                              🔄 In Progress
+                            </span>
+                          ) : (
+                            <span
+                              style={{
+                                background: '#fef3c7',
+                                color: '#b45309',
+                                padding: '3px 8px',
+                                borderRadius: '4px',
+                                fontWeight: 700,
+                                fontSize: '11px',
+                              }}
+                            >
+                              ⏳ Pending
+                            </span>
+                          )}
                         </td>
                         <td style={{ padding: '14px 16px', textAlign: 'right' }}>
                           <button
