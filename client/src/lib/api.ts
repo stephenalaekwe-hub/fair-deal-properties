@@ -14,6 +14,9 @@ export async function fetchApi<T = any>(
     if (API_BASE_URL.endsWith('/api') && cleanEndpoint.startsWith('/api/')) {
       cleanEndpoint = cleanEndpoint.replace(/^\/api/, '');
     }
+    if (!cleanEndpoint.startsWith('/')) {
+      cleanEndpoint = `/${cleanEndpoint}`;
+    }
     const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${cleanEndpoint}`;
     
     // Check if token exists in localStorage

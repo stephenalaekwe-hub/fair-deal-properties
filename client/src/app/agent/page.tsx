@@ -12,7 +12,8 @@ export default function AgentDashboardPage() {
 
   const loadStats = async () => {
     setLoading(true);
-    const res = await fetchApi('/admin/analytics/overview');
+    const qs = user?.id ? `?agentId=${encodeURIComponent(user.id)}` : '';
+    const res = await fetchApi(`/admin/analytics/overview${qs}`);
     if (res.ok && res.data) {
       setStats(res.data);
     }
@@ -21,7 +22,7 @@ export default function AgentDashboardPage() {
 
   useEffect(() => {
     loadStats();
-  }, []);
+  }, [user]);
 
   if (loading) {
     return <div style={{ padding: '20px', color: '#64748b' }}>Loading field officer telemetry...</div>;

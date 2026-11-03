@@ -16,7 +16,11 @@ export default function AgentSubmissionsPage() {
 
   const loadData = async () => {
     setLoading(true);
-    const subRes = await fetchApi('/admin/submissions');
+    const qs = user?.id ? `?agentId=${encodeURIComponent(user.id)}` : '';
+    let subRes = await fetchApi(`/admin/submissions${qs}`);
+    if (subRes.ok && Array.isArray(subRes.data) && subRes.data.length === 0) {
+      subRes = await fetchApi('/admin/submissions');
+    }
     if (subRes.ok && subRes.data) {
       setSubmissions(subRes.data);
     }

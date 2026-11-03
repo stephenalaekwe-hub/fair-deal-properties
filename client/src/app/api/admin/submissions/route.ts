@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const collection = searchParams.get('collection') || undefined;
-  const submissions = await getLiveSubmissions(collection);
+  const agentId = searchParams.get('agentId') || undefined;
+  const submissions = await getLiveSubmissions(collection, agentId);
   return NextResponse.json({ ok: true, data: submissions });
 }

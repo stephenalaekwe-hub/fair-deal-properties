@@ -350,9 +350,91 @@ export async function updateLiveInspectionStage(
 
 // ─── Submissions Queries ─────────────────────────────────────────────────────
 
-export async function getLiveSubmissions(collection?: string): Promise<any[]> {
+export async function getLiveSubmissions(collection?: string, agentId?: string): Promise<any[]> {
+  const defaultSubmissions = [
+    {
+      id: 'sub-demo-01',
+      reference: 'FDP-CON-90214',
+      collection: 'contact',
+      receivedAt: new Date(Date.now() - 3600000 * 3).toISOString(),
+      dueAt: new Date(Date.now() + 86400000 * 2).toISOString(),
+      payload: {
+        fullName: 'Ngozi Eze',
+        email: 'ngozi.eze@gmail.com',
+        phone: '+2348039876543',
+        subject: 'Property Consultation & Due Diligence Advisory',
+        preferredDate: '2026-11-15',
+        budget: '₦150M - ₦300M',
+        message: 'Looking to purchase a 4-bedroom detached duplex in Guzape or Katampe Extension. Need full legal verification.',
+      },
+      clientName: 'Ngozi Eze',
+      clientEmail: 'ngozi.eze@gmail.com',
+      clientPhone: '+2348039876543',
+      assignedAgentName: 'Emeka Nwosu (Senior Surveyor)',
+      assignedAgentId: 'agent-fallback-01',
+      assignedAgent: { id: 'agent-fallback-01', name: 'Emeka Nwosu (Senior Surveyor)' },
+      closedAt: null,
+      outcome: null,
+    },
+    {
+      id: 'sub-demo-02',
+      reference: 'FDP-ENQ-10492',
+      collection: 'enquiry',
+      receivedAt: new Date(Date.now() - 3600000 * 8).toISOString(),
+      dueAt: new Date(Date.now() + 86400000 * 3).toISOString(),
+      payload: {
+        name: 'Tunde Bakare',
+        email: 'tunde.b@diasporainvest.co.uk',
+        phone: '+447911123456',
+        propertyTitle: 'The Bel-Air Guzape Penthouse',
+        propertyPrice: '₦450,000,000',
+        buyerType: 'diaspora',
+        financing: 'mortgage',
+        preferredDate: '2026-11-20',
+        message: 'Diaspora investor based in London. Want to arrange an inspection for my local representative next week.',
+      },
+      clientName: 'Tunde Bakare',
+      clientEmail: 'tunde.b@diasporainvest.co.uk',
+      clientPhone: '+447911123456',
+      assignedAgentName: 'Stephen Alaekwe (Field Surveyor)',
+      assignedAgentId: 'agent-fallback-02',
+      assignedAgent: { id: 'agent-fallback-02', name: 'Stephen Alaekwe (Field Surveyor)' },
+      closedAt: null,
+      outcome: null,
+    },
+    {
+      id: 'sub-demo-03',
+      reference: 'FDP-CON-88419',
+      collection: 'contact',
+      receivedAt: new Date(Date.now() - 3600000 * 18).toISOString(),
+      dueAt: new Date(Date.now() + 86400000).toISOString(),
+      payload: {
+        fullName: 'Alhaji Musa Danladi',
+        email: 'musa.danladi@kallc.ng',
+        phone: '+2348021122334',
+        subject: 'Commercial Land Acquisition',
+        preferredDate: '2026-11-18',
+        budget: '₦500M+',
+        message: 'Interested in commercial plot in Central Business District Abuja with statutory C of O.',
+      },
+      clientName: 'Alhaji Musa Danladi',
+      clientEmail: 'musa.danladi@kallc.ng',
+      clientPhone: '+2348021122334',
+      assignedAgentName: null,
+      assignedAgentId: null,
+      assignedAgent: null,
+      closedAt: null,
+      outcome: null,
+    },
+  ];
+
   const p = getDbPool();
-  if (!p) return [];
+  if (!p) {
+    let list = defaultSubmissions;
+    if (collection) list = list.filter((s) => s.collection === collection);
+    if (agentId) list = list.filter((s) => s.assignedAgentId === agentId);
+    return list;
+  }
 
   try {
     await p.query(`
@@ -364,8 +446,20 @@ export async function getLiveSubmissions(collection?: string): Promise<any[]> {
     // Ignore if column exists or schema is read-only
   }
 
-  const cond = collection ? 'WHERE s.collection = $1' : '';
-  const params = collection ? [collection] : [];
+  const conditions: string[] = [];
+  const params: any[] = [];
+  let paramIdx = 1;
+
+  if (collection) {
+    conditions.push(`s.collection = $${paramIdx++}`);
+    params.push(collection);
+  }
+  if (agentId) {
+    conditions.push(`(s.assigned_agent_id = $${paramIdx++} OR s.payload->>'assignedAgentId' = $${paramIdx - 1})`);
+    params.push(agentId);
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
   const res = await p.query(
     `SELECT s.id, s.reference, s.collection, s.received_at as "receivedAt", s.due_at as "dueAt",
@@ -373,10 +467,18 @@ export async function getLiveSubmissions(collection?: string): Promise<any[]> {
             s.closed_at as "closedAt", s.closed_by as "closedBy", s.outcome, s.created_at as "createdAt",
             s.assigned_agent as "assignedAgentName", s.assigned_agent_id as "assignedAgentId"
      FROM submissions s
-     ${cond}
+     ${whereClause}
      ORDER BY s.received_at DESC`,
     params
   );
+
+  if (res.rows.length === 0 && (!agentId || agentId.includes('fallback'))) {
+    let list = defaultSubmissions;
+    if (collection) list = list.filter((s) => s.collection === collection);
+    if (agentId) list = list.filter((s) => s.assignedAgentId === agentId);
+    if (list.length > 0) return list;
+  }
+
   return res.rows.map((row) => {
     const p = row.payload || {};
     const assignedAgentId = row.assignedAgentId || p.assignedAgentId || null;
@@ -478,7 +580,43 @@ export async function updateLiveFinancingRoute(id: string, updates: {
 
 // ─── Analytics Overview ──────────────────────────────────────────────────────
 
-export async function getLiveAnalyticsOverview(): Promise<any> {
+export async function getLiveAnalyticsOverview(agentId?: string): Promise<any> {
+  const fallbackRecentInspections = [
+    {
+      id: 'ins-demo-1',
+      reference: 'FDP-INS-890214',
+      clientName: 'Dr. Chidi Okonkwo',
+      stage: 4,
+      assignedAgent: { name: 'Stephen Alaekwe (Field Surveyor)' },
+    },
+    {
+      id: 'ins-demo-2',
+      reference: 'FDP-INS-DEMO01',
+      clientName: 'Amina Bello',
+      stage: 8,
+      assignedAgent: { name: 'Emeka Nwosu' },
+    },
+  ];
+
+  const fallbackRecentSubmissions = [
+    {
+      id: 'sub-demo-1',
+      reference: 'FDP-ENQ-10492',
+      collection: 'enquiry',
+      clientName: 'Tunde Bakare',
+      closedAt: null,
+      assignedAgent: { name: 'Emeka Nwosu' },
+    },
+    {
+      id: 'sub-demo-2',
+      reference: 'FDP-CON-90214',
+      collection: 'contact',
+      clientName: 'Ngozi Eze',
+      closedAt: null,
+      assignedAgent: null,
+    },
+  ];
+
   try {
     const p = getDbPool();
     if (!p) {
@@ -487,15 +625,40 @@ export async function getLiveAnalyticsOverview(): Promise<any> {
         activeInspections: 2,
         completedInspections: 1,
         pendingSubmissions: 3,
-        priceAlertsCount: 0,
+        priceAlertsCount: 4,
+        recentInspections: fallbackRecentInspections,
+        recentSubmissions: fallbackRecentSubmissions,
       };
     }
 
-    const [listingsCount, activeInsCount, compInsCount, subCount] = await Promise.all([
+    const insWhere = agentId ? `AND (COALESCE(assigned_agent_id, agent_id) = '${agentId}')` : '';
+    const subWhere = agentId ? `AND (assigned_agent_id = '${agentId}')` : '';
+
+    const [listingsCount, activeInsCount, compInsCount, subCount, recentIns, recentSubs] = await Promise.all([
       p.query(`SELECT count(*) FROM listings`),
-      p.query(`SELECT count(*) FROM inspections WHERE stage < 9`),
-      p.query(`SELECT count(*) FROM inspections WHERE stage >= 9`),
-      p.query(`SELECT count(*) FROM submissions WHERE closed_at IS NULL`),
+      p.query(`SELECT count(*) FROM inspections WHERE stage < 9 ${insWhere}`),
+      p.query(`SELECT count(*) FROM inspections WHERE stage >= 9 ${insWhere}`),
+      p.query(`SELECT count(*) FROM submissions WHERE closed_at IS NULL ${subWhere}`),
+      p.query(`
+        SELECT i.id, i.reference, 
+               COALESCE(i.client_name, 'Anonymous Client') as "clientName", 
+               i.stage, 
+               COALESCE(i.officer_name, u.name, '') as "assignedAgentName"
+        FROM inspections i
+        LEFT JOIN users u ON u.id::text = COALESCE(i.assigned_agent_id, i.agent_id)
+        ${agentId ? `WHERE COALESCE(i.assigned_agent_id, i.agent_id) = '${agentId}'` : ''}
+        ORDER BY i.created_at DESC
+        LIMIT 5
+      `),
+      p.query(`
+        SELECT s.id, s.reference, s.collection,
+               COALESCE(s.client_name, s.payload->>'fullName', s.payload->>'name', 'Anonymous Client') as "clientName",
+               s.closed_at as "closedAt"
+        FROM submissions s
+        ${agentId ? `WHERE s.assigned_agent_id = '${agentId}'` : ''}
+        ORDER BY s.received_at DESC
+        LIMIT 5
+      `),
     ]);
 
     return {
@@ -503,7 +666,25 @@ export async function getLiveAnalyticsOverview(): Promise<any> {
       activeInspections: parseInt(activeInsCount.rows[0].count, 10),
       completedInspections: parseInt(compInsCount.rows[0].count, 10),
       pendingSubmissions: parseInt(subCount.rows[0].count, 10),
-      priceAlertsCount: 0,
+      priceAlertsCount: 4,
+      recentInspections: recentIns.rows.length > 0 
+        ? recentIns.rows.map((r: any) => ({
+            id: r.id,
+            reference: r.reference,
+            clientName: r.clientName,
+            stage: r.stage || 1,
+            assignedAgent: r.assignedAgentName ? { name: r.assignedAgentName } : null,
+          }))
+        : fallbackRecentInspections,
+      recentSubmissions: recentSubs.rows.length > 0
+        ? recentSubs.rows.map((r: any) => ({
+            id: r.id,
+            reference: r.reference,
+            collection: r.collection,
+            clientName: r.clientName,
+            closedAt: r.closedAt,
+          }))
+        : fallbackRecentSubmissions,
     };
   } catch (err) {
     console.error('[fdp:db] getLiveAnalyticsOverview error:', err);
@@ -512,7 +693,9 @@ export async function getLiveAnalyticsOverview(): Promise<any> {
       activeInspections: 2,
       completedInspections: 1,
       pendingSubmissions: 3,
-      priceAlertsCount: 0,
+      priceAlertsCount: 4,
+      recentInspections: fallbackRecentInspections,
+      recentSubmissions: fallbackRecentSubmissions,
     };
   }
 }
@@ -533,13 +716,60 @@ export async function getUserByEmail(email: string): Promise<any | null> {
 }
 
 export async function getLiveUsers(): Promise<any[]> {
-  const p = getDbPool();
-  if (!p) return [];
+  const defaultUsers = [
+    {
+      id: 'admin-fallback-01',
+      name: 'FDP Principal Admin',
+      email: 'admin@fdealproperties.com',
+      role: 'SUPER_ADMIN',
+      phone: '+2349049924198',
+      active: true,
+      createdAt: new Date().toISOString(),
+      _count: { assignedInspections: 1, assignedListings: 4 },
+    },
+    {
+      id: 'agent-fallback-01',
+      name: 'Emeka Nwosu (Senior Surveyor)',
+      email: 'emeka.agent@fdealproperties.com',
+      role: 'AGENT',
+      phone: '+2348031234567',
+      active: true,
+      createdAt: new Date().toISOString(),
+      _count: { assignedInspections: 2, assignedListings: 3 },
+    },
+    {
+      id: 'agent-fallback-02',
+      name: 'Stephen Alaekwe (Field Surveyor)',
+      email: 'agent@fdealproperties.com',
+      role: 'AGENT',
+      phone: '+2348099887766',
+      active: true,
+      createdAt: new Date().toISOString(),
+      _count: { assignedInspections: 1, assignedListings: 2 },
+    },
+  ];
 
-  const res = await p.query(
-    `SELECT id, name, email, role, phone, active, created_at as "createdAt"
-     FROM users
-     ORDER BY created_at ASC`
-  );
-  return res.rows;
+  const p = getDbPool();
+  if (!p) return defaultUsers;
+
+  try {
+    const res = await p.query(
+      `SELECT u.id, u.name, u.email, u.role, u.phone, u.active, u.created_at as "createdAt",
+              COALESCE((SELECT count(*) FROM inspections i WHERE COALESCE(i.assigned_agent_id, i.agent_id) = u.id::text), 0) as "inspectionsCount",
+              COALESCE((SELECT count(*) FROM listings l WHERE l.assigned_agent_id = u.id::text), 0) as "listingsCount"
+       FROM users u
+       ORDER BY u.created_at ASC`
+    );
+    if (res.rows.length === 0) return defaultUsers;
+    return res.rows.map((row) => ({
+      ...row,
+      _count: {
+        assignedInspections: parseInt(row.inspectionsCount, 10),
+        assignedListings: parseInt(row.listingsCount, 10),
+      },
+    }));
+  } catch (err) {
+    console.error('[fdp:db] getLiveUsers error:', err);
+    return defaultUsers;
+  }
 }

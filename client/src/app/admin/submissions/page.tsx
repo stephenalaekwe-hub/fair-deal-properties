@@ -38,10 +38,20 @@ export default function AdminSubmissionsPage() {
     loadData();
   }, [user]);
 
+  const [statusChoice, setStatusChoice] = useState<'pending' | 'in_progress' | 'closed'>('pending');
+
   const openModal = (sub: any) => {
     setActiveModal(sub);
-    setSelectedAgentId(sub.assignedAgentId || sub.payload?.assignedAgentId || '');
+    const agId = sub.assignedAgentId || sub.payload?.assignedAgentId || '';
+    setSelectedAgentId(agId);
     setOutcome(sub.outcome || '');
+    if (sub.closedAt) {
+      setStatusChoice('closed');
+    } else if (agId || sub.assignedAgentName || sub.assignedAgent) {
+      setStatusChoice('in_progress');
+    } else {
+      setStatusChoice('pending');
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -61,11 +71,11 @@ export default function AdminSubmissionsPage() {
       });
     }
 
-    // 2. Close submission if outcome provided
-    if (outcome && !activeModal.closedAt) {
+    // 2. Close submission if closed selected or outcome provided
+    if (statusChoice === 'closed' || (outcome && !activeModal.closedAt)) {
       await fetchApi(`/admin/submissions/${activeModal.id}/close`, {
         method: 'PATCH',
-        body: JSON.stringify({ outcome }),
+        body: JSON.stringify({ outcome: outcome || 'Submission processed and closed.' }),
       });
     }
 
@@ -365,6 +375,21 @@ export default function AdminSubmissionsPage() {
                     </select>
                   </div>
                 )}
+
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                    Lifecycle Status
+                  </label>
+                  <select
+                    value={statusChoice}
+                    onChange={(e: any) => setStatusChoice(e.target.value)}
+                    style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '13px' }}
+                  >
+                    <option value="pending">⏳ Pending Review (Unallocated / Action Required)</option>
+                    <option value="in_progress">🔄 In Progress (Lead Officer Assigned)</option>
+                    <option value="closed">✓ Closed & Resolved</option>
+                  </select>
+                </div>
 
                 <div style={{ marginBottom: '24px' }}>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
