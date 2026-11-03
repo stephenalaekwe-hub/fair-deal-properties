@@ -60,8 +60,9 @@ export default function AdminInspectionsPage() {
   const openUpdateModal = (ins: any) => {
     setActiveModal(ins);
     setStage(ins.stage);
-    setAssignedAgentId(ins.assignedAgentId || '');
-    setOfficerName(ins.officerName || (isAgent ? (user?.name || '') : ''));
+    const agId = ins.assignedAgentId || ins.assignedAgent?.id || '';
+    setAssignedAgentId(agId);
+    setOfficerName(ins.officerName || ins.assignedAgent?.name || (isAgent ? (user?.name || '') : ''));
     setReportUrl(ins.reportUrl || '');
     setNotes(ins.notes || '');
     setNotifyClient(true);
@@ -72,12 +73,15 @@ export default function AdminInspectionsPage() {
     if (!activeModal) return;
     setSubmitting(true);
 
+    const selectedAgent = agents.find((ag) => ag.id === assignedAgentId);
+    const finalOfficerName = officerName || selectedAgent?.name || (isAgent ? (user?.name || '') : '');
+
     // 1. Update stage and details
     await fetchApi(`/admin/inspections/${activeModal.id}/stage`, {
       method: 'PATCH',
       body: JSON.stringify({
         stage: Number(stage),
-        officerName,
+        officerName: finalOfficerName,
         reportUrl,
         notes,
         notifyClient,
@@ -85,16 +89,21 @@ export default function AdminInspectionsPage() {
     });
 
     // 2. Update assigned agent if changed (Admin/SuperAdmin only)
-    if (!isAgent && assignedAgentId !== (activeModal.assignedAgentId || '')) {
+    const currentAssignedId = activeModal.assignedAgentId || activeModal.assignedAgent?.id || '';
+    if (!isAgent && assignedAgentId !== currentAssignedId) {
       await fetchApi(`/admin/inspections/${activeModal.id}/assign-agent`, {
         method: 'PATCH',
-        body: JSON.stringify({ agentId: assignedAgentId || null }),
+        body: JSON.stringify({
+          agentId: assignedAgentId || null,
+          agentName: selectedAgent?.name || null,
+          officerName: finalOfficerName || null,
+        }),
       });
     }
 
     setActiveModal(null);
     setSubmitting(false);
-    await loadData();
+    await loadData(filterAgentId);
   };
 
   return (
@@ -186,8 +195,10 @@ export default function AdminInspectionsPage() {
                         </span>
                       </td>
                       <td style={{ padding: '14px 16px' }}>
-                        {ins.assignedAgent ? (
-                          <span style={{ fontWeight: 600, color: '#334155' }}>👤 {ins.assignedAgent.name}</span>
+                        {ins.assignedAgent?.name || ins.officerName ? (
+                          <span style={{ fontWeight: 600, color: '#334155' }}>
+                            👤 {ins.assignedAgent?.name || ins.officerName}
+                          </span>
                         ) : (
                           <span style={{ color: '#dc2626', fontSize: '12px', fontWeight: 600 }}>⚠️ Unassigned</span>
                         )}
@@ -284,7 +295,14 @@ export default function AdminInspectionsPage() {
                   </label>
                   <select
                     value={assignedAgentId}
-                    onChange={(e) => setAssignedAgentId(e.target.value)}
+                    onChange={(e) => {
+                      const newId = e.target.value;
+                      setAssignedAgentId(newId);
+                      const ag = agents.find((a) => a.id === newId);
+                      if (ag && !officerName) {
+                        setOfficerName(ag.name);
+                      }
+                    }}
                     style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
                   >
                     <option value="">-- No Agent Assigned --</option>

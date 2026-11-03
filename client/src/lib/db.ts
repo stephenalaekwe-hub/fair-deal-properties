@@ -208,43 +208,142 @@ export async function getLiveInspections(agentId?: string): Promise<any[]> {
   const p = getDbPool();
   if (!p) return [];
 
+  try {
+    await p.query(`
+      ALTER TABLE inspections 
+      ADD COLUMN IF NOT EXISTS assigned_agent text,
+      ADD COLUMN IF NOT EXISTS assigned_agent_id text,
+      ADD COLUMN IF NOT EXISTS agent_id text,
+      ADD COLUMN IF NOT EXISTS report_url text,
+      ADD COLUMN IF NOT EXISTS officer_name text;
+    `);
+  } catch (e) {
+    // Ignore schema errors
+  }
+
   const sql = `
-    SELECT i.id, i.reference, i.client_name as "clientName", i.client_email as "clientEmail",
-           i.client_phone as "clientPhone", i.property_title as "propertyTitle",
-           i.property_location as "propertyLocation", i.stage, i.officer_name as "officerName",
-           i.scheduled_date as "scheduledDate", i.notes, i.created_at as "createdAt"
+    SELECT i.id, i.reference, 
+           COALESCE(i.client_name, '') as "clientName", 
+           COALESCE(i.client_email, '') as "clientEmail",
+           COALESCE(i.client_phone, '') as "clientPhone", 
+           COALESCE(i.property_title, '') as "propertyTitle",
+           COALESCE(i.property_location, '') as "propertyLocation", 
+           i.stage, 
+           COALESCE(i.officer_name, u.name, '') as "officerName",
+           COALESCE(i.assigned_agent_id, i.agent_id, '') as "assignedAgentId",
+           i.scheduled_date as "scheduledDate", 
+           COALESCE(i.report_url, '') as "reportUrl",
+           COALESCE(i.notes, '') as notes, 
+           i.created_at as "createdAt",
+           CASE 
+             WHEN u.name IS NOT NULL THEN json_build_object('id', u.id, 'name', u.name, 'email', u.email)
+             WHEN i.assigned_agent IS NOT NULL AND i.assigned_agent != '' THEN json_build_object('id', COALESCE(i.assigned_agent_id, i.agent_id, ''), 'name', i.assigned_agent)
+             WHEN i.officer_name IS NOT NULL AND i.officer_name != '' THEN json_build_object('name', i.officer_name)
+             ELSE NULL
+           END as "assignedAgent"
     FROM inspections i
+    LEFT JOIN users u ON u.id::text = COALESCE(i.assigned_agent_id, i.agent_id)
+    WHERE ($1::text IS NULL OR $1 = '' OR COALESCE(i.assigned_agent_id, i.agent_id) = $1)
     ORDER BY i.created_at DESC
   `;
-  const res = await p.query(sql);
-  return res.rows;
+  const res = await p.query(sql, [agentId || null]);
+  return res.rows.map((row) => {
+    const assignedAgentId = row.assignedAgentId || row.assignedAgent?.id || null;
+    const assignedAgentName = row.assignedAgent?.name || row.officerName || null;
+    return {
+      ...row,
+      assignedAgentId,
+      assignedAgent: assignedAgentName ? {
+        id: assignedAgentId,
+        name: assignedAgentName,
+        email: row.assignedAgent?.email || null,
+      } : null,
+    };
+  });
 }
 
 export async function getLiveInspectionByRef(reference: string): Promise<any | null> {
   const p = getDbPool();
   if (!p) return null;
 
+  try {
+    await p.query(`
+      ALTER TABLE inspections 
+      ADD COLUMN IF NOT EXISTS assigned_agent text,
+      ADD COLUMN IF NOT EXISTS assigned_agent_id text,
+      ADD COLUMN IF NOT EXISTS agent_id text,
+      ADD COLUMN IF NOT EXISTS report_url text,
+      ADD COLUMN IF NOT EXISTS officer_name text;
+    `);
+  } catch (e) {}
+
   const res = await p.query(
-    `SELECT id, reference, client_name as "clientName", client_email as "clientEmail",
-            client_phone as "clientPhone", property_title as "propertyTitle",
-            property_location as "propertyLocation", stage, officer_name as "officerName",
-            scheduled_date as "scheduledDate", notes, created_at as "createdAt"
-     FROM inspections
-     WHERE reference = $1 LIMIT 1`,
+    `SELECT i.id, i.reference, 
+            COALESCE(i.client_name, '') as "clientName", 
+            COALESCE(i.client_email, '') as "clientEmail",
+            COALESCE(i.client_phone, '') as "clientPhone", 
+            COALESCE(i.property_title, '') as "propertyTitle",
+            COALESCE(i.property_location, '') as "propertyLocation", 
+            i.stage, 
+            COALESCE(i.officer_name, u.name, '') as "officerName",
+            COALESCE(i.assigned_agent_id, i.agent_id, '') as "assignedAgentId",
+            i.scheduled_date as "scheduledDate", 
+            COALESCE(i.report_url, '') as "reportUrl",
+            COALESCE(i.notes, '') as notes, 
+            i.created_at as "createdAt",
+            CASE 
+              WHEN u.name IS NOT NULL THEN json_build_object('id', u.id, 'name', u.name, 'email', u.email)
+              WHEN i.assigned_agent IS NOT NULL AND i.assigned_agent != '' THEN json_build_object('id', COALESCE(i.assigned_agent_id, i.agent_id, ''), 'name', i.assigned_agent)
+              WHEN i.officer_name IS NOT NULL AND i.officer_name != '' THEN json_build_object('name', i.officer_name)
+              ELSE NULL
+            END as "assignedAgent"
+     FROM inspections i
+     LEFT JOIN users u ON u.id::text = COALESCE(i.assigned_agent_id, i.agent_id)
+     WHERE i.reference = $1 LIMIT 1`,
     [reference]
   );
-  return res.rows[0] || null;
+  if (!res.rows[0]) return null;
+  const row = res.rows[0];
+  const assignedAgentId = row.assignedAgentId || row.assignedAgent?.id || null;
+  const assignedAgentName = row.assignedAgent?.name || row.officerName || null;
+  return {
+    ...row,
+    assignedAgentId,
+    assignedAgent: assignedAgentName ? {
+      id: assignedAgentId,
+      name: assignedAgentName,
+      email: row.assignedAgent?.email || null,
+    } : null,
+  };
 }
 
-export async function updateLiveInspectionStage(id: string, stage: number, notes?: string): Promise<any> {
+export async function updateLiveInspectionStage(
+  id: string,
+  stage: number,
+  notes?: string,
+  officerName?: string,
+  reportUrl?: string
+): Promise<any> {
   const p = getDbPool();
   if (!p) throw new Error('Database not configured');
 
+  try {
+    await p.query(`
+      ALTER TABLE inspections 
+      ADD COLUMN IF NOT EXISTS report_url text,
+      ADD COLUMN IF NOT EXISTS officer_name text;
+    `);
+  } catch (e) {}
+
   const res = await p.query(
     `UPDATE inspections
-     SET stage = $2, notes = COALESCE($3, notes), updated_at = now()
-     WHERE id = $1 RETURNING *`,
-    [id, stage, notes]
+     SET stage = $2,
+         notes = COALESCE($3, notes),
+         officer_name = CASE WHEN $4::text IS NOT NULL AND $4 != '' THEN $4 ELSE officer_name END,
+         report_url = CASE WHEN $5::text IS NOT NULL AND $5 != '' THEN $5 ELSE report_url END,
+         updated_at = now()
+     WHERE id::text = $1 OR reference = $1 RETURNING *`,
+    [id, stage, notes ?? null, officerName ?? null, reportUrl ?? null]
   );
   return res.rows[0];
 }

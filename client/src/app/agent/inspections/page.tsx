@@ -33,7 +33,8 @@ export default function AgentInspectionsPage() {
 
   const loadData = async () => {
     setLoading(true);
-    const insRes = await fetchApi('/admin/inspections');
+    const qs = user?.id ? `?agentId=${encodeURIComponent(user.id)}` : '';
+    const insRes = await fetchApi(`/admin/inspections${qs}`);
     if (insRes.ok && insRes.data) {
       setInspections(insRes.data);
     }
