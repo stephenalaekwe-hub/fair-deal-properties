@@ -98,8 +98,13 @@ export default function AgentSubmissionsPage() {
                         </span>
                       </td>
                       <td style={{ padding: '14px 16px' }}>
-                        <div style={{ fontWeight: 600 }}>{sub.clientName || 'Anonymous User'}</div>
-                        <div style={{ fontSize: '11px', color: '#64748b' }}>{sub.clientEmail || 'No email'}{sub.clientPhone ? ` · ${sub.clientPhone}` : ''}</div>
+                        <div style={{ fontWeight: 600 }}>
+                          {sub.clientName || sub.payload?.fullName || sub.payload?.name || sub.payload?.clientName || 'Anonymous Client'}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#64748b' }}>
+                          {sub.clientEmail || sub.payload?.email || sub.payload?.clientEmail || 'No email'}
+                          {(sub.clientPhone || sub.payload?.phone || sub.payload?.clientPhone) ? ` · ${sub.clientPhone || sub.payload?.phone || sub.payload?.clientPhone}` : ''}
+                        </div>
                         {sub.payload?.propertyTitle && (
                           <div style={{ fontSize: '11px', color: 'var(--forest)', fontWeight: 600, marginTop: '2px' }}>
                             🏠 {sub.payload.propertyTitle} {sub.payload.propertyPrice ? `(${sub.payload.propertyPrice})` : ''}
@@ -153,97 +158,171 @@ export default function AgentSubmissionsPage() {
       )}
 
       {/* ── Follow-Up / Resolve Modal ── */}
-      {activeModal && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '20px',
-          }}
-        >
+      {activeModal && (() => {
+        const modalClientName = activeModal.clientName || activeModal.payload?.fullName || activeModal.payload?.name || activeModal.payload?.clientName || 'Anonymous Client';
+        const modalClientEmail = activeModal.clientEmail || activeModal.payload?.email || activeModal.payload?.clientEmail || 'No email';
+        const modalClientPhone = activeModal.clientPhone || activeModal.payload?.phone || activeModal.payload?.clientPhone || activeModal.payload?.telephone || 'No phone provided';
+
+        return (
           <div
             style={{
-              background: '#ffffff',
-              borderRadius: '10px',
-              maxWidth: '560px',
-              width: '100%',
-              padding: '28px',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000,
+              padding: '20px',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--forest)' }}>
-                Client Follow-Up: {activeModal.reference}
-              </h2>
-              <button
-                onClick={() => setActiveModal(null)}
-                style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#64748b' }}
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleSave}>
-              <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '6px', marginBottom: '16px', fontSize: '13px' }}>
-                <div><strong>Inquiry Type:</strong> {activeModal.collection}</div>
-                <div><strong>Client:</strong> {activeModal.clientName || 'N/A'} ({activeModal.clientEmail || 'No email'})</div>
-                {activeModal.clientPhone && <div><strong>Phone / WhatsApp:</strong> {activeModal.clientPhone}</div>}
-                <div style={{ marginTop: '8px', maxHeight: '100px', overflowY: 'auto', background: '#ffffff', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '11px', fontFamily: 'monospace' }}>
-                  {JSON.stringify(activeModal.payload, null, 2)}
+            <div
+              style={{
+                background: '#ffffff',
+                borderRadius: '10px',
+                maxWidth: '580px',
+                width: '100%',
+                padding: '28px',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+                maxHeight: '90vh',
+                overflowY: 'auto',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <div>
+                  <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--forest)' }}>
+                    Client Follow-Up: {activeModal.reference}
+                  </h2>
+                  <div style={{ fontSize: '12px', color: '#64748b' }}>
+                    Received {activeModal.receivedAt ? new Date(activeModal.receivedAt).toLocaleDateString() : 'N/A'}
+                  </div>
                 </div>
-              </div>
-
-              <div style={{ marginBottom: '16px', background: '#f8fafc', padding: '10px 14px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px' }}>
-                <span style={{ color: '#64748b' }}>Assigned Handler: </span>
-                <strong style={{ color: 'var(--forest)' }}>{user?.name} (You)</strong>
-              </div>
-
-              <div style={{ marginBottom: '24px' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                  {activeModal.closedAt ? 'Resolution Outcome' : 'Resolution & Follow-Up Notes'}
-                </label>
-                <textarea
-                  value={outcome}
-                  onChange={(e) => setOutcome(e.target.value)}
-                  rows={3}
-                  placeholder="e.g. Conducted discovery call with client. Scheduled physical inspection for Saturday at 11am."
-                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
                 <button
-                  type="button"
                   onClick={() => setActiveModal(null)}
-                  style={{ padding: '10px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+                  style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b' }}
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  style={{
-                    padding: '10px 20px',
-                    background: 'var(--forest)',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontWeight: 600,
-                    cursor: saving ? 'not-allowed' : 'pointer',
-                  }}
-                >
-                  {saving ? 'Saving...' : 'Log Outcome & Resolve'}
+                  ✕
                 </button>
               </div>
-            </form>
+
+              <form onSubmit={handleSave}>
+                {/* ── Client Information Card ── */}
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', marginBottom: '20px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+                    <div>
+                      <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, color: '#64748b' }}>Inquiry Type</span>
+                      <div style={{ fontWeight: 700, color: 'var(--forest)', fontSize: '14px', textTransform: 'uppercase' }}>{activeModal.collection}</div>
+                    </div>
+                    <span style={{ background: activeModal.closedAt ? '#f1f5f9' : '#fef3c7', color: activeModal.closedAt ? '#64748b' : '#b45309', padding: '4px 10px', borderRadius: '20px', fontWeight: 700, fontSize: '11px' }}>
+                      {activeModal.closedAt ? 'Resolved / Closed' : 'Pending Follow-Up'}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '14px' }}>
+                    <div>
+                      <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>Client Full Name</div>
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>{modalClientName}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>Email Address</div>
+                      <div style={{ fontSize: '13px', color: '#0f172a' }}>
+                        {modalClientEmail !== 'No email' ? (
+                          <a href={`mailto:${modalClientEmail}`} style={{ color: 'var(--forest)', fontWeight: 600, textDecoration: 'underline' }}>{modalClientEmail}</a>
+                        ) : 'No email'}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>Phone / WhatsApp</div>
+                      <div style={{ fontSize: '13px', color: '#0f172a', fontWeight: 600 }}>
+                        {modalClientPhone !== 'No phone provided' ? (
+                          <a href={`tel:${modalClientPhone.replace(/\s+/g, '')}`} style={{ color: 'var(--forest)', textDecoration: 'none' }}>
+                            📞 {modalClientPhone}
+                          </a>
+                        ) : 'No phone provided'}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>Reference Code</div>
+                      <div style={{ fontSize: '13px', color: 'var(--forest)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{activeModal.reference}</div>
+                    </div>
+                  </div>
+
+                  {activeModal.payload?.propertyTitle && (
+                    <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '6px', padding: '10px 12px', marginBottom: '12px' }}>
+                      <div style={{ fontSize: '10px', color: '#047857', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Inquired Property</div>
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: '#065f46', marginTop: '2px' }}>
+                        🏠 {activeModal.payload.propertyTitle} {activeModal.payload.propertyPrice ? `(${activeModal.payload.propertyPrice})` : ''}
+                      </div>
+                      {activeModal.payload.propertySource && (
+                        <div style={{ fontSize: '11px', color: '#059669', marginTop: '2px' }}>Source: {activeModal.payload.propertySource}</div>
+                      )}
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
+                    {activeModal.payload?.buyerType && (
+                      <div><span style={{ color: '#64748b', fontWeight: 600 }}>Buyer Profile: </span><strong>{activeModal.payload.buyerType}</strong></div>
+                    )}
+                    {activeModal.payload?.financing && (
+                      <div><span style={{ color: '#64748b', fontWeight: 600 }}>Financing Preference: </span><strong>{activeModal.payload.financing}</strong></div>
+                    )}
+                    {activeModal.payload?.message && (
+                      <div style={{ marginTop: '4px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '10px 12px' }}>
+                        <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, marginBottom: '2px' }}>Client Message</div>
+                        <div style={{ fontStyle: 'italic', color: '#1e293b', fontSize: '13px', lineHeight: 1.5 }}>"{activeModal.payload.message}"</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '16px', background: '#f8fafc', padding: '10px 14px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px' }}>
+                  <span style={{ color: '#64748b' }}>Assigned Lead Handler: </span>
+                  <strong style={{ color: 'var(--forest)' }}>{user?.name} (You)</strong>
+                </div>
+
+                <div style={{ marginBottom: '24px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                    {activeModal.closedAt ? 'Resolution Outcome' : 'Resolution & Follow-Up Notes'}
+                  </label>
+                  <textarea
+                    value={outcome}
+                    onChange={(e) => setOutcome(e.target.value)}
+                    rows={3}
+                    placeholder="e.g. Conducted discovery call with client. Scheduled physical inspection for Saturday at 11am."
+                    style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '13px' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setActiveModal(null)}
+                    style={{ padding: '10px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    style={{
+                      padding: '10px 20px',
+                      background: 'var(--forest)',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontWeight: 600,
+                      cursor: saving ? 'not-allowed' : 'pointer',
+                      fontSize: '13px',
+                    }}
+                  >
+                    {saving ? 'Saving...' : activeModal.closedAt ? 'Update Outcome' : 'Log Outcome & Resolve'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
