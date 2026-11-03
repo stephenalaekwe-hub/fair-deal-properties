@@ -6,6 +6,8 @@ import { RETENTION } from '@/lib/retention';
 import { inspectionPipeline } from '@/data/pipeline';
 import { getDbPool } from '@/lib/db';
 
+import { sanitizePhone, isValidPhone, sanitizeName } from '@/lib/validation';
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -13,9 +15,9 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    const name = (body.clientName || body.name || 'Prospective Client').trim();
+    const name = sanitizeName((body.clientName || body.name || 'Prospective Client').trim());
     const email = (body.clientEmail || body.email || '').trim().toLowerCase();
-    const phone = (body.clientPhone || body.phone || '').trim();
+    const phone = sanitizePhone((body.clientPhone || body.phone || '').trim());
     const propertyTitle = (body.propertyTitle || body.propertyReference || 'Property Inspection Request').trim();
     const propertyLocation = (body.propertyLocation || body.location || 'Abuja FCT').trim();
     const notes = body.notes || '';
@@ -24,6 +26,13 @@ export async function POST(req: Request) {
     if (!email && !phone) {
       return NextResponse.json(
         { ok: false, error: 'Email or phone number is required to book an inspection.' },
+        { status: 400 }
+      );
+    }
+
+    if (phone && !isValidPhone(phone)) {
+      return NextResponse.json(
+        { ok: false, error: 'Phone number must contain only numbers (7 to 16 digits, e.g. 08012345678 or +2348012345678).' },
         { status: 400 }
       );
     }

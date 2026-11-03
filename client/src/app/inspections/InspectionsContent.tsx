@@ -5,6 +5,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { walkthroughs } from '@/data/walkthroughs';
 import { fetchApi } from '@/lib/api';
 import ImageUpload from '@/components/ImageUpload';
+import { sanitizePhone, isValidPhone, sanitizeName } from '@/lib/validation';
 
 type Tab = 'virtual' | 'physical' | 'track';
 interface LogLine { at: string; text: string; kind: 'sys' | 'ok' | 'ev' }
@@ -102,7 +103,13 @@ export default function InspectionsContent() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setFormValues((prev) => ({ ...prev, [name]: value }));
+    let val = value;
+    if (name === 'phone') {
+      val = sanitizePhone(value);
+    } else if (name === 'firstName' || name === 'lastName') {
+      val = sanitizeName(value);
+    }
+    setFormValues((prev) => ({ ...prev, [name]: val }));
   };
 
   const clearInspectionDraft = () => {
@@ -121,6 +128,23 @@ export default function InspectionsContent() {
 
     const first = formValues.firstName.trim();
     const last = formValues.lastName.trim();
+
+    if (!first || first.length < 2) {
+      setInsError('Please enter a valid first name (at least 2 letters).');
+      setInsSubmitting(false);
+      return;
+    }
+    if (!last || last.length < 2) {
+      setInsError('Please enter a valid last name (at least 2 letters).');
+      setInsSubmitting(false);
+      return;
+    }
+    if (!isValidPhone(formValues.phone.trim())) {
+      setInsError('Phone / WhatsApp must contain numbers only (7 to 16 digits, e.g. 08012345678 or +2348012345678).');
+      setInsSubmitting(false);
+      return;
+    }
+
     const clientName = `${first} ${last}`.trim() || 'Prospective Client';
     const clientEmail = formValues.email.trim();
     const clientPhone = formValues.phone.trim();
@@ -569,13 +593,16 @@ export default function InspectionsContent() {
                 />
               </div>
               <div className="form-group">
-                <label className="form-label">Phone / WhatsApp *</label>
+                <label className="form-label">Phone / WhatsApp * (numbers only)</label>
                 <input
                   type="tel"
                   name="phone"
+                  inputMode="tel"
+                  pattern="^\+?[0-9]{7,16}$"
+                  maxLength={16}
                   className="form-input"
                   required={true}
-                  placeholder="+234 or international"
+                  placeholder="08012345678 or +2348012345678"
                   value={formValues.phone}
                   onChange={handleInputChange}
                 />

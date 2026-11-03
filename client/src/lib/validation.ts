@@ -10,10 +10,67 @@ import { z } from 'zod';
  * unexpected field is rejected rather than silently stored.
  */
 
-const name = z.string().trim().min(2, 'Name is required').max(120);
+/**
+ * Sanitizes phone/whatsapp numbers strictly:
+ * Retains optional leading '+' for international dialling, followed by digits only.
+ * Strips all letters, spaces, symbols, and punctuation.
+ */
+export function sanitizePhone(val: string): string {
+  if (!val) return '';
+  const trimmed = val.trim();
+  const startsWithPlus = trimmed.startsWith('+');
+  const digitsOnly = trimmed.replace(/\D/g, '');
+  return startsWithPlus ? `+${digitsOnly}` : digitsOnly;
+}
+
+/**
+ * Validates whether a phone number meets the strict numeric requirement:
+ * 7 to 16 digits, with optional leading '+'.
+ */
+export function isValidPhone(val: string): boolean {
+  if (!val) return false;
+  return /^\+?[0-9]{7,16}$/.test(val.trim());
+}
+
+/**
+ * Sanitizes name fields:
+ * Permits letters, hyphens, apostrophes, and spaces. Strips numbers and code symbols.
+ */
+export function sanitizeName(val: string): string {
+  if (!val) return '';
+  return val.replace(/[^a-zA-ZÀ-ÿ\s'-]/g, '');
+}
+
+/**
+ * Validates whether a name contains only valid characters and has sufficient length.
+ */
+export function isValidName(val: string): boolean {
+  if (!val) return false;
+  const trimmed = val.trim();
+  return trimmed.length >= 2 && /^[a-zA-ZÀ-ÿ\s'-]+$/.test(trimmed);
+}
+
+const name = z.string().trim()
+  .min(2, 'Name must be at least 2 characters')
+  .max(120)
+  .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/, 'Name may only contain letters, spaces, hyphens, and apostrophes');
+
 const email = z.string().trim().toLowerCase().email('A valid email address is required').max(160);
-const phone = z.string().trim().min(7).max(25)
-  .regex(/^[+0-9()\s-]+$/, 'Phone may contain digits, spaces, +, - and ( ) only');
+
+const phone = z.string().trim()
+  .transform((val) => sanitizePhone(val))
+  .refine((val) => val === '' || isValidPhone(val), {
+    message: 'Phone / WhatsApp may contain digits only (7 to 16 digits, with optional leading +)',
+  })
+  .optional()
+  .transform((val) => (val === '' ? undefined : val));
+
+const requiredPhone = z.string().trim()
+  .transform((val) => sanitizePhone(val))
+  .refine((val) => isValidPhone(val), {
+    message: 'Phone / WhatsApp may contain digits only (7 to 16 digits, with optional leading +)',
+  });
+
 const message = z.string().trim().min(10, 'Please give us a little more detail').max(4000);
 
 /** Explicit, unbundled, affirmative consent. GAID 2025 does not accept a pre-ticked box. */
@@ -22,7 +79,7 @@ const consent = z.literal(true, { message: 'Consent is required before we may pr
 export const contactSchema = z.object({
   name,
   email,
-  phone: phone.optional(),
+  phone,
   subject: z.string().trim().max(160).optional(),
   interest: z.enum(['buying', 'selling', 'financing', 'diaspora', 'developer',
                     'inspection', 'assurance', 'other']).default('other'),
@@ -33,7 +90,7 @@ export const contactSchema = z.object({
 export const enquirySchema = z.object({
   name,
   email,
-  phone: phone.optional(),
+  phone,
   propertyTitle: z.string().trim().min(2).max(200),
   propertyPrice: z.string().trim().max(60).optional(),
   verificationStatus: z.string().trim().max(80).optional(),
@@ -60,7 +117,7 @@ export const newsletterSchema = z.object({
 export const inspectionRequestSchema = z.object({
   name,
   email,
-  phone,
+  phone: requiredPhone,
   propertyReference: z.string().trim().min(2).max(200),
   address: z.string().trim().max(400).optional(),
   location: z.string().trim().min(2).max(200),
@@ -86,7 +143,7 @@ export const inspectionRequestSchema = z.object({
 export const dsrSchema = z.object({
   name,
   email,
-  phone: phone.optional(),
+  phone,
   rightInvoked: z.enum([
     'access', 'rectification', 'erasure', 'restriction', 'portability',
     'objection', 'withdraw-consent', 'automated-decision', 'information', 'complaint',

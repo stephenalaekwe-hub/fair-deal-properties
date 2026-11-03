@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { sanitizePhone, isValidPhone, sanitizeName } from '@/lib/validation';
 
 const RIGHTS = [
   { id: 'information', label: 'Be informed - know what we do with your data' },
@@ -76,7 +77,12 @@ export default function DataRightsForm() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const target = e.target;
     const name = target.name;
-    const value = target.type === 'checkbox' ? (target as HTMLInputElement).checked : target.value;
+    let value: any = target.type === 'checkbox' ? (target as HTMLInputElement).checked : target.value;
+    if (name === 'phone' && typeof value === 'string') {
+      value = sanitizePhone(value);
+    } else if (name === 'name' && typeof value === 'string') {
+      value = sanitizeName(value);
+    }
 
     setFormValues((prev) => {
       const updated = { ...prev, [name]: value };
@@ -112,6 +118,17 @@ export default function DataRightsForm() {
     setState('sending');
     setError('');
     setFieldErrors({});
+
+    if (!formValues.name.trim() || formValues.name.trim().length < 2) {
+      setError('Please provide a valid full name (at least 2 letters).');
+      setState('error');
+      return;
+    }
+    if (formValues.phone && !isValidPhone(formValues.phone.trim())) {
+      setError('Phone number must contain only numbers (7 to 16 digits, e.g. 08012345678 or +2348012345678).');
+      setState('error');
+      return;
+    }
 
     try {
       const res = await fetch('/api/dsr', {
@@ -298,11 +315,15 @@ export default function DataRightsForm() {
       </div>
 
       <div className="form-row">
-        <label htmlFor="d-phone">Phone (optional)</label>
+        <label htmlFor="d-phone">Phone (optional - numbers only)</label>
         <input 
           id="d-phone" 
           name="phone" 
           type="tel" 
+          inputMode="tel"
+          pattern="^\+?[0-9]{7,16}$"
+          maxLength={16}
+          placeholder="08012345678 or +2348012345678"
           autoComplete="tel" 
           value={formValues.phone}
           onChange={handleChange}

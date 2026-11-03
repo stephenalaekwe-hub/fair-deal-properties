@@ -4,6 +4,7 @@ import Link from 'next/link';
 import LegacyWidgets from '@/components/LegacyWidgets';
 import { fetchApi } from '@/lib/api';
 import CurrencyToggle from '@/components/CurrencyToggle';
+import { sanitizePhone, isValidPhone, sanitizeName } from '@/lib/validation';
 
 export default function MarketplaceContent() {
   const [submitting, setSubmitting] = useState(false);
@@ -119,7 +120,13 @@ export default function MarketplaceContent() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setEnquiryValues((prev) => ({ ...prev, [name]: value }));
+    let val = value;
+    if (name === 'phone') {
+      val = sanitizePhone(value);
+    } else if (name === 'firstName' || name === 'lastName') {
+      val = sanitizeName(value);
+    }
+    setEnquiryValues((prev) => ({ ...prev, [name]: val }));
   };
 
   const clearEnquiryDraft = () => {
@@ -198,6 +205,23 @@ export default function MarketplaceContent() {
 
     const first = enquiryValues.firstName.trim();
     const last = enquiryValues.lastName.trim();
+
+    if (!first || first.length < 2) {
+      setSubmitError('Please enter a valid first name (at least 2 letters).');
+      setSubmitting(false);
+      return;
+    }
+    if (!last || last.length < 2) {
+      setSubmitError('Please enter a valid last name (at least 2 letters).');
+      setSubmitting(false);
+      return;
+    }
+    if (!isValidPhone(enquiryValues.phone.trim())) {
+      setSubmitError('Phone / WhatsApp must contain numbers only (7 to 16 digits, e.g. 08012345678 or +2348012345678).');
+      setSubmitting(false);
+      return;
+    }
+
     const fullName = `${first} ${last}`.trim() || 'Prospective Buyer';
     const email = enquiryValues.email.trim();
     const phone = enquiryValues.phone.trim();
@@ -1852,12 +1876,15 @@ export default function MarketplaceContent() {
         />
       </div>
       <div>
-        <label className="form-label">Phone / WhatsApp *</label>
+        <label className="form-label">Phone / WhatsApp * (numbers only)</label>
         <input
           type="tel"
           name="phone"
+          inputMode="tel"
+          pattern="^\+?[0-9]{7,16}$"
+          maxLength={16}
           required={true}
-          placeholder="+234 or international"
+          placeholder="08012345678 or +2348012345678"
           className="form-input"
           style={{width:'100%'}}
           value={enquiryValues.phone}

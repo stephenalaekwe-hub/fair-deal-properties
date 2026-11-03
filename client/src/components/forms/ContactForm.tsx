@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { sanitizePhone, isValidPhone, sanitizeName } from '@/lib/validation';
 
 /**
  * Contact form.
@@ -97,7 +98,12 @@ export default function ContactForm() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value, type } = e.target;
-    const val = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
+    let val: any = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
+    if (name === 'phone') {
+      val = sanitizePhone(value);
+    } else if (name === 'firstName' || name === 'lastName') {
+      val = sanitizeName(value);
+    }
     setFormValues((prev) => ({ ...prev, [name]: val }));
   };
 
@@ -117,6 +123,23 @@ export default function ContactForm() {
 
     const first = formValues.firstName.trim();
     const last = formValues.lastName.trim();
+
+    if (!first || first.length < 2) {
+      setError('Please provide a valid first name (at least 2 letters).');
+      setState('error');
+      return;
+    }
+    if (!last || last.length < 2) {
+      setError('Please provide a valid last name (at least 2 letters).');
+      setState('error');
+      return;
+    }
+    if (formValues.phone && !isValidPhone(formValues.phone)) {
+      setError('Phone / WhatsApp must contain numbers only (7 to 16 digits, e.g. 08012345678 or +2348012345678).');
+      setState('error');
+      return;
+    }
+
     const interest = formValues.interest;
     const profile = formValues.profile;
     const budget = formValues.budget;
@@ -327,13 +350,16 @@ export default function ContactForm() {
       </div>
 
       <div className="form-group">
-        <label className="form-label" htmlFor="c-phone">Phone / WhatsApp</label>
+        <label className="form-label" htmlFor="c-phone">Phone / WhatsApp (numbers only)</label>
         <input
           id="c-phone"
           name="phone"
           type="tel"
+          inputMode="tel"
+          pattern="^\+?[0-9]{7,16}$"
+          maxLength={16}
           className="form-input"
-          placeholder="+234 or international number"
+          placeholder="08012345678 or +2348012345678"
           autoComplete="tel"
           value={formValues.phone}
           onChange={handleChange}

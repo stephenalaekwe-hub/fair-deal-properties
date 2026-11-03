@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { sanitizePhone, isValidPhone, sanitizeName } from '@/lib/validation';
 
 const SCOPES = [
   { id: 'standard', label: 'Standard site attendance and condition record' },
@@ -65,7 +66,12 @@ export default function InspectionRequestForm() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value, type } = e.target;
-    const val = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
+    let val: any = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
+    if (name === 'phone') {
+      val = sanitizePhone(value);
+    } else if (name === 'name') {
+      val = sanitizeName(value);
+    }
     setFormValues((prev) => ({ ...prev, [name]: val }));
   };
 
@@ -80,8 +86,16 @@ export default function InspectionRequestForm() {
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setState('sending');
-    setError('');
-    setFieldErrors({});
+    if (!formValues.name.trim() || formValues.name.trim().length < 2) {
+      setError('Please provide a valid full name (at least 2 letters).');
+      setState('error');
+      return;
+    }
+    if (!isValidPhone(formValues.phone.trim())) {
+      setError('Phone number must contain only numbers (7 to 16 digits, e.g. 08012345678 or +2348012345678).');
+      setState('error');
+      return;
+    }
 
     try {
       const res = await fetch('/api/inspections', {
@@ -259,11 +273,15 @@ export default function InspectionRequestForm() {
           />
         </div>
         <div className="form-row">
-          <label htmlFor="ins-phone">Phone</label>
+          <label htmlFor="ins-phone">Phone (numbers only)</label>
           <input
             id="ins-phone"
             name="phone"
             type="tel"
+            inputMode="tel"
+            pattern="^\+?[0-9]{7,16}$"
+            maxLength={16}
+            placeholder="08012345678 or +2348012345678"
             required
             autoComplete="tel"
             value={formValues.phone}

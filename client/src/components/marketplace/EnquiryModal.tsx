@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import type { Listing } from '@/data/listings';
 import { useCurrency } from '@/components/CurrencyProvider';
+import { sanitizePhone, isValidPhone, sanitizeName } from '@/lib/validation';
 
 interface Props {
   listing: Listing | null;
@@ -52,7 +53,12 @@ export default function EnquiryModal({ listing, onClose }: Props) {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const target = e.target;
     const name = target.name;
-    const value = target.type === 'checkbox' ? (target as HTMLInputElement).checked : target.value;
+    let value: any = target.type === 'checkbox' ? (target as HTMLInputElement).checked : target.value;
+    if (name === 'phone' && typeof value === 'string') {
+      value = sanitizePhone(value);
+    } else if (name === 'name' && typeof value === 'string') {
+      value = sanitizeName(value);
+    }
 
     setFormValues((prev) => {
       const updated = { ...prev, [name]: value };
@@ -90,6 +96,19 @@ export default function EnquiryModal({ listing, onClose }: Props) {
     setState('sending');
     setError('');
     const fd = new FormData(e.currentTarget);
+    const nameVal = String(fd.get('name') ?? '').trim();
+    const phoneVal = fd.get('phone') ? String(fd.get('phone')).trim() : '';
+
+    if (!nameVal || nameVal.length < 2) {
+      setError('Please provide a valid name (at least 2 letters).');
+      setState('error');
+      return;
+    }
+    if (phoneVal && !isValidPhone(phoneVal)) {
+      setError('Phone number must contain only numbers (7 to 16 digits, e.g. 08012345678 or +2348012345678).');
+      setState('error');
+      return;
+    }
 
     try {
       const res = await fetch('/api/enquiry', {
@@ -288,11 +307,15 @@ export default function EnquiryModal({ listing, onClose }: Props) {
               />
             </div>
             <div className="form-row">
-              <label htmlFor="enq-phone">Phone (optional)</label>
+              <label htmlFor="enq-phone">Phone (optional - numbers only)</label>
               <input 
                 id="enq-phone" 
                 name="phone" 
                 type="tel" 
+                inputMode="tel"
+                pattern="^\+?[0-9]{7,16}$"
+                maxLength={16}
+                placeholder="08012345678 or +2348012345678"
                 autoComplete="tel" 
                 value={formValues.phone}
                 onChange={handleChange}
