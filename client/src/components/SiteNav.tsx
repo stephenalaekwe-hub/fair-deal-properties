@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { ROUTES, PRIMARY_NAV, FIRM } from '@/lib/site';
 import { useAuth } from './AuthProvider';
+import CurrencyToggle from './CurrencyToggle';
 
 export default function SiteNav() {
   const pathname = usePathname();
@@ -45,17 +46,20 @@ export default function SiteNav() {
             })}
           </div>
 
-          {user && (
-            <Link
-              href={user.role === 'AGENT' ? '/agent' : '/admin'}
-              className="nav-cta nav-cta-gold"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-            >
-              <span>{user.role === 'AGENT' ? '🛡️' : '⚙️'}</span>
-              <span>{user.role === 'AGENT' ? 'Agent Console' : 'Admin Console'}</span>
-            </Link>
-          )}
-          <Link href="/contact" className="nav-cta">Book Consultation</Link>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '.75rem' }}>
+            <CurrencyToggle variant="dropdown" />
+            {user && (
+              <Link
+                href={user.role === 'AGENT' ? '/agent' : '/admin'}
+                className="nav-cta nav-cta-gold"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <span>{user.role === 'AGENT' ? '🛡️' : '⚙️'}</span>
+                <span>{user.role === 'AGENT' ? 'Agent Console' : 'Admin Console'}</span>
+              </Link>
+            )}
+            <Link href="/contact" className="nav-cta">Book Consultation</Link>
+          </div>
 
           <button
             className="hamburger"
@@ -115,6 +119,15 @@ function MobileMenu({ open, close, user, isActive }: { open: boolean; close: () 
           style={{ width: '100%', maxWidth: '300px', height: 'auto', display: 'block' }}
         />
       </Link>
+
+      <div style={{ margin: '1.25rem 0 1rem', padding: '0.85rem', background: 'var(--cream-mid)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+        <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--forest)', marginBottom: '8px' }}>
+          Display Currency
+        </div>
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '2px' }}>
+          <CurrencyToggle variant="pills" />
+        </div>
+      </div>
 
       <nav className="mobile-menu-links">
         {MOBILE_PRIMARY.map((l) => (

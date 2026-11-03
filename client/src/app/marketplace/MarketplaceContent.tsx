@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import LegacyWidgets from '@/components/LegacyWidgets';
 import { fetchApi } from '@/lib/api';
+import CurrencyToggle from '@/components/CurrencyToggle';
 
 export default function MarketplaceContent() {
   const [submitting, setSubmitting] = useState(false);
@@ -348,7 +349,8 @@ export default function MarketplaceContent() {
         <button className="pill-filter" onClick={(event)=>{window.oppTypeFilter('diaspora',event.currentTarget)}}>Diaspora Friendly</button>
         <button className="pill-filter" onClick={(event)=>{window.oppTypeFilter('mortgage',event.currentTarget)}}>Mortgage Available</button>
       </div>
-      <div style={{display:'flex',alignItems:'center',gap:'1rem'}}>
+      <div style={{display:'flex',alignItems:'center',gap:'1rem',flexWrap:'wrap'}}>
+        <CurrencyToggle variant="pills" />
         <span id="opp-count" style={{fontSize:'12px',color:'var(--ink-muted)',whiteSpace:'nowrap'}}>Showing all listings</span>
         <select id="opp-sort" onChange={(event)=>{window.oppSort()}} style={{fontFamily:'var(--font-body)',fontSize:'12px',color:'var(--ink-soft)',border:'1px solid var(--border)',borderRadius:'var(--radius-sm)',padding:'6px 12px',background:'var(--white)',cursor:'pointer',outline:'none'}}>
           <option value="default">Sort: Featured</option>
@@ -1768,7 +1770,7 @@ export default function MarketplaceContent() {
       <div style={{fontSize:'10px',letterSpacing:'.2em',textTransform:'uppercase',color:'rgba(201,168,76,.7)',marginBottom:'.5rem'}}>Property Enquiry</div>
       <div id="modal-title" style={{fontFamily:'var(--font-display)',fontSize:'1.35rem',color:'white',fontWeight:'400',lineHeight:'1.25',marginBottom:'.25rem'}}>Property Name</div>
       <div style={{display:'flex',gap:'1rem',alignItems:'center',flexWrap:'wrap'}}>
-        <span id="modal-price" style={{fontFamily:'var(--font-display)',fontSize:'1.1rem',color:'var(--gold-light)'}}>₦ -</span>
+        <span id="modal-price" style={{fontFamily:'var(--font-body), system-ui, sans-serif',fontSize:'1.35rem',fontWeight:'700',letterSpacing:'-0.02em',fontVariantNumeric:'tabular-nums',color:'var(--gold-light)'}}>₦ -</span>
         <span id="modal-source" style={{fontSize:'11px',background:'rgba(201,168,76,.2)',color:'var(--gold-light)',padding:'3px 10px',borderRadius:'50px',letterSpacing:'.08em'}}></span>
       </div>
     </div>

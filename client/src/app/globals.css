@@ -210,7 +210,7 @@ h4,.h4{font-family:var(--font-display);font-size:1.2rem;font-weight:500;line-hei
 .listing-title{font-family:var(--font-display);font-size:1.3rem;font-weight:400;color:var(--white);line-height:1.2}
 .listing-body{padding:1.75rem;flex:1;display:flex;flex-direction:column;gap:.75rem}
 .listing-meta{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-muted)}
-.listing-price{font-family:var(--font-display);font-size:1.5rem;font-weight:400;color:var(--forest)}
+.listing-price{font-family:var(--font-body),-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:1.55rem;font-weight:700;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;color:var(--forest);line-height:1.15}
 .listing-footer{padding:1.25rem 1.75rem;border-top:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between}
 .btn-text{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:var(--forest);text-decoration:none;transition:gap .2s;background:none;border:none;cursor:pointer;font-family:var(--font-body)}
 .btn-text:hover{gap:10px}
@@ -493,8 +493,8 @@ footer{background:var(--ink);color:rgba(255,255,255,.7);padding:5rem 0 3rem}
 .opp-am{font-size:11px;color:var(--ink-muted)}
 .opp-partner-note{display:flex;align-items:flex-start;gap:7px;background:rgba(13,43,30,.04);border:1px solid rgba(13,43,30,.08);border-radius:var(--radius-sm);padding:.6rem .75rem;font-size:.75rem;color:var(--ink-muted);line-height:1.55;margin-top:.25rem}
 .opp-card-footer{padding:1.1rem 1.5rem;border-top:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between;gap:.75rem}
-.opp-price-label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-muted);margin-bottom:2px}
-.opp-price{font-family:var(--font-display);font-size:1.35rem;font-weight:400;color:var(--forest)}
+.opp-price-label{font-family:var(--font-body),system-ui,sans-serif;font-size:10.5px;letter-spacing:.12em;font-weight:700;text-transform:uppercase;color:var(--ink-muted);margin-bottom:2px}
+.opp-price{font-family:var(--font-body),-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:1.48rem;font-weight:700;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;color:var(--forest);line-height:1.15;display:inline-block;transition:color .15s ease}
 .opp-save-btn{width:34px;height:34px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--white);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink-muted);transition:all .2s;flex-shrink:0}
 .opp-save-btn:hover,.opp-save-btn.saved{background:rgba(201,168,76,.1);border-color:var(--gold);color:var(--gold)}
 .opp-save-btn.saved svg{fill:var(--gold);stroke:var(--gold)}

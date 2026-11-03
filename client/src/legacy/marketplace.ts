@@ -118,10 +118,21 @@ function resetOppFilters() {
   document.getElementById('opp-no-results').style.display='none';
 }
 
-function openEnquiry(title, price, source) {
-  document.getElementById('modal-title').textContent = title;
-  document.getElementById('modal-price').textContent = price;
-  document.getElementById('modal-source').textContent = source;
+function openEnquiry(title: string, price: string, source: string) {
+  const t = document.getElementById('modal-title');
+  if (t) t.textContent = title;
+  const mp = document.getElementById('modal-price') as HTMLElement | null;
+  if (mp) {
+    mp.dataset.originalNgn = price;
+    const w = window as any;
+    if (w.__fdpCurrency && typeof w.__fdpFormatPrice === 'function') {
+      mp.textContent = w.__fdpFormatPrice(null, price);
+    } else {
+      mp.textContent = price;
+    }
+  }
+  const s = document.getElementById('modal-source');
+  if (s) s.textContent = source;
   document.getElementById('modal-success').style.display='none';
   document.getElementById('opp-modal').querySelector('form').style.display='flex';
   document.getElementById('opp-modal').style.display='flex';

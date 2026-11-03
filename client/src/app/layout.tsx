@@ -6,6 +6,7 @@ import '@/styles/components.css';
 import AppShell from '@/components/AppShell';
 import ConsentProvider from '@/components/ConsentProvider';
 import { AuthProvider } from '@/components/AuthProvider';
+import { CurrencyProvider } from '@/components/CurrencyProvider';
 import JsonLd from '@/components/JsonLd';
 import { organizationNode, websiteNode } from '@/lib/schema';
 import { SITE_URL, FIRM } from '@/lib/site';
@@ -26,7 +27,7 @@ const display = Cormorant_Garamond({
 
 const body = DM_Sans({
   subsets: ['latin'],
-  weight: ['300', '400', '500'],
+  weight: ['300', '400', '500', '600', '700'],
   variable: '--font-body-next',
   display: 'swap',
 });
@@ -75,7 +76,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         <ConsentProvider>
           <AuthProvider>
-            <AppShell>{children}</AppShell>
+            <CurrencyProvider>
+              <AppShell>{children}</AppShell>
+            </CurrencyProvider>
           </AuthProvider>
         </ConsentProvider>
       </body>

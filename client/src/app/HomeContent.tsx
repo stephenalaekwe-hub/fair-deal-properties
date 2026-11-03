@@ -356,7 +356,7 @@ export default function HomeContent() {
             <div className="badge">Diaspora Friendly</div>
           </div>
           <div className="listing-footer">
-            <div><div className="listing-meta" style={{marginBottom:'4px'}}>Price</div><div className="listing-price">₦450M</div></div>
+            <div><div className="listing-meta" style={{marginBottom:'4px'}}>Price</div><div className="listing-price" data-price="450">₦450M</div></div>
             <Link href="/contact" className="btn-text">Enquire <span className="arrow-ico"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span></Link>
           </div>
         </div>
@@ -375,7 +375,7 @@ export default function HomeContent() {
             <div className="badge badge-gold">Off-Plan</div>
           </div>
           <div className="listing-footer">
-            <div><div className="listing-meta" style={{marginBottom:'4px'}}>Price</div><div className="listing-price">₦1.2B</div></div>
+            <div><div className="listing-meta" style={{marginBottom:'4px'}}>Price</div><div className="listing-price" data-price="1200">₦1.2B</div></div>
             <Link href="/contact" className="btn-text">Enquire <span className="arrow-ico"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span></Link>
           </div>
         </div>
@@ -394,7 +394,7 @@ export default function HomeContent() {
             <div className="badge">Institutional Grade</div>
           </div>
           <div className="listing-footer">
-            <div><div className="listing-meta" style={{marginBottom:'4px'}}>Price</div><div className="listing-price">₦280M</div></div>
+            <div><div className="listing-meta" style={{marginBottom:'4px'}}>Price</div><div className="listing-price" data-price="280">₦280M</div></div>
             <Link href="/contact" className="btn-text">Enquire <span className="arrow-ico"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span></Link>
           </div>
         </div>

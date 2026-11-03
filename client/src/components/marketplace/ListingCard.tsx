@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import type { Listing } from '@/data/listings';
+import { useCurrency } from '@/components/CurrencyProvider';
 
 interface Props {
   listing: Listing;
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export default function ListingCard({ listing, view, saved, onToggleSave, onEnquire }: Props) {
+  const { formatPrice } = useCurrency();
   return (
     <div className={view === 'list' ? 'opp-card opp-card-list' : 'opp-card'}>
       <div className="opp-media">
@@ -87,7 +89,7 @@ export default function ListingCard({ listing, view, saved, onToggleSave, onEnqu
       <div className="opp-card-footer">
         <div>
           <div className="opp-price-label">{listing.priceLabel}</div>
-          <div className="opp-price">{listing.priceDisplay}</div>
+          <div className="opp-price">{formatPrice(listing.priceMillionsNGN, listing.priceDisplay)}</div>
         </div>
         <div style={{ display: 'flex', gap: '.5rem' }}>
           <button

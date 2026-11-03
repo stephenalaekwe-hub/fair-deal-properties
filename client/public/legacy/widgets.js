@@ -45,20 +45,36 @@
     });
   }
   function updateCalc(){
-    const pv=parseInt(document.getElementById('prop-val').value);
-    const dp=parseInt(document.getElementById('down-pct').value)/100;
-    const yr=parseInt(document.getElementById('term-yr').value);
+    var pvEl=document.getElementById('prop-val');
+    var dpEl=document.getElementById('down-pct');
+    var yrEl=document.getElementById('term-yr');
+    if(!pvEl||!dpEl||!yrEl)return;
+    const pv=parseInt(pvEl.value);
+    const dp=parseInt(dpEl.value)/100;
+    const yr=parseInt(yrEl.value);
     const loan=pv*(1-dp);
     const rate=0.22/12;
     const n=yr*12;
     const monthly=loan*1000000*rate*(Math.pow(1+rate,n))/(Math.pow(1+rate,n)-1);
     const totalInt=(monthly*n)-(loan*1000000);
-    document.getElementById('prop-val-label').textContent='₦'+pv+'M';
-    document.getElementById('down-label').textContent=Math.round(dp*100)+'%';
-    document.getElementById('term-label').textContent=yr+(yr===1?' year':' years');
-    document.getElementById('loan-amt').textContent='₦'+loan.toFixed(0)+'M';
-    document.getElementById('monthly-rep').textContent='₦'+(monthly/1000000).toFixed(1)+'M/mo';
-    document.getElementById('total-int').textContent='₦'+(totalInt/1000000).toFixed(0)+'M';
+    var fmt = window.__fdpFormatPrice;
+    var pvl=document.getElementById('prop-val-label');
+    var dpl=document.getElementById('down-label');
+    var trl=document.getElementById('term-label');
+    var lna=document.getElementById('loan-amt');
+    var mnr=document.getElementById('monthly-rep');
+    var tti=document.getElementById('total-int');
+    if(pvl) pvl.textContent = typeof fmt==='function' ? fmt(pv) : '₦'+pv+'M';
+    if(dpl) dpl.textContent = Math.round(dp*100)+'%';
+    if(trl) trl.textContent = yr+(yr===1?' year':' years');
+    if(lna) lna.textContent = typeof fmt==='function' ? fmt(loan) : '₦'+loan.toFixed(0)+'M';
+    if(mnr) mnr.textContent = (typeof fmt==='function' ? fmt(monthly/1000000) : '₦'+(monthly/1000000).toFixed(1)+'M') + '/mo';
+    if(tti) tti.textContent = typeof fmt==='function' ? fmt(totalInt/1000000) : '₦'+(totalInt/1000000).toFixed(0)+'M';
+  }
+  if(typeof window!=='undefined'){
+    window.addEventListener('fdp:currency-change', function(){
+      if(document.getElementById('prop-val')) updateCalc();
+    });
   }
   function submitContact(e){
     e.preventDefault();
@@ -178,7 +194,15 @@
 
   function openEnquiry(title, price, source) {
     document.getElementById('modal-title').textContent = title;
-    document.getElementById('modal-price').textContent = price;
+    var mp = document.getElementById('modal-price');
+    if (mp) {
+      mp.dataset.originalNgn = price;
+      if (window.__fdpCurrency && typeof window.__fdpFormatPrice === 'function') {
+        mp.textContent = window.__fdpFormatPrice(null, price);
+      } else {
+        mp.textContent = price;
+      }
+    }
     document.getElementById('modal-source').textContent = source;
     document.getElementById('modal-success').style.display='none';
     document.getElementById('opp-modal').querySelector('form').style.display='flex';

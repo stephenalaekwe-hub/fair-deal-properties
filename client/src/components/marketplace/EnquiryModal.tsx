@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import type { Listing } from '@/data/listings';
+import { useCurrency } from '@/components/CurrencyProvider';
 
 interface Props {
   listing: Listing | null;
@@ -12,6 +13,7 @@ interface Props {
 const STORAGE_KEY = 'fdp_enquiry_modal_draft';
 
 export default function EnquiryModal({ listing, onClose }: Props) {
+  const { formatPrice } = useCurrency();
   const [state, setState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
   const [reference, setReference] = useState('');
   const [copied, setCopied] = useState(false);
@@ -139,8 +141,8 @@ export default function EnquiryModal({ listing, onClose }: Props) {
 
         <div className="eyebrow">Property Enquiry</div>
         <h3 style={{ marginBottom: '.5rem' }}>{listing.title}</h3>
-        <p className="body-sm" style={{ marginBottom: '1.5rem' }}>
-          {listing.priceDisplay} · {listing.verificationStatus}
+        <p className="body-sm" style={{ marginBottom: '1.5rem', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+          {formatPrice(listing.priceMillionsNGN, listing.priceDisplay)} · {listing.verificationStatus}
         </p>
 
         {isRestored && state !== 'done' && (

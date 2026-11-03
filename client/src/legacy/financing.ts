@@ -10,23 +10,42 @@
  */
 
 function updateCalc(){
-  const pv=parseInt(document.getElementById('prop-val').value);
-  const dp=parseInt(document.getElementById('down-pct').value)/100;
-  const yr=parseInt(document.getElementById('term-yr').value);
+  const pvEl = document.getElementById('prop-val') as HTMLInputElement | null;
+  const dpEl = document.getElementById('down-pct') as HTMLInputElement | null;
+  const yrEl = document.getElementById('term-yr') as HTMLInputElement | null;
+  if (!pvEl || !dpEl || !yrEl) return;
+  const pv=parseInt(pvEl.value);
+  const dp=parseInt(dpEl.value)/100;
+  const yr=parseInt(yrEl.value);
   const loan=pv*(1-dp);
   const rate=0.22/12;
   const n=yr*12;
   const monthly=loan*1000000*rate*(Math.pow(1+rate,n))/(Math.pow(1+rate,n)-1);
   const totalInt=(monthly*n)-(loan*1000000);
-  document.getElementById('prop-val-label').textContent='₦'+pv+'M';
-  document.getElementById('down-label').textContent=Math.round(dp*100)+'%';
-  document.getElementById('term-label').textContent=yr+(yr===1?' year':' years');
-  document.getElementById('loan-amt').textContent='₦'+loan.toFixed(0)+'M';
-  document.getElementById('monthly-rep').textContent='₦'+(monthly/1000000).toFixed(1)+'M/mo';
-  document.getElementById('total-int').textContent='₦'+(totalInt/1000000).toFixed(0)+'M';
+  
+  const w = window as any;
+  const fmt = w.__fdpFormatPrice;
+  const pvl = document.getElementById('prop-val-label');
+  const dpl = document.getElementById('down-label');
+  const trl = document.getElementById('term-label');
+  const lna = document.getElementById('loan-amt');
+  const mnr = document.getElementById('monthly-rep');
+  const tti = document.getElementById('total-int');
+
+  if (pvl) pvl.textContent = typeof fmt === 'function' ? fmt(pv) : '₦'+pv+'M';
+  if (dpl) dpl.textContent = Math.round(dp*100)+'%';
+  if (trl) trl.textContent = yr+(yr===1?' year':' years');
+  if (lna) lna.textContent = typeof fmt === 'function' ? fmt(loan) : '₦'+loan.toFixed(0)+'M';
+  if (mnr) mnr.textContent = (typeof fmt === 'function' ? fmt(monthly/1000000) : '₦'+(monthly/1000000).toFixed(1)+'M') + '/mo';
+  if (tti) tti.textContent = typeof fmt === 'function' ? fmt(totalInt/1000000) : '₦'+(totalInt/1000000).toFixed(0)+'M';
 }
 
 export function attach(): void {
   const w = window as any;
   w.updateCalc = updateCalc;
+  if (typeof window !== 'undefined') {
+    window.addEventListener('fdp:currency-change', () => {
+      if (document.getElementById('prop-val')) updateCalc();
+    });
+  }
 }

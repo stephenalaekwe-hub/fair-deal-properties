@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import { compareRoutes } from '@/data/financing';
+import { useCurrency } from '@/components/CurrencyProvider';
+import CurrencyToggle from '@/components/CurrencyToggle';
 
 const naira = (n: number) =>
   '₦' + n.toLocaleString('en-NG', { maximumFractionDigits: 0 });
@@ -21,6 +23,7 @@ const naira2 = (n: number) =>
  * not a convenience.
  */
 export default function MortgageComparator() {
+  const { formatAmountNGN } = useCurrency();
   const [valueM, setValueM] = useState(80);      // ₦ millions
   const [equityPct, setEquityPct] = useState(20);
   const [termYears, setTermYears] = useState(20);
@@ -44,10 +47,13 @@ export default function MortgageComparator() {
 
   return (
     <div className="calc-shell">
+      <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
+        <CurrencyToggle variant="pills" />
+      </div>
       <div className="calc-controls">
         <div className="calc-field">
           <label htmlFor="prop-val">
-            Property value <strong>₦{valueM}M</strong>
+            Property value <strong>{formatAmountNGN(valueM * 1_000_000)}</strong>
           </label>
           <input id="prop-val" type="range" min={5} max={1000} step={5}
                  value={valueM} onChange={(e) => setValueM(Number(e.target.value))} />
@@ -120,15 +126,15 @@ export default function MortgageComparator() {
                 <td>{r.route.interestRatePct != null
                   ? `${r.route.interestRatePct}%`
                   : <span className="calc-na">On application</span>}</td>
-                <td>{naira2(r.equityRequiredNGN)}</td>
-                <td>{r.monthlyRepaymentNGN != null
-                  ? naira2(r.monthlyRepaymentNGN)
+                <td>{formatAmountNGN(r.equityRequiredNGN)}</td>
+                <td style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{r.monthlyRepaymentNGN != null
+                  ? formatAmountNGN(r.monthlyRepaymentNGN)
                   : <span className="calc-na">—</span>}</td>
-                <td>{r.totalRepayableNGN != null
-                  ? naira2(r.totalRepayableNGN)
+                <td style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{r.totalRepayableNGN != null
+                  ? formatAmountNGN(r.totalRepayableNGN)
                   : <span className="calc-na">—</span>}</td>
-                <td>{r.totalInterestNGN != null
-                  ? naira2(r.totalInterestNGN)
+                <td style={{ fontVariantNumeric: 'tabular-nums' }}>{r.totalInterestNGN != null
+                  ? formatAmountNGN(r.totalInterestNGN)
                   : <span className="calc-na">—</span>}</td>
               </tr>
             ))}

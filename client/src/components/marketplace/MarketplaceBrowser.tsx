@@ -9,6 +9,7 @@ import {
 import ListingCard from './ListingCard';
 import EnquiryModal from './EnquiryModal';
 import AlertForm from './AlertForm';
+import CurrencyToggle from '../CurrencyToggle';
 
 type Pill = 'all' | 'residential' | 'commercial' | 'land'
   | 'affordable' | 'offplan' | 'diaspora' | 'mortgage';
@@ -228,7 +229,8 @@ export default function MarketplaceBrowser() {
               ))}
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+              <CurrencyToggle variant="pills" />
               <span style={{ fontSize: '12px', color: 'var(--ink-muted)', whiteSpace: 'nowrap' }}
                     aria-live="polite">
                 Showing {results.length} listing{results.length === 1 ? '' : 's'}
