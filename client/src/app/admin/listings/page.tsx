@@ -5,9 +5,11 @@ import Image from 'next/image';
 import { fetchApi } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 import ImageUpload from '@/components/ImageUpload';
+import { useCurrency } from '@/components/CurrencyProvider';
 
 export default function AdminListingsPage() {
   const { user } = useAuth();
+  const { formatPrice } = useCurrency();
   const isAgent = user?.role === 'AGENT';
 
   const [listings, setListings] = useState<any[]>([]);
@@ -242,8 +244,8 @@ export default function AdminListingsPage() {
                         {l.propertyType}
                       </div>
                     </td>
-                    <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0f172a' }}>
-                      {l.priceDisplay}
+                    <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>
+                      {formatPrice(l.priceMillionsNGN, l.priceDisplay)}
                     </td>
                     <td style={{ padding: '14px 16px' }}>
                       {l.assignedAgent ? (
@@ -581,7 +583,9 @@ export default function AdminListingsPage() {
                 <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '13px' }}>
                   <div>
                     <span style={{ color: '#64748b' }}>Verified Asking Price: </span>
-                    <strong style={{ fontSize: '16px', color: '#0f172a' }}>{editingListing.priceDisplay}</strong>
+                    <strong style={{ fontSize: '16px', color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>
+                      {formatPrice(editingListing.priceMillionsNGN, editingListing.priceDisplay)}
+                    </strong>
                   </div>
                   <div>
                     <span style={{ color: '#64748b' }}>Location & State: </span>

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
+import CurrencyToggle from '@/components/CurrencyToggle';
 
 interface AgentLayoutProps {
   children: React.ReactNode;
@@ -180,6 +181,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
             Fair Deal Properties Ltd — Field Officer Portal ({user?.name})
           </div>
           <div className="dash-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <CurrencyToggle variant="dropdown" />
             <Link
               href="/"
               target="_blank"

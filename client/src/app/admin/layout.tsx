@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
+import CurrencyToggle from '@/components/CurrencyToggle';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -180,6 +181,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               : 'Fair Deal Properties Ltd — PropTech & Compliance Administration'}
           </div>
           <div className="dash-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <CurrencyToggle variant="dropdown" />
             <Link
               href="/"
               target="_blank"

@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react';
 import { fetchApi } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
+import { useCurrency } from '@/components/CurrencyProvider';
 
 export default function AgentSubmissionsPage() {
   const { user } = useAuth();
+  const { formatPrice } = useCurrency();
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeModal, setActiveModal] = useState<any>(null);
@@ -107,7 +109,7 @@ export default function AgentSubmissionsPage() {
                         </div>
                         {sub.payload?.propertyTitle && (
                           <div style={{ fontSize: '11px', color: 'var(--forest)', fontWeight: 600, marginTop: '2px' }}>
-                            🏠 {sub.payload.propertyTitle} {sub.payload.propertyPrice ? `(${sub.payload.propertyPrice})` : ''}
+                            🏠 {sub.payload.propertyTitle} {sub.payload.propertyPrice ? `(${formatPrice(null, sub.payload.propertyPrice)})` : ''}
                           </div>
                         )}
                       </td>
@@ -251,7 +253,7 @@ export default function AgentSubmissionsPage() {
                     <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '6px', padding: '10px 12px', marginBottom: '12px' }}>
                       <div style={{ fontSize: '10px', color: '#047857', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Inquired Property</div>
                       <div style={{ fontSize: '13px', fontWeight: 700, color: '#065f46', marginTop: '2px' }}>
-                        🏠 {activeModal.payload.propertyTitle} {activeModal.payload.propertyPrice ? `(${activeModal.payload.propertyPrice})` : ''}
+                        🏠 {activeModal.payload.propertyTitle} {activeModal.payload.propertyPrice ? `(${formatPrice(null, activeModal.payload.propertyPrice)})` : ''}
                       </div>
                       {activeModal.payload.propertySource && (
                         <div style={{ fontSize: '11px', color: '#059669', marginTop: '2px' }}>Source: {activeModal.payload.propertySource}</div>
