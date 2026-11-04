@@ -45,13 +45,8 @@ export default function AdminSubmissionsPage() {
     const agId = sub.assignedAgentId || sub.payload?.assignedAgentId || '';
     setSelectedAgentId(agId);
     setOutcome(sub.outcome || '');
-    if (sub.closedAt) {
-      setStatusChoice('closed');
-    } else if (agId || sub.assignedAgentName || sub.assignedAgent) {
-      setStatusChoice('in_progress');
-    } else {
-      setStatusChoice('pending');
-    }
+    const currentStatus = sub.status || (sub.closedAt ? 'closed' : (agId ? 'in_progress' : 'pending'));
+    setStatusChoice(currentStatus as any);
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -72,13 +67,17 @@ export default function AdminSubmissionsPage() {
     }
 
     // 2. Update status and follow-up outcome notes
-    await fetchApi(`/admin/submissions/${activeModal.id}/close`, {
+    const closeRes = await fetchApi(`/admin/submissions/${activeModal.id}/close`, {
       method: 'PATCH',
       body: JSON.stringify({
         outcome: outcome || '',
         status: statusChoice,
       }),
     });
+
+    if (!closeRes.ok) {
+      alert(closeRes.error || 'Failed to update submission status.');
+    }
 
     setActiveModal(null);
     setSaving(false);
@@ -175,46 +174,55 @@ export default function AdminSubmissionsPage() {
                           )}
                         </td>
                         <td style={{ padding: '14px 16px' }}>
-                          {sub.closedAt ? (
-                            <span
-                              style={{
-                                background: '#ecfdf5',
-                                color: '#065f46',
-                                padding: '3px 8px',
-                                borderRadius: '4px',
-                                fontWeight: 700,
-                                fontSize: '11px',
-                              }}
-                            >
-                              ✓ Closed
-                            </span>
-                          ) : assignedAgentName ? (
-                            <span
-                              style={{
-                                background: '#eff6ff',
-                                color: '#1d4ed8',
-                                padding: '3px 8px',
-                                borderRadius: '4px',
-                                fontWeight: 700,
-                                fontSize: '11px',
-                              }}
-                            >
-                              🔄 In Progress
-                            </span>
-                          ) : (
-                            <span
-                              style={{
-                                background: '#fef3c7',
-                                color: '#b45309',
-                                padding: '3px 8px',
-                                borderRadius: '4px',
-                                fontWeight: 700,
-                                fontSize: '11px',
-                              }}
-                            >
-                              ⏳ Pending
-                            </span>
-                          )}
+                          {(() => {
+                            const itemStatus = sub.status || (sub.closedAt ? 'closed' : ((assignedAgentName || sub.assignedAgentId) ? 'in_progress' : 'pending'));
+                            if (itemStatus === 'closed') {
+                              return (
+                                <span
+                                  style={{
+                                    background: '#ecfdf5',
+                                    color: '#065f46',
+                                    padding: '3px 8px',
+                                    borderRadius: '4px',
+                                    fontWeight: 700,
+                                    fontSize: '11px',
+                                  }}
+                                >
+                                  ✓ Closed
+                                </span>
+                              );
+                            }
+                            if (itemStatus === 'in_progress') {
+                              return (
+                                <span
+                                  style={{
+                                    background: '#eff6ff',
+                                    color: '#1d4ed8',
+                                    padding: '3px 8px',
+                                    borderRadius: '4px',
+                                    fontWeight: 700,
+                                    fontSize: '11px',
+                                  }}
+                                >
+                                  🔄 In Progress
+                                </span>
+                              );
+                            }
+                            return (
+                              <span
+                                style={{
+                                  background: '#fef3c7',
+                                  color: '#b45309',
+                                  padding: '3px 8px',
+                                  borderRadius: '4px',
+                                  fontWeight: 700,
+                                  fontSize: '11px',
+                                }}
+                              >
+                                ⏳ Pending
+                              </span>
+                            );
+                          })()}
                         </td>
                         <td style={{ padding: '14px 16px', textAlign: 'right' }}>
                           <button

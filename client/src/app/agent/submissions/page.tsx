@@ -120,15 +120,15 @@ export default function AgentSubmissionsPage() {
                       <td style={{ padding: '14px 16px' }}>
                         <span
                           style={{
-                            background: sub.closedAt ? '#f1f5f9' : '#fef3c7',
-                            color: sub.closedAt ? '#64748b' : '#b45309',
+                            background: (sub.status === 'closed' || sub.closedAt) ? '#f1f5f9' : sub.status === 'in_progress' ? '#dbeafe' : '#fef3c7',
+                            color: (sub.status === 'closed' || sub.closedAt) ? '#64748b' : sub.status === 'in_progress' ? '#1e40af' : '#b45309',
                             padding: '3px 8px',
                             borderRadius: '4px',
                             fontWeight: 700,
                             fontSize: '11px',
                           }}
                         >
-                          {sub.closedAt ? 'Resolved / Closed' : 'Pending Follow-Up'}
+                          {(sub.status === 'closed' || sub.closedAt) ? 'Resolved / Closed' : sub.status === 'in_progress' ? 'In Progress' : 'Pending Follow-Up'}
                         </span>
                       </td>
                       <td style={{ padding: '14px 16px', textAlign: 'right' }}>

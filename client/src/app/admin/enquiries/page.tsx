@@ -44,13 +44,8 @@ export default function AdminEnquiriesPage() {
     const agId = sub.assignedAgentId || sub.payload?.assignedAgentId || '';
     setSelectedAgentId(agId);
     setOutcome(sub.outcome || '');
-    if (sub.closedAt) {
-      setStatusChoice('closed');
-    } else if (agId) {
-      setStatusChoice('in_progress');
-    } else {
-      setStatusChoice('pending');
-    }
+    const currentStatus = sub.status || (sub.closedAt ? 'closed' : (agId ? 'in_progress' : 'pending'));
+    setStatusChoice(currentStatus as any);
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -71,13 +66,17 @@ export default function AdminEnquiriesPage() {
     }
 
     // 2. Update status and follow-up outcome notes
-    await fetchApi(`/admin/submissions/${activeModal.id}/close`, {
+    const closeRes = await fetchApi(`/admin/submissions/${activeModal.id}/close`, {
       method: 'PATCH',
       body: JSON.stringify({
         outcome: outcome || '',
         status: statusChoice,
       }),
     });
+
+    if (!closeRes.ok) {
+      alert(closeRes.error || 'Failed to update enquiry status.');
+    }
 
     setActiveModal(null);
     setSaving(false);
@@ -183,19 +182,28 @@ export default function AdminEnquiriesPage() {
                           )}
                         </td>
                         <td style={{ padding: '14px 16px' }}>
-                          {isClosed ? (
-                            <span style={{ background: '#f1f5f9', color: '#475569', padding: '3px 8px', borderRadius: '4px', fontWeight: 700, fontSize: '11px' }}>
-                              ✓ Resolved & Closed
-                            </span>
-                          ) : isAssigned ? (
-                            <span style={{ background: '#dbeafe', color: '#1e40af', padding: '3px 8px', borderRadius: '4px', fontWeight: 700, fontSize: '11px' }}>
-                              🔄 In Progress
-                            </span>
-                          ) : (
-                            <span style={{ background: '#fef3c7', color: '#b45309', padding: '3px 8px', borderRadius: '4px', fontWeight: 700, fontSize: '11px' }}>
-                              ⏳ Pending Review
-                            </span>
-                          )}
+                          {(() => {
+                            const itemStatus = sub.status || (sub.closedAt ? 'closed' : ((assignedAgentName || sub.assignedAgentId) ? 'in_progress' : 'pending'));
+                            if (itemStatus === 'closed') {
+                              return (
+                                <span style={{ background: '#f1f5f9', color: '#475569', padding: '3px 8px', borderRadius: '4px', fontWeight: 700, fontSize: '11px' }}>
+                                  ✓ Resolved & Closed
+                                </span>
+                              );
+                            }
+                            if (itemStatus === 'in_progress') {
+                              return (
+                                <span style={{ background: '#dbeafe', color: '#1e40af', padding: '3px 8px', borderRadius: '4px', fontWeight: 700, fontSize: '11px' }}>
+                                  🔄 In Progress
+                                </span>
+                              );
+                            }
+                            return (
+                              <span style={{ background: '#fef3c7', color: '#b45309', padding: '3px 8px', borderRadius: '4px', fontWeight: 700, fontSize: '11px' }}>
+                                ⏳ Pending Review
+                              </span>
+                            );
+                          })()}
                         </td>
                         <td style={{ padding: '14px 16px', textAlign: 'right' }}>
                           <button

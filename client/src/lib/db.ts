@@ -383,6 +383,7 @@ export async function getLiveSubmissions(collection?: string, agentId?: string):
       assignedAgentName: 'Emeka Nwosu (Senior Surveyor)',
       assignedAgentId: 'agent-fallback-01',
       assignedAgent: { id: 'agent-fallback-01', name: 'Emeka Nwosu (Senior Surveyor)' },
+      status: 'in_progress',
       closedAt: null,
       outcome: null,
     },
@@ -406,9 +407,10 @@ export async function getLiveSubmissions(collection?: string, agentId?: string):
       clientName: 'Tunde Bakare',
       clientEmail: 'tunde.b@diasporainvest.co.uk',
       clientPhone: '+447911123456',
-      assignedAgentName: 'Stephen Alaekwe (Field Surveyor)',
+      assignedAgentName: 'Aisha Bello (Field Surveyor)',
       assignedAgentId: 'agent-fallback-02',
-      assignedAgent: { id: 'agent-fallback-02', name: 'Stephen Alaekwe (Field Surveyor)' },
+      assignedAgent: { id: 'agent-fallback-02', name: 'Aisha Bello (Field Surveyor)' },
+      status: 'in_progress',
       closedAt: null,
       outcome: null,
     },
@@ -433,6 +435,7 @@ export async function getLiveSubmissions(collection?: string, agentId?: string):
       assignedAgentName: null,
       assignedAgentId: null,
       assignedAgent: null,
+      status: 'pending',
       closedAt: null,
       outcome: null,
     },
@@ -450,7 +453,11 @@ export async function getLiveSubmissions(collection?: string, agentId?: string):
     await p.query(`
       ALTER TABLE submissions 
       ADD COLUMN IF NOT EXISTS assigned_agent text,
-      ADD COLUMN IF NOT EXISTS assigned_agent_id text;
+      ADD COLUMN IF NOT EXISTS assigned_agent_id text,
+      ADD COLUMN IF NOT EXISTS status text,
+      ADD COLUMN IF NOT EXISTS outcome text,
+      ADD COLUMN IF NOT EXISTS closed_by text,
+      ADD COLUMN IF NOT EXISTS closed_at timestamp with time zone;
     `);
   } catch (e) {
     // Ignore if column exists or schema is read-only
@@ -475,6 +482,7 @@ export async function getLiveSubmissions(collection?: string, agentId?: string):
     `SELECT s.id, s.reference, s.collection, s.received_at as "receivedAt", s.due_at as "dueAt",
             s.payload, s.ip_hash as "ipHash", s.user_agent as "userAgent",
             s.closed_at as "closedAt", s.closed_by as "closedBy", s.outcome, s.created_at as "createdAt",
+            COALESCE(s.status, s.payload->>'status', CASE WHEN s.closed_at IS NOT NULL THEN 'closed' WHEN s.assigned_agent_id IS NOT NULL OR s.assigned_agent IS NOT NULL THEN 'in_progress' ELSE 'pending' END) as status,
             s.assigned_agent as "assignedAgentName", s.assigned_agent_id as "assignedAgentId"
      FROM submissions s
      ${whereClause}
@@ -493,8 +501,10 @@ export async function getLiveSubmissions(collection?: string, agentId?: string):
     const p = row.payload || {};
     const assignedAgentId = row.assignedAgentId || p.assignedAgentId || null;
     const assignedAgentName = row.assignedAgentName || p.assignedAgent || null;
+    const finalStatus = row.status || p.status || (row.closedAt ? 'closed' : ((assignedAgentId || assignedAgentName) ? 'in_progress' : 'pending'));
     return {
       ...row,
+      status: finalStatus,
       assignedAgentId,
       assignedAgent: (assignedAgentId || assignedAgentName) ? {
         id: assignedAgentId,
@@ -519,6 +529,7 @@ export async function closeLiveSubmission(
       id,
       outcome,
       closedBy,
+      status,
       closedAt: status === 'closed' ? new Date().toISOString() : null,
       message: 'Outcome notes saved successfully.',
     };
@@ -529,7 +540,8 @@ export async function closeLiveSubmission(
       ALTER TABLE submissions 
       ADD COLUMN IF NOT EXISTS outcome text,
       ADD COLUMN IF NOT EXISTS closed_by text,
-      ADD COLUMN IF NOT EXISTS closed_at timestamp with time zone;
+      ADD COLUMN IF NOT EXISTS closed_at timestamp with time zone,
+      ADD COLUMN IF NOT EXISTS status text;
     `);
   } catch (e) {}
 
@@ -538,15 +550,18 @@ export async function closeLiveSubmission(
   const res = await p.query(
     `UPDATE submissions
      SET outcome = $2,
-         closed_by = CASE WHEN $4 = true THEN $3 ELSE closed_by END,
-         closed_at = CASE WHEN $4 = true THEN COALESCE(closed_at, now()) ELSE NULL END,
-         payload = jsonb_set(COALESCE(payload, '{}'::jsonb), '{notes}', to_jsonb(COALESCE($2, ''))),
-         updated_at = now()
+         status = $4,
+         closed_by = CASE WHEN $4 = 'closed' THEN $3 ELSE closed_by END,
+         closed_at = CASE WHEN $4 = 'closed' THEN COALESCE(closed_at, now()) ELSE NULL END,
+         payload = jsonb_set(
+           jsonb_set(COALESCE(payload, '{}'::jsonb), '{notes}', to_jsonb(COALESCE($2, ''))),
+           '{status}', to_jsonb($4::text)
+         )
      WHERE id::text = $1 OR reference = $1 
      RETURNING *`,
-    [id, outcome, closedBy, isClosed]
+    [id, outcome, closedBy, status]
   );
-  return res.rows[0] || { id, outcome, closedBy };
+  return res.rows[0] || { id, outcome, closedBy, status };
 }
 
 // ─── Financing Queries ───────────────────────────────────────────────────────
