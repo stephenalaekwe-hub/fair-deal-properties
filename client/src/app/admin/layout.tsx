@@ -23,9 +23,21 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     if (!loading && !user && !isLoginPage) {
       router.push('/admin/login');
     } else if (!loading && user?.role === 'AGENT' && !isLoginPage) {
-      router.push('/agent');
+      if (pathname === '/admin/consultations') {
+        router.push('/agent/consultations');
+      } else if (pathname === '/admin/enquiries') {
+        router.push('/agent/enquiries');
+      } else if (pathname === '/admin/inspections') {
+        router.push('/agent/inspections');
+      } else if (pathname === '/admin/listings') {
+        router.push('/agent/listings');
+      } else if (pathname === '/admin/submissions') {
+        router.push('/agent/submissions');
+      } else {
+        router.push('/agent');
+      }
     }
-  }, [user, loading, isLoginPage, router]);
+  }, [user, loading, isLoginPage, router, pathname]);
 
   const handleLogout = async () => {
     await logout();
