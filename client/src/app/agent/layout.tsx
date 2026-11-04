@@ -14,7 +14,6 @@ interface AgentLayoutProps {
 const NAV_ITEMS = [
   { label: 'My Overview', path: '/agent', icon: '📊' },
   { label: 'Book a Consultation', path: '/agent/consultations', icon: '📅' },
-  { label: 'Property Enquiries', path: '/agent/enquiries', icon: '💬' },
   { label: 'Field Inspections', path: '/agent/inspections', icon: '🔍' },
   { label: 'Property Portfolio', path: '/agent/listings', icon: '🏢' },
   { label: 'All Submissions', path: '/agent/submissions', icon: '📬' },
