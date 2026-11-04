@@ -33,40 +33,46 @@ export async function authenticateUser(email: string, passwordPlain: string): Pr
   const normEmail = email.toLowerCase().trim();
   const user = await getUserByEmail(normEmail);
 
-  if (!user) {
-    // Check against registered test user agents
-    const testAgent = getTestAgentByEmail(normEmail);
-    if (testAgent) {
-      if (testAgent.role === 'SUPER_ADMIN' && passwordPlain === 'Admin@123456') {
-        return {
-          id: testAgent.id,
-          name: testAgent.name,
-          email: testAgent.email,
-          role: testAgent.role,
-          phone: testAgent.phone,
-        };
-      }
-      if (testAgent.role === 'AGENT' && (passwordPlain === 'Agent@123456' || passwordPlain === 'Admin@123456')) {
-        return {
-          id: testAgent.id,
-          name: testAgent.name,
-          email: testAgent.email,
-          role: testAgent.role,
-          phone: testAgent.phone,
-        };
-      }
+  if (user) {
+    const isValid = await bcrypt.compare(passwordPlain, user.passwordHash);
+    if (isValid) {
+      return {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        phone: user.phone,
+      };
     }
-    return null;
   }
 
-  const isValid = await bcrypt.compare(passwordPlain, user.passwordHash);
-  if (!isValid) return null;
+  // Check against registered test user agents roster (Emeka, Aisha, Ismail Kewa, etc.)
+  const testAgent = getTestAgentByEmail(normEmail);
+  if (testAgent) {
+    const isCustomPasswordMatch = testAgent.password && passwordPlain === testAgent.password;
+    if (testAgent.role === 'SUPER_ADMIN' && (passwordPlain === 'Admin@123456' || isCustomPasswordMatch)) {
+      return {
+        id: testAgent.id,
+        name: testAgent.name,
+        email: testAgent.email,
+        role: testAgent.role,
+        phone: testAgent.phone,
+      };
+    }
+    if (
+      testAgent.role === 'AGENT' &&
+      (passwordPlain === 'Agent@123456' || passwordPlain === 'Admin@123456' || isCustomPasswordMatch)
+    ) {
+      return {
+        id: testAgent.id,
+        name: testAgent.name,
+        email: testAgent.email,
+        role: testAgent.role,
+        phone: testAgent.phone,
+      };
+    }
+  }
 
-  return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    phone: user.phone,
-  };
+  return null;
 }
+

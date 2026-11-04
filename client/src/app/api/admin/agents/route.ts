@@ -33,7 +33,7 @@ export async function POST(req: Request) {
           [name, email, passwordHash, assignedRole, phone || null]
         );
 
-        addTestAgent({ id: res.rows[0].id, name, email, role: assignedRole, phone, active: true });
+        addTestAgent({ id: res.rows[0].id, name, email, role: assignedRole, phone, active: true, password });
         return NextResponse.json({ ok: true, data: res.rows[0] }, { status: 201 });
       } catch (dbErr: any) {
         if (dbErr.code === '23505') {
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const added = addTestAgent({ name, email, role: assignedRole, phone, active: true });
+    const added = addTestAgent({ name, email, role: assignedRole, phone, active: true, password });
     return NextResponse.json({ ok: true, data: added }, { status: 201 });
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: err?.message || 'Failed to create agent' }, { status: 500 });

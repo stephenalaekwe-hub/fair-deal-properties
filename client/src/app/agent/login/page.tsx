@@ -173,6 +173,7 @@ export default function AgentLoginPage() {
           <div style={{ marginTop: '20px', padding: '12px', background: '#f8fafc', borderRadius: '6px', fontSize: '12px', color: '#64748b' }}>
             <div><strong>Demo Field Officer 1:</strong> emeka.agent@fdealproperties.com</div>
             <div><strong>Demo Field Officer 2:</strong> aisha.agent@fdealproperties.com</div>
+            <div><strong>Field Agent:</strong> ismail.kewa@fdealproperties.com</div>
             <div><strong>Password:</strong> Agent@123456</div>
           </div>
 
