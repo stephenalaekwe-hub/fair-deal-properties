@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDbPool } from '@/lib/db';
+import { updateTestAgentStatus } from '@/lib/agentsStore';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -14,35 +15,52 @@ async function handleStatusUpdate(
     const active = Boolean(body.active);
 
     const p = getDbPool();
-    if (!p) {
-      throw new Error('Database connection not available');
+    if (p) {
+      try {
+        const result = await p.query(
+          `UPDATE users 
+           SET active = $2, updated_at = now() 
+           WHERE id::text = $1 OR email = $1
+           RETURNING id, name, email, role, active`,
+          [id, active]
+        );
+
+        if (result.rowCount && result.rowCount > 0) {
+          // Also sync test agent store if it happens to be a test agent
+          updateTestAgentStatus(id, active);
+          return NextResponse.json({
+            ok: true,
+            data: { 
+              id, 
+              active, 
+              user: result.rows[0], 
+              message: `Agent account ${active ? 'activated' : 'deactivated'} successfully.` 
+            },
+          });
+        }
+      } catch (dbErr: any) {
+        console.warn('[fdp:admin:agents:status] DB update warning, checking test agent store:', dbErr?.message || dbErr);
+      }
     }
 
-    // Agents and staff are stored in the 'users' table
-    const result = await p.query(
-      `UPDATE users 
-       SET active = $2, updated_at = now() 
-       WHERE id::text = $1 OR email = $1
-       RETURNING id, name, email, role, active`,
-      [id, active]
+    // Fallback to in-memory test agents roster
+    const testUpdated = updateTestAgentStatus(id, active);
+    if (testUpdated) {
+      return NextResponse.json({
+        ok: true,
+        data: {
+          id,
+          active,
+          user: testUpdated,
+          message: `Agent account ${active ? 'activated' : 'deactivated'} successfully.`,
+        },
+      });
+    }
+
+    return NextResponse.json(
+      { ok: false, error: 'Agent account not found in system.' },
+      { status: 404 }
     );
-
-    if (result.rowCount === 0) {
-      return NextResponse.json(
-        { ok: false, error: 'Agent account not found in system.' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({
-      ok: true,
-      data: { 
-        id, 
-        active, 
-        user: result.rows[0], 
-        message: `Agent account ${active ? 'activated' : 'deactivated'} successfully.` 
-      },
-    });
   } catch (err: any) {
     console.error('[fdp:admin:agents:status] Error:', err);
     return NextResponse.json(

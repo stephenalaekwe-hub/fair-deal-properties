@@ -5,6 +5,7 @@
 import { Pool, type PoolConfig } from 'pg';
 import { listings as defaultListings, type Listing, type ListingSource, type PropertyType, type City, type ListingSort } from '@/data/listings';
 import { financingRoutes as defaultFinancingRoutes, type FinancingRoute } from '@/data/financing';
+import { getTestAgents } from './agentsStore';
 
 let pool: Pool | null = null;
 
@@ -754,41 +755,9 @@ export async function getUserByEmail(email: string): Promise<any | null> {
 }
 
 export async function getLiveUsers(): Promise<any[]> {
-  const defaultUsers = [
-    {
-      id: 'admin-fallback-01',
-      name: 'FDP Principal Admin',
-      email: 'admin@fdealproperties.com',
-      role: 'SUPER_ADMIN',
-      phone: '+2349049924198',
-      active: true,
-      createdAt: new Date().toISOString(),
-      _count: { assignedInspections: 1, assignedListings: 4 },
-    },
-    {
-      id: 'agent-fallback-01',
-      name: 'Emeka Nwosu (Senior Surveyor)',
-      email: 'emeka.agent@fdealproperties.com',
-      role: 'AGENT',
-      phone: '+2348031234567',
-      active: true,
-      createdAt: new Date().toISOString(),
-      _count: { assignedInspections: 2, assignedListings: 3 },
-    },
-    {
-      id: 'agent-fallback-02',
-      name: 'Stephen Alaekwe (Field Surveyor)',
-      email: 'agent@fdealproperties.com',
-      role: 'AGENT',
-      phone: '+2348099887766',
-      active: true,
-      createdAt: new Date().toISOString(),
-      _count: { assignedInspections: 1, assignedListings: 2 },
-    },
-  ];
-
+  const testAgents = getTestAgents();
   const p = getDbPool();
-  if (!p) return defaultUsers;
+  if (!p) return testAgents;
 
   try {
     const res = await p.query(
@@ -798,16 +767,22 @@ export async function getLiveUsers(): Promise<any[]> {
        FROM users u
        ORDER BY u.created_at ASC`
     );
-    if (res.rows.length === 0) return defaultUsers;
-    return res.rows.map((row) => ({
+
+    const dbUsers = res.rows.map((row) => ({
       ...row,
       _count: {
         assignedInspections: parseInt(row.inspectionsCount, 10),
         assignedListings: parseInt(row.listingsCount, 10),
       },
     }));
+
+    // If DB has users, merge any unique test agents so all test profiles remain available for demonstration
+    const dbEmails = new Set(dbUsers.map((u: any) => u.email.toLowerCase()));
+    const additionalTestAgents = testAgents.filter((a) => !dbEmails.has(a.email.toLowerCase()));
+
+    return [...dbUsers, ...additionalTestAgents];
   } catch (err) {
     console.error('[fdp:db] getLiveUsers error:', err);
-    return defaultUsers;
+    return testAgents;
   }
 }

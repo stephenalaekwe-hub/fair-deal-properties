@@ -98,6 +98,38 @@ export default function AdminAgentsPage() {
         </button>
       </div>
 
+      {/* ── Demo Testing Credentials Banner ── */}
+      <div
+        style={{
+          background: '#f0fdf4',
+          border: '1px solid #bbf7d0',
+          borderRadius: '8px',
+          padding: '12px 18px',
+          marginBottom: '20px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '12px',
+          fontSize: '12px',
+          color: '#166534',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '16px' }}>🔑</span>
+          <span>
+            <strong>Test User Agents Active:</strong> Log into the{' '}
+            <Link href="/agent/login" style={{ textDecoration: 'underline', color: 'var(--forest)', fontWeight: 700 }}>
+              Field Agent Portal
+            </Link>{' '}
+            with any agent email below and password: <code style={{ background: '#dcfce7', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>Agent@123456</code>.
+          </span>
+        </div>
+        <div style={{ fontSize: '11px', color: '#15803d', fontWeight: 600 }}>
+          ⚡ {agents.length} Registered Field Specialists
+        </div>
+      </div>
+
       {loading ? (
         <div style={{ padding: '20px', color: '#64748b' }}>Loading agents register...</div>
       ) : (
@@ -162,7 +194,7 @@ export default function AdminAgentsPage() {
                     <td style={{ padding: '14px 16px', textAlign: 'right' }}>
                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
                         <Link
-                          href={`/admin/inspections`}
+                          href={`/admin/inspections?agentId=${encodeURIComponent(ag.id)}`}
                           style={{
                             padding: '6px 12px',
                             background: '#f1f5f9',

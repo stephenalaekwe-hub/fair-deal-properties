@@ -34,7 +34,12 @@ export default function AdminInspectionsPage() {
   const [reportUrl, setReportUrl] = useState('');
   const [notes, setNotes] = useState('');
   const [notifyClient, setNotifyClient] = useState(true);
-  const [filterAgentId, setFilterAgentId] = useState('');
+  const [filterAgentId, setFilterAgentId] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return new URLSearchParams(window.location.search).get('agentId') || '';
+    }
+    return '';
+  });
 
   const loadData = async (filterId = filterAgentId) => {
     setLoading(true);

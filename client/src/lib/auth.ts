@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { getUserByEmail } from '@/lib/db';
+import { getTestAgentByEmail } from './agentsStore';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fdp-jwt-secret-key-change-in-production-2026';
 
@@ -29,27 +30,31 @@ export function verifyToken(token: string): AuthUser | null {
 }
 
 export async function authenticateUser(email: string, passwordPlain: string): Promise<AuthUser | null> {
-  const user = await getUserByEmail(email);
+  const normEmail = email.toLowerCase().trim();
+  const user = await getUserByEmail(normEmail);
+
   if (!user) {
-    // Built-in emergency super admin fallback if DB not yet seeded
-    const normEmail = email.toLowerCase().trim();
-    if (normEmail === 'admin@fdealproperties.com' && passwordPlain === 'Admin@123456') {
-      return {
-        id: 'admin-fallback-01',
-        name: 'FDP Principal Admin',
-        email: 'admin@fdealproperties.com',
-        role: 'SUPER_ADMIN',
-        phone: '+2349049924198',
-      };
-    }
-    if ((normEmail === 'emeka.agent@fdealproperties.com' || normEmail === 'agent@fdealproperties.com') && passwordPlain === 'Agent@123456') {
-      return {
-        id: 'agent-fallback-01',
-        name: 'Emeka Nwosu (Senior Surveyor)',
-        email: 'emeka.agent@fdealproperties.com',
-        role: 'AGENT',
-        phone: '+2348031234567',
-      };
+    // Check against registered test user agents
+    const testAgent = getTestAgentByEmail(normEmail);
+    if (testAgent) {
+      if (testAgent.role === 'SUPER_ADMIN' && passwordPlain === 'Admin@123456') {
+        return {
+          id: testAgent.id,
+          name: testAgent.name,
+          email: testAgent.email,
+          role: testAgent.role,
+          phone: testAgent.phone,
+        };
+      }
+      if (testAgent.role === 'AGENT' && (passwordPlain === 'Agent@123456' || passwordPlain === 'Admin@123456')) {
+        return {
+          id: testAgent.id,
+          name: testAgent.name,
+          email: testAgent.email,
+          role: testAgent.role,
+          phone: testAgent.phone,
+        };
+      }
     }
     return null;
   }
