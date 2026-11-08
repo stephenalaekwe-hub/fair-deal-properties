@@ -178,10 +178,11 @@ export default function InspectionsContent() {
           propertyTitle,
           propertyLocation,
           preferredDate,
+          sitePhotoUrl,
+          reportUrl: sitePhotoUrl,
           notes: [
             `Scope: ${scope}. Window: ${preferredDate}.`,
             notes ? `Notes: ${notes}` : null,
-            sitePhotoUrl ? `Attached Survey / Site Photograph: ${sitePhotoUrl}` : null,
           ].filter(Boolean).join('\n'),
         }),
       });

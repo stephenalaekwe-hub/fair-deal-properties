@@ -289,8 +289,17 @@ export async function getLiveInspections(agentId?: string): Promise<any[]> {
   return res.rows.map((row) => {
     const assignedAgentId = row.assignedAgentId || row.assignedAgent?.id || null;
     const assignedAgentName = row.assignedAgent?.name || row.officerName || null;
+    let cleanNotes = row.notes || '';
+    let reportUrl = row.reportUrl || '';
+    const photoMatch = cleanNotes.match(/Attached Survey \/ Site Photograph:\s*([^\n\r]+)/i);
+    if (photoMatch) {
+      if (!reportUrl) reportUrl = photoMatch[1].trim();
+      cleanNotes = cleanNotes.replace(/Attached Survey \/ Site Photograph:\s*[^\n\r]+/i, '').trim();
+    }
     return {
       ...row,
+      notes: cleanNotes,
+      reportUrl,
       assignedAgentId,
       assignedAgent: assignedAgentName ? {
         id: assignedAgentId,
@@ -348,8 +357,17 @@ export async function getLiveInspectionByRef(reference: string): Promise<any | n
   const row = res.rows[0];
   const assignedAgentId = row.assignedAgentId || row.assignedAgent?.id || null;
   const assignedAgentName = row.assignedAgent?.name || row.officerName || null;
+  let cleanNotes = row.notes || '';
+  let reportUrl = row.reportUrl || '';
+  const photoMatch = cleanNotes.match(/Attached Survey \/ Site Photograph:\s*([^\n\r]+)/i);
+  if (photoMatch) {
+    if (!reportUrl) reportUrl = photoMatch[1].trim();
+    cleanNotes = cleanNotes.replace(/Attached Survey \/ Site Photograph:\s*[^\n\r]+/i, '').trim();
+  }
   return {
     ...row,
+    notes: cleanNotes,
+    reportUrl,
     assignedAgentId,
     assignedAgent: assignedAgentName ? {
       id: assignedAgentId,

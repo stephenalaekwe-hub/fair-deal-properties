@@ -68,8 +68,17 @@ export default function AdminInspectionsPage() {
     const agId = ins.assignedAgentId || ins.assignedAgent?.id || '';
     setAssignedAgentId(agId);
     setOfficerName(ins.officerName || ins.assignedAgent?.name || (isAgent ? (user?.name || '') : ''));
-    setReportUrl(ins.reportUrl || '');
-    setNotes(ins.notes || '');
+
+    let cleanNotes = ins.notes || '';
+    let currentReportUrl = ins.reportUrl || '';
+    const photoMatch = cleanNotes.match(/Attached Survey \/ Site Photograph:\s*([^\n\r]+)/i);
+    if (photoMatch) {
+      if (!currentReportUrl) currentReportUrl = photoMatch[1].trim();
+      cleanNotes = cleanNotes.replace(/Attached Survey \/ Site Photograph:\s*[^\n\r]+/i, '').trim();
+    }
+
+    setReportUrl(currentReportUrl);
+    setNotes(cleanNotes);
     setNotifyClient(true);
   };
 

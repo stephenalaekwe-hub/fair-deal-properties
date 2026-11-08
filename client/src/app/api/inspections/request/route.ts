@@ -22,6 +22,7 @@ export async function POST(req: Request) {
     const propertyLocation = (body.propertyLocation || body.location || 'Abuja FCT').trim();
     const notes = body.notes || '';
     const preferredDate = body.preferredDate || '';
+    const reportUrl = (body.reportUrl || body.sitePhotoUrl || '').trim();
 
     if (!email && !phone) {
       return NextResponse.json(
@@ -46,6 +47,7 @@ export async function POST(req: Request) {
       location: propertyLocation,
       preferredDate,
       notes,
+      reportUrl,
       source: 'web_inspection_request',
     };
 
@@ -75,8 +77,8 @@ export async function POST(req: Request) {
       const p = getDbPool();
       if (p) {
         await p.query(
-          `INSERT INTO inspections (reference, client_name, client_email, client_phone, property_title, property_location, stage, notes)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          `INSERT INTO inspections (reference, client_name, client_email, client_phone, property_title, property_location, stage, notes, report_url)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
            ON CONFLICT (reference) DO NOTHING`,
           [
             rec.reference,
@@ -87,6 +89,7 @@ export async function POST(req: Request) {
             propertyLocation,
             1,
             notes,
+            reportUrl || null,
           ]
         );
       }
