@@ -21,14 +21,16 @@ export default function ImageUpload({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [preview, setPreview] = useState(value);
+  const [fileName, setFileName] = useState('');
+  const [fileSize, setFileSize] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = async (file: File) => {
     setError('');
 
     // Strict client-side check: Block any video format
-    if (file.type.startsWith('video/') || /\.(mp4|mov|avi|mkv|webm|m4v|3gp)$/i.test(file.name)) {
-      setError('❌ Video files are not permitted. Only high-resolution pictures/photographs (PNG, JPG, WebP) are accepted.');
+    if (file.type.startsWith('video/') || /\.(mp4|mov|avi|mkv|webm|m4v|3gp|wmv|flv)$/i.test(file.name)) {
+      setError('❌ Video files cannot be accepted. Nigerian cadastral and inspection procedures require verified still photographs (PNG, JPG, WebP) of the site, boundary beacons, or survey plan.');
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
@@ -44,6 +46,12 @@ export default function ImageUpload({
       setError('❌ Image file exceeds 15MB limit. Please select a smaller photo.');
       return;
     }
+
+    const formattedSize = file.size > 1024 * 1024 
+      ? `${(file.size / (1024 * 1024)).toFixed(2)} MB`
+      : `${Math.round(file.size / 1024)} KB`;
+    setFileName(file.name);
+    setFileSize(formattedSize);
 
     setUploading(true);
 
@@ -76,6 +84,8 @@ export default function ImageUpload({
 
   const handleClear = () => {
     setPreview('');
+    setFileName('');
+    setFileSize('');
     onChange('');
     setError('');
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -103,7 +113,7 @@ export default function ImageUpload({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/png, image/jpeg, image/webp, image/svg+xml"
+          accept="image/png, image/jpeg, image/webp"
           onChange={(e) => {
             const f = e.target.files?.[0];
             if (f) void handleFile(f);
@@ -124,14 +134,18 @@ export default function ImageUpload({
                 borderRadius: '6px',
                 border: '1px solid #cbd5e1',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                flexShrink: 0,
               }}
             />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--forest)', wordBreak: 'break-all' }}>
-                ✓ Picture uploaded successfully
+              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--forest)' }}>
+                ✓ Photograph attached successfully
               </div>
-              <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px', wordBreak: 'break-all' }}>
-                {preview}
+              <div style={{ fontSize: '12px', color: '#64748b', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '300px' }}>
+                  {fileName || (preview.startsWith('data:') ? 'Site survey evidence photo' : preview)}
+                </span>
+                {fileSize && <span style={{ color: '#94a3b8', fontSize: '11px', flexShrink: 0 }}>({fileSize})</span>}
               </div>
               <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
                 <button

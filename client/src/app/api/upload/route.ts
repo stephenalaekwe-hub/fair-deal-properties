@@ -12,9 +12,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: 'No image file provided' }, { status: 400 });
     }
 
-    if (file.type.startsWith('video/') || /\.(mp4|mov|avi|mkv|webm|m4v|3gp)$/i.test(file.name)) {
+    if (file.type.startsWith('video/') || /\.(mp4|mov|avi|mkv|webm|m4v|3gp|wmv|flv)$/i.test(file.name)) {
       return NextResponse.json(
-        { ok: false, error: 'Video files are strictly prohibited. Please upload an image file (PNG, JPG, WebP).' },
+        { ok: false, error: 'Video files cannot be accepted. Physical site and cadastral inspections require verified still photographs (PNG, JPG, WebP) of the boundary, beacon, or survey plan.' },
         { status: 400 }
       );
     }
