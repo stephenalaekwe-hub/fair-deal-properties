@@ -205,9 +205,47 @@ function fallbackListings(filters: any): { total: number; listings: Listing[] } 
 
 // ─── Inspections Queries ─────────────────────────────────────────────────────
 
+const defaultInspections = [
+  {
+    id: 'ins-demo-1',
+    reference: 'FDP-INS-890214',
+    clientName: 'Dr. Chidi Okonkwo',
+    clientEmail: 'chidi.okonkwo@gmail.com',
+    clientPhone: '+2348035551234',
+    propertyTitle: 'Plot 42, Hutu Exclusive Phase III, Airport Road',
+    propertyLocation: 'Abuja FCT - Airport Road Corridor',
+    stage: 4,
+    officerName: 'Emeka Nwosu (Senior Surveyor)',
+    assignedAgentId: 'agent-fallback-01',
+    assignedAgent: { id: 'agent-fallback-01', name: 'Emeka Nwosu (Senior Surveyor)', email: 'emeka.agent@fdealproperties.com' },
+    scheduledDate: '2026-11-12',
+    notes: 'Boundary coordinates verification and beacon cross-check with AGIS cadastral map.',
+    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+  },
+  {
+    id: 'ins-demo-2',
+    reference: 'FDP-INS-DEMO01',
+    clientName: 'Amina Bello',
+    clientEmail: 'amina.bello@yahoo.com',
+    clientPhone: '+2348091122334',
+    propertyTitle: '4-Bedroom Contemporary Villa, Guzape Hills',
+    propertyLocation: 'Guzape District, Abuja FCT',
+    stage: 8,
+    officerName: 'Aisha Bello (Field Surveyor)',
+    assignedAgentId: 'agent-fallback-02',
+    assignedAgent: { id: 'agent-fallback-02', name: 'Aisha Bello (Field Surveyor)', email: 'aisha.agent@fdealproperties.com' },
+    scheduledDate: '2026-11-10',
+    notes: 'Structural engineering examination completed. Final dossier review underway.',
+    createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
+  },
+];
+
 export async function getLiveInspections(agentId?: string): Promise<any[]> {
   const p = getDbPool();
-  if (!p) return [];
+  if (!p) {
+    if (agentId) return defaultInspections.filter((i) => i.assignedAgentId === agentId);
+    return defaultInspections;
+  }
 
   try {
     await p.query(`
@@ -264,8 +302,11 @@ export async function getLiveInspections(agentId?: string): Promise<any[]> {
 }
 
 export async function getLiveInspectionByRef(reference: string): Promise<any | null> {
+  const normRef = (reference || '').trim().toLowerCase();
+  const fallbackMatch = defaultInspections.find((i) => i.reference.toLowerCase() === normRef);
+
   const p = getDbPool();
-  if (!p) return null;
+  if (!p) return fallbackMatch || null;
 
   try {
     await p.query(`
@@ -303,7 +344,7 @@ export async function getLiveInspectionByRef(reference: string): Promise<any | n
      WHERE LOWER(i.reference) = LOWER($1) LIMIT 1`,
     [reference]
   );
-  if (!res.rows[0]) return null;
+  if (!res.rows[0]) return fallbackMatch || null;
   const row = res.rows[0];
   const assignedAgentId = row.assignedAgentId || row.assignedAgent?.id || null;
   const assignedAgentName = row.assignedAgent?.name || row.officerName || null;

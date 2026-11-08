@@ -265,8 +265,23 @@ export default function InspectionsContent() {
           stage: 6,
           stageTitle: 'Registry Cross-Check & Cadastral Verification',
           stageDescription: 'On-site coordinates being reconciled with AGIS cadastral map.',
-          officerName: 'Emeka Nwachukwu',
+          officerName: 'Emeka Nwachukwu (NIS Registered)',
           scheduledDate: '2026-10-18',
+          updatedAt: new Date().toISOString(),
+        });
+        setTrackLoading(false);
+        return;
+      }
+      if (refToTrack === 'FDP-INS-890214') {
+        setTrackData({
+          reference: 'FDP-INS-890214',
+          propertyTitle: 'Plot 42, Hutu Exclusive Phase III, Airport Road',
+          propertyLocation: 'Abuja FCT - Airport Road Corridor',
+          stage: 4,
+          stageTitle: 'Physical Inspection Mobilised & Site Surveyor Dispatched',
+          stageDescription: 'Field surveyor on transit to site for physical inspection and boundary walk.',
+          officerName: 'Emeka Nwosu (Senior Surveyor)',
+          scheduledDate: '2026-11-12',
           updatedAt: new Date().toISOString(),
         });
         setTrackLoading(false);
