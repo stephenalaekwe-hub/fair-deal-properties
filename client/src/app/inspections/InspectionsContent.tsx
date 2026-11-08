@@ -248,6 +248,7 @@ export default function InspectionsContent() {
     scheduledDate: string | null;
     updatedAt: string;
     isCompleted?: boolean;
+    currentStepDone?: boolean;
     officerMessage?: string | null;
   } | null>(null);
 
@@ -306,6 +307,7 @@ export default function InspectionsContent() {
           scheduledDate: res.data.scheduledDate || res.data.scheduledFor || null,
           updatedAt: res.data.updatedAt || new Date().toISOString(),
           isCompleted: Boolean(res.data.isCompleted),
+          currentStepDone: Boolean(res.data.currentStepDone),
           officerMessage: res.data.officerMessage || res.data.outcome || null,
         });
       } else {
@@ -859,14 +861,23 @@ export default function InspectionsContent() {
                   <span
                     className="trk-status"
                     id="trkStat"
-                    style={trackData.isCompleted || trackData.stage >= 9 ? {
+                    style={trackData.stage >= 9 ? {
                       background: '#dcfce7',
                       color: '#15803d',
                       border: '1px solid #86efac',
                       fontWeight: 700,
+                    } : trackData.currentStepDone ? {
+                      background: '#ecfdf5',
+                      color: '#047857',
+                      border: '1px solid #a7f3d0',
+                      fontWeight: 600,
                     } : undefined}
                   >
-                    {trackData.isCompleted || trackData.stage >= 9 ? '✓ Completed & Debriefed' : trackData.stageTitle}
+                    {trackData.stage >= 9
+                      ? '✓ Fully Completed & Dossier Issued'
+                      : (trackData.currentStepDone
+                          ? `Stage ${trackData.stage} Complete (Awaiting Stage ${trackData.stage + 1})`
+                          : `Stage ${trackData.stage}: ${trackData.stageTitle}`)}
                   </span>
                 </div>
                 <div className="trk-body">
@@ -882,14 +893,18 @@ export default function InspectionsContent() {
                       className="pipe-f"
                       id="pipeF"
                       style={{
-                        height: trackData.isCompleted || trackData.stage >= 9 ? '100%' : `${Math.max(0, Math.min(100, ((trackData.stage - 1) / 8) * 100))}%`,
+                        height: trackData.stage >= 9
+                          ? '100%'
+                          : `${Math.max(0, Math.min(100, (((trackData.stage - 1) + (trackData.currentStepDone ? 1 : 0.4)) / 8) * 100))}%`,
                         transition: 'height 0.6s ease',
                       }}
                     />
                     <div id="pipeSteps">
                       {inspectionPipeline.map((p, i) => {
-                        const isDone = Boolean(trackData.isCompleted || trackData.stage >= 9 || i < trackData.stage - 1);
-                        const isNow = !trackData.isCompleted && trackData.stage < 9 && i === trackData.stage - 1;
+                        const isPastStep = i < trackData.stage - 1;
+                        const isCurrentStep = i === trackData.stage - 1;
+                        const isDone = isPastStep || (isCurrentStep && Boolean(trackData.currentStepDone || trackData.stage >= 9));
+                        const isNow = isCurrentStep && !isDone;
                         const cls = isDone ? 'pstep done' : isNow ? 'pstep now' : 'pstep';
                         return (
                           <div key={p.t} className={cls}>
@@ -898,7 +913,7 @@ export default function InspectionsContent() {
                             <div className="pdesc">{p.d}</div>
                             {isDone && (
                               <div className="pstamp" style={{fontSize:'10px',color:'var(--forest)',marginTop:'2px'}}>
-                                Completed
+                                {isCurrentStep && trackData.officerMessage ? `Completed · Note: ${trackData.officerMessage}` : 'Completed'}
                               </div>
                             )}
                             {isNow && (
@@ -954,9 +969,16 @@ export default function InspectionsContent() {
                   <div id="notifFeed" style={{display:'flex',flexDirection:'column',gap:'.75rem'}}>
                     <div style={{fontSize:'12px',padding:'.5rem .75rem',background:'var(--cream)',borderRadius:'var(--radius-sm)',lineHeight:'1.5'}}>
                       <div style={{fontWeight:'600',color:'var(--forest)'}}>
-                        {trackData.isCompleted || trackData.stage >= 9 ? '✓ Inspection Completed & Signed Off' : `Stage ${trackData.stage} Activated`}
+                        {trackData.stage >= 9
+                          ? '✓ Final Dossier Issued & Debrief Delivered'
+                          : (trackData.currentStepDone
+                              ? `✓ Stage ${trackData.stage}: ${trackData.stageTitle} Completed by Field Officer`
+                              : `Stage ${trackData.stage} in Progress`)}
                       </div>
-                      <div style={{fontSize:'11px',color:'var(--ink-muted)',marginTop:'2px'}}>{trackData.stageTitle}</div>
+                      <div style={{fontSize:'11px',color:'var(--ink-muted)',marginTop:'2px'}}>
+                        {trackData.stageTitle}
+                        {trackData.currentStepDone && trackData.stage < 9 ? ' · Awaiting Admin to Advance to Next Stage' : ''}
+                      </div>
                     </div>
 
                     {trackData.officerMessage && (

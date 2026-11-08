@@ -53,11 +53,12 @@ export async function GET(
   // Try live database lookup first
   try {
     const liveRec = await getLiveInspectionByRef(ref);
-      const isCompleted = Boolean(liveRec.isCompleted || liveRec.status === 'closed' || liveRec.status === 'resolved' || (liveRec.stage && liveRec.stage >= 9));
-      const currentStage = isCompleted ? 9 : Math.max(1, Math.min(9, liveRec.stage || 1));
+      const currentStage = Math.max(1, Math.min(9, Number(liveRec.stage) || 1));
+      const isCompleted = currentStage >= 9;
+      const currentStepDone = Boolean(liveRec.currentStepDone || liveRec.outcome || liveRec.status === 'closed' || liveRec.status === 'resolved');
       const currentPipe = inspectionPipeline[currentStage - 1];
       const officerVal = liveRec.officerName || liveRec.assignedAgent?.name || (currentStage >= 3 ? 'Assigned Field Surveyor' : 'Pending allocation');
-      const officerMessage = liveRec.officerMessage || liveRec.outcome || liveRec.notes || (isCompleted ? 'Inspection completed and signed off.' : null);
+      const officerMessage = liveRec.officerMessage || liveRec.outcome || (liveRec.notes && !liveRec.notes.startsWith('Scope:') ? liveRec.notes : null);
 
       return NextResponse.json({
         ok: true,
@@ -66,9 +67,10 @@ export async function GET(
           propertyTitle: liveRec.propertyTitle || 'Subject Property',
           propertyLocation: liveRec.propertyLocation || 'Abuja FCT',
           stage: currentStage,
-          stageTitle: isCompleted ? 'Dossier Issued & Debrief' : (currentPipe?.t || `Stage ${currentStage}`),
-          stageName: isCompleted ? 'Dossier Issued & Debrief' : (currentPipe?.t || `Stage ${currentStage}`),
-          stageDescription: isCompleted ? 'Inspection completed, verified dossier issued, and field debrief recorded.' : (currentPipe?.d || 'Inspection in progress.'),
+          stageTitle: currentPipe?.t || `Stage ${currentStage}`,
+          stageName: currentPipe?.t || `Stage ${currentStage}`,
+          stageDescription: currentPipe?.d || 'Inspection in progress.',
+          currentStepDone,
           isCompleted,
           status: liveRec.status || (isCompleted ? 'closed' : 'in_progress'),
           officerMessage,
@@ -77,12 +79,22 @@ export async function GET(
           officer: officerVal,
           scheduledDate: liveRec.scheduledDate || null,
           scheduledFor: liveRec.scheduledDate || null,
-          pipeline: inspectionPipeline.map((s, i) => ({
-            index: i,
-            title: s.t,
-            detail: s.d,
-            state: isCompleted ? 'complete' : (i < currentStage - 1 ? 'complete' : i === currentStage - 1 ? 'active' : 'pending'),
-          })),
+          pipeline: inspectionPipeline.map((s, i) => {
+            let state: 'complete' | 'active' | 'pending';
+            if (i < currentStage - 1) {
+              state = 'complete';
+            } else if (i === currentStage - 1) {
+              state = (currentStepDone || isCompleted) ? 'complete' : 'active';
+            } else {
+              state = 'pending';
+            }
+            return {
+              index: i,
+              title: s.t,
+              detail: s.d,
+              state,
+            };
+          }),
           note: liveRec.notes || undefined,
           updatedAt: liveRec.updatedAt || liveRec.createdAt || new Date().toISOString(),
         },

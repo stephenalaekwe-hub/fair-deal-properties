@@ -372,7 +372,7 @@ export async function getLiveInspectionByRef(reference: string): Promise<any | n
                 COALESCE(s.payload->>'clientPhone', s.payload->>'phone', '') as "clientPhone",
                 COALESCE(s.payload->>'propertyReference', s.payload->>'propertyTitle', 'Property Inspection') as "propertyTitle",
                 COALESCE(s.payload->>'propertyLocation', s.payload->>'location', 'Abuja FCT') as "propertyLocation",
-                CASE WHEN s.status = 'closed' OR s.status = 'resolved' THEN 9 ELSE 2 END as stage,
+                COALESCE((s.payload->>'stage')::int, 1) as stage,
                 COALESCE(s.closed_by, s.assigned_agent, '') as "officerName",
                 COALESCE(s.assigned_agent_id, '') as "assignedAgentId",
                 COALESCE(s.payload->>'reportUrl', s.payload->>'sitePhotoUrl', '') as "reportUrl",
@@ -403,14 +403,16 @@ export async function getLiveInspectionByRef(reference: string): Promise<any | n
     cleanNotes = cleanNotes.replace(/Attached Survey \/ Site Photograph:\s*[^\n\r]+/i, '').trim();
   }
 
-  const isCompleted = row.status === 'closed' || row.status === 'resolved' || row.stage >= 9;
-  const effectiveStage = isCompleted ? 9 : Math.max(1, Math.min(9, row.stage || 1));
-  const officerMessage = row.outcome || cleanNotes || null;
+  const effectiveStage = Math.max(1, Math.min(9, Number(row.stage) || 1));
+  const isCompleted = effectiveStage >= 9;
+  const currentStepDone = Boolean(row.outcome || (row.status === 'closed' || row.status === 'resolved'));
+  const officerMessage = row.outcome || (cleanNotes && !cleanNotes.startsWith('Scope:') ? cleanNotes : null);
 
   return {
     ...row,
     stage: effectiveStage,
     isCompleted,
+    currentStepDone,
     officerMessage,
     notes: cleanNotes,
     reportUrl,
@@ -453,6 +455,8 @@ export async function updateLiveInspectionStage(
   const res = await p.query(
     `UPDATE inspections
      SET stage = $2,
+         status = CASE WHEN stage != $2 THEN 'in_progress' ELSE status END,
+         outcome = CASE WHEN stage != $2 THEN NULL ELSE outcome END,
          notes = CASE WHEN $3::text IS NOT NULL THEN $3 ELSE notes END,
          officer_name = CASE WHEN $4::text IS NOT NULL AND $4 != '' THEN $4 ELSE officer_name END,
          report_url = CASE WHEN $5::text IS NOT NULL AND $5 != '' THEN $5 ELSE report_url END,
@@ -460,6 +464,19 @@ export async function updateLiveInspectionStage(
      WHERE id::text = $1 OR reference = $1 RETURNING *`,
     [id, stage, notes !== undefined ? notes : null, officerName ?? null, reportUrl ?? null]
   );
+
+  // If stage changed, also reset outcome in submissions table so next stage starts fresh
+  try {
+    if (res.rows[0]?.reference) {
+      await p.query(
+        `UPDATE submissions 
+         SET status = 'in_progress', outcome = NULL 
+         WHERE reference = $1`,
+        [res.rows[0].reference]
+      );
+    }
+  } catch (subResetErr) {}
+
   return res.rows[0] || { id, stage, notes, officerName, reportUrl };
 }
 
@@ -679,7 +696,6 @@ export async function closeLiveSubmission(
       `UPDATE inspections
        SET status = $2,
            outcome = $3,
-           stage = CASE WHEN $2 = 'closed' OR $2 = 'resolved' THEN 9 ELSE stage END,
            notes = CASE 
              WHEN $3 != '' AND notes IS NOT NULL AND notes NOT LIKE '%' || $3 || '%' THEN notes || E'\nOfficer Outcome: ' || $3
              WHEN $3 != '' AND notes IS NULL THEN $3
