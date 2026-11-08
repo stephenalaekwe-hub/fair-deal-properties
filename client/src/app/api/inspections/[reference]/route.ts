@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { store } from '@/lib/store';
 import { inspectionPipeline } from '@/data/pipeline';
-import { getLiveInspectionByRef } from '@/lib/db';
+import { getLiveInspectionByRef, extractActualNote } from '@/lib/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -58,7 +58,7 @@ export async function GET(
       const currentStepDone = Boolean(liveRec.currentStepDone || liveRec.outcome || liveRec.status === 'closed' || liveRec.status === 'resolved');
       const currentPipe = inspectionPipeline[currentStage - 1];
       const officerVal = liveRec.officerName || liveRec.assignedAgent?.name || (currentStage >= 3 ? 'Assigned Field Surveyor' : 'Pending allocation');
-      const officerMessage = liveRec.officerMessage || liveRec.outcome || (liveRec.notes && !liveRec.notes.startsWith('Scope:') ? liveRec.notes : null);
+      const officerMessage = extractActualNote(liveRec.notes, liveRec.officerMessage || liveRec.outcome);
 
       return NextResponse.json({
         ok: true,
@@ -113,6 +113,7 @@ export async function GET(
   }
 
   const p = (rec.payload as any) || {};
+  const actualNote = extractActualNote(p.notes, p.outcome);
   return NextResponse.json({
     ok: true,
     data: {
@@ -134,7 +135,8 @@ export async function GET(
         detail: s.d,
         state: i === 0 ? 'active' : 'pending',
       })),
-      note: 'Instruction logged. Scope and fee will be confirmed in writing before a field officer is dispatched.',
+      officerMessage: actualNote || null,
+      note: actualNote || p.notes || 'Instruction logged. Scope and fee will be confirmed in writing before a field officer is dispatched.',
       updatedAt: rec.receivedAt || new Date().toISOString(),
     },
   });

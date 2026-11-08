@@ -23,6 +23,54 @@ function clockShort() {
   return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
 }
 
+/** Format timestamp without seconds using 12-hour AM/PM format (e.g. 8:44 AM). */
+function formatSyncTime(dateVal?: string | Date | null): string {
+  if (!dateVal) return '';
+  try {
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  } catch {
+    return '';
+  }
+}
+
+/** Extract the actual user or officer-typed note, stripping boilerplate scope prefixes or generic status placeholders. */
+function extractActualNote(notes?: string | null, outcome?: string | null): string {
+  const cleanOutcome = (outcome || '').trim();
+  const rawNotes = (notes || '').trim();
+
+  const officerOutcomeMatch = rawNotes.match(/Officer Outcome:\s*([^\n\r]+)/i);
+  const officerOutcome = officerOutcomeMatch ? officerOutcomeMatch[1].trim() : '';
+
+  let parsedNotes = rawNotes
+    .replace(/^Scope:\s*[^\n\r]+(\r?\n)?/im, '')
+    .replace(/^Window:\s*[^\n\r]+(\r?\n)?/im, '')
+    .replace(/^Notes:\s*/im, '')
+    .replace(/Attached Survey \/ Site Photograph:\s*[^\n\r]+/im, '')
+    .replace(/Officer Outcome:\s*[^\n\r]+/im, '')
+    .trim();
+
+  const isGenericOutcome = !cleanOutcome || /^(checked|done|completed|resolved|closed|ok|yes)$/i.test(cleanOutcome);
+
+  if (!isGenericOutcome) {
+    if (parsedNotes && parsedNotes !== cleanOutcome && !parsedNotes.includes(cleanOutcome)) {
+      return `${cleanOutcome} — ${parsedNotes}`;
+    }
+    return cleanOutcome;
+  }
+
+  if (officerOutcome && !/^(checked|done|completed|resolved|closed|ok|yes)$/i.test(officerOutcome)) {
+    return officerOutcome;
+  }
+
+  if (parsedNotes) {
+    return parsedNotes;
+  }
+
+  return cleanOutcome || officerOutcome || rawNotes || '';
+}
+
 /**
  * Inspection Hub.
  *
@@ -296,6 +344,7 @@ export default function InspectionsContent() {
       const res = await fetchApi<any>(`/inspections/${encodeURIComponent(refToTrack)}`);
 
       if (res && res.ok && res.data) {
+        const actualNote = extractActualNote(res.data.note, res.data.officerMessage || res.data.outcome);
         setTrackData({
           reference: res.data.reference,
           propertyTitle: res.data.propertyTitle || 'Subject Property',
@@ -308,7 +357,7 @@ export default function InspectionsContent() {
           updatedAt: res.data.updatedAt || new Date().toISOString(),
           isCompleted: Boolean(res.data.isCompleted),
           currentStepDone: Boolean(res.data.currentStepDone),
-          officerMessage: res.data.officerMessage || res.data.outcome || null,
+          officerMessage: actualNote || null,
         });
       } else {
         setTrackError(res?.error || 'No inspection found against that reference. Check the reference or contact the firm.');
@@ -994,7 +1043,7 @@ export default function InspectionsContent() {
 
                     {trackData.updatedAt && (
                       <div style={{fontSize:'10.5px',color:'var(--ink-muted)',textAlign:'right'}}>
-                        Last synchronized: {new Date(trackData.updatedAt).toLocaleTimeString('en-GB')}
+                        Last synchronized: {formatSyncTime(trackData.updatedAt)}
                       </div>
                     )}
                   </div>

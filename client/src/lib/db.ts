@@ -310,6 +310,47 @@ export async function getLiveInspections(agentId?: string): Promise<any[]> {
   });
 }
 
+export function extractActualNote(notes?: string | null, outcome?: string | null): string | null {
+  const cleanOutcome = (outcome || '').trim();
+  const rawNotes = (notes || '').trim();
+
+  // Check if notes contains an officer outcome append: "Officer Outcome: ..."
+  const officerOutcomeMatch = rawNotes.match(/Officer Outcome:\s*([^\n\r]+)/i);
+  const officerOutcome = officerOutcomeMatch ? officerOutcomeMatch[1].trim() : '';
+
+  // Extract user-typed notes by removing boilerplate prefixes
+  let parsedNotes = rawNotes
+    .replace(/^Scope:\s*[^\n\r]+(\r?\n)?/im, '')
+    .replace(/^Window:\s*[^\n\r]+(\r?\n)?/im, '')
+    .replace(/^Notes:\s*/im, '')
+    .replace(/Attached Survey \/ Site Photograph:\s*[^\n\r]+/im, '')
+    .replace(/Officer Outcome:\s*[^\n\r]+/im, '')
+    .trim();
+
+  const isGenericOutcome = !cleanOutcome || /^(checked|done|completed|resolved|closed|ok|yes)$/i.test(cleanOutcome);
+
+  // If there's an actual specific officer outcome typed (and not just a generic "Checked")
+  if (!isGenericOutcome) {
+    if (parsedNotes && parsedNotes !== cleanOutcome && !parsedNotes.includes(cleanOutcome)) {
+      return `${cleanOutcome} — ${parsedNotes}`;
+    }
+    return cleanOutcome;
+  }
+
+  // If there is an officer outcome appended to notes that is not generic
+  if (officerOutcome && !/^(checked|done|completed|resolved|closed|ok|yes)$/i.test(officerOutcome)) {
+    return officerOutcome;
+  }
+
+  // Return the actual note typed by the user
+  if (parsedNotes) {
+    return parsedNotes;
+  }
+
+  // Fallback to whatever note or outcome exists
+  return cleanOutcome || officerOutcome || rawNotes || null;
+}
+
 export async function getLiveInspectionByRef(reference: string): Promise<any | null> {
   const normRef = (reference || '').trim().toLowerCase();
   const fallbackMatch = defaultInspections.find((i) => i.reference.toLowerCase() === normRef);
@@ -406,7 +447,7 @@ export async function getLiveInspectionByRef(reference: string): Promise<any | n
   const effectiveStage = Math.max(1, Math.min(9, Number(row.stage) || 1));
   const isCompleted = effectiveStage >= 9;
   const currentStepDone = Boolean(row.outcome || (row.status === 'closed' || row.status === 'resolved'));
-  const officerMessage = row.outcome || (cleanNotes && !cleanNotes.startsWith('Scope:') ? cleanNotes : null);
+  const officerMessage = extractActualNote(cleanNotes, row.outcome);
 
   return {
     ...row,
