@@ -6,6 +6,7 @@ import { walkthroughs } from '@/data/walkthroughs';
 import { fetchApi } from '@/lib/api';
 import ImageUpload from '@/components/ImageUpload';
 import { sanitizePhone, isValidPhone, sanitizeName } from '@/lib/validation';
+import { inspectionPipeline } from '@/data/pipeline';
 
 type Tab = 'virtual' | 'physical' | 'track';
 interface LogLine { at: string; text: string; kind: 'sys' | 'ok' | 'ev' }
@@ -246,6 +247,8 @@ export default function InspectionsContent() {
     officerName: string | null;
     scheduledDate: string | null;
     updatedAt: string;
+    isCompleted?: boolean;
+    officerMessage?: string | null;
   } | null>(null);
 
   const handleTrackLookup = async (lookupRef?: string) => {
@@ -302,6 +305,8 @@ export default function InspectionsContent() {
           officerName: res.data.officerName || res.data.officer || null,
           scheduledDate: res.data.scheduledDate || res.data.scheduledFor || null,
           updatedAt: res.data.updatedAt || new Date().toISOString(),
+          isCompleted: Boolean(res.data.isCompleted),
+          officerMessage: res.data.officerMessage || res.data.outcome || null,
         });
       } else {
         setTrackError(res?.error || 'No inspection found against that reference. Check the reference or contact the firm.');
@@ -851,8 +856,17 @@ export default function InspectionsContent() {
                     <div style={{fontSize:'9.5px',letterSpacing:'.2em',textTransform:'uppercase',color:'rgba(201,168,76,.65)',marginBottom:'4px'}}>Tracking Reference</div>
                     <div className="trk-ref" id="trkRef">{trackData.reference}</div>
                   </div>
-                  <span className="trk-status" id="trkStat">
-                    {trackData.stage >= 9 ? 'Completed' : trackData.stageTitle}
+                  <span
+                    className="trk-status"
+                    id="trkStat"
+                    style={trackData.isCompleted || trackData.stage >= 9 ? {
+                      background: '#dcfce7',
+                      color: '#15803d',
+                      border: '1px solid #86efac',
+                      fontWeight: 700,
+                    } : undefined}
+                  >
+                    {trackData.isCompleted || trackData.stage >= 9 ? '✓ Completed & Debriefed' : trackData.stageTitle}
                   </span>
                 </div>
                 <div className="trk-body">
@@ -868,24 +882,14 @@ export default function InspectionsContent() {
                       className="pipe-f"
                       id="pipeF"
                       style={{
-                        height: `${Math.max(0, Math.min(100, ((trackData.stage - 1) / 8) * 100))}%`,
+                        height: trackData.isCompleted || trackData.stage >= 9 ? '100%' : `${Math.max(0, Math.min(100, ((trackData.stage - 1) / 8) * 100))}%`,
                         transition: 'height 0.6s ease',
                       }}
                     />
                     <div id="pipeSteps">
-                      {[
-                        { t: 'Instruction logged', d: 'Inspection scope, terms and fee confirmed in writing.' },
-                        { t: 'Desktop due diligence', d: 'Kaduna/FCT boundary files and cadastral sheets matched.' },
-                        { t: 'Officer allocated', d: 'A named field surveyor assigned to the engagement.' },
-                        { t: 'Client access briefing', d: 'Access protocol, coordinates and route confirmed.' },
-                        { t: 'On-site evidence capture', d: 'Beacon sighting, boundary walk, 4-aspect photo set.' },
-                        { t: 'Registry cross-check', d: 'On-site findings matched against AGIS / lands registry.' },
-                        { t: 'Evidence lodged', d: 'Photographs and survey coordinates lodged to document vault (cryptographically verified still images only; no videos).' },
-                        { t: 'Review and sign-off', d: 'Findings reviewed. Quality audit completed.' },
-                        { t: 'Report issued', d: 'Inspection assurance record issued to client.' },
-                      ].map((p, i) => {
-                        const isDone = i < trackData.stage - 1;
-                        const isNow = i === trackData.stage - 1;
+                      {inspectionPipeline.map((p, i) => {
+                        const isDone = Boolean(trackData.isCompleted || trackData.stage >= 9 || i < trackData.stage - 1);
+                        const isNow = !trackData.isCompleted && trackData.stage < 9 && i === trackData.stage - 1;
                         const cls = isDone ? 'pstep done' : isNow ? 'pstep now' : 'pstep';
                         return (
                           <div key={p.t} className={cls}>
@@ -932,7 +936,7 @@ export default function InspectionsContent() {
                       id="offInit"
                     >
                       {trackData.officerName
-                        ? trackData.officerName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
+                        ? trackData.officerName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
                         : trackData.stage >= 3 ? 'FS' : '-'}
                     </div>
                     <div>
@@ -949,9 +953,23 @@ export default function InspectionsContent() {
                   <h4 style={{fontSize:'.95rem',marginBottom:'.9rem'}}>Recent Audit Updates</h4>
                   <div id="notifFeed" style={{display:'flex',flexDirection:'column',gap:'.75rem'}}>
                     <div style={{fontSize:'12px',padding:'.5rem .75rem',background:'var(--cream)',borderRadius:'var(--radius-sm)',lineHeight:'1.5'}}>
-                      <div style={{fontWeight:'600',color:'var(--forest)'}}>Stage {trackData.stage} Activated</div>
+                      <div style={{fontWeight:'600',color:'var(--forest)'}}>
+                        {trackData.isCompleted || trackData.stage >= 9 ? '✓ Inspection Completed & Signed Off' : `Stage ${trackData.stage} Activated`}
+                      </div>
                       <div style={{fontSize:'11px',color:'var(--ink-muted)',marginTop:'2px'}}>{trackData.stageTitle}</div>
                     </div>
+
+                    {trackData.officerMessage && (
+                      <div style={{fontSize:'12px',padding:'.75rem',background:'#f0fdf4',border:'1px solid #bbf7d0',borderRadius:'var(--radius-sm)',lineHeight:'1.5'}}>
+                        <div style={{fontSize:'10.5px',fontWeight:700,color:'var(--forest)',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:'4px'}}>
+                          Field Officer Debrief & Findings
+                        </div>
+                        <div style={{color:'#1e293b',fontSize:'12px',fontWeight:500}}>
+                          "{trackData.officerMessage}"
+                        </div>
+                      </div>
+                    )}
+
                     {trackData.updatedAt && (
                       <div style={{fontSize:'10.5px',color:'var(--ink-muted)',textAlign:'right'}}>
                         Last synchronized: {new Date(trackData.updatedAt).toLocaleTimeString('en-GB')}

@@ -4,18 +4,7 @@ import { useEffect, useState } from 'react';
 import { fetchApi } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 import ImageUpload from '@/components/ImageUpload';
-
-const STAGES = [
-  { stage: 1, title: 'Instruction & Scope' },
-  { stage: 2, title: 'Title & Registry Search' },
-  { stage: 3, title: 'Survey & Cadastral Verification' },
-  { stage: 4, title: 'Physical Inspection Mobilised' },
-  { stage: 5, title: 'On-Site Examination' },
-  { stage: 6, title: 'Valuation & Cost-to-Complete' },
-  { stage: 7, title: 'Legal & Risk Review' },
-  { stage: 8, title: 'Comprehensive Dossier Produced' },
-  { stage: 9, title: 'Dossier Issued & Debrief' },
-];
+import { STAGES } from '@/data/pipeline';
 
 export default function AdminInspectionsPage() {
   const { user } = useAuth();

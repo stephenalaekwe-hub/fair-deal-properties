@@ -53,10 +53,12 @@ export async function GET(
   // Try live database lookup first
   try {
     const liveRec = await getLiveInspectionByRef(ref);
-    if (liveRec) {
-      const currentStage = Math.max(1, Math.min(9, liveRec.stage || 1));
+      const isCompleted = Boolean(liveRec.isCompleted || liveRec.status === 'closed' || liveRec.status === 'resolved' || (liveRec.stage && liveRec.stage >= 9));
+      const currentStage = isCompleted ? 9 : Math.max(1, Math.min(9, liveRec.stage || 1));
       const currentPipe = inspectionPipeline[currentStage - 1];
       const officerVal = liveRec.officerName || liveRec.assignedAgent?.name || (currentStage >= 3 ? 'Assigned Field Surveyor' : 'Pending allocation');
+      const officerMessage = liveRec.officerMessage || liveRec.outcome || liveRec.notes || (isCompleted ? 'Inspection completed and signed off.' : null);
+
       return NextResponse.json({
         ok: true,
         data: {
@@ -64,9 +66,13 @@ export async function GET(
           propertyTitle: liveRec.propertyTitle || 'Subject Property',
           propertyLocation: liveRec.propertyLocation || 'Abuja FCT',
           stage: currentStage,
-          stageTitle: currentPipe?.t || `Stage ${currentStage}`,
-          stageName: currentPipe?.t || `Stage ${currentStage}`,
-          stageDescription: currentPipe?.d || 'Inspection in progress.',
+          stageTitle: isCompleted ? 'Dossier Issued & Debrief' : (currentPipe?.t || `Stage ${currentStage}`),
+          stageName: isCompleted ? 'Dossier Issued & Debrief' : (currentPipe?.t || `Stage ${currentStage}`),
+          stageDescription: isCompleted ? 'Inspection completed, verified dossier issued, and field debrief recorded.' : (currentPipe?.d || 'Inspection in progress.'),
+          isCompleted,
+          status: liveRec.status || (isCompleted ? 'closed' : 'in_progress'),
+          officerMessage,
+          outcome: liveRec.outcome || null,
           officerName: officerVal,
           officer: officerVal,
           scheduledDate: liveRec.scheduledDate || null,
@@ -75,13 +81,12 @@ export async function GET(
             index: i,
             title: s.t,
             detail: s.d,
-            state: i < currentStage - 1 ? 'complete' : i === currentStage - 1 ? 'active' : 'pending',
+            state: isCompleted ? 'complete' : (i < currentStage - 1 ? 'complete' : i === currentStage - 1 ? 'active' : 'pending'),
           })),
           note: liveRec.notes || undefined,
           updatedAt: liveRec.updatedAt || liveRec.createdAt || new Date().toISOString(),
         },
       });
-    }
   } catch (err) {
     console.error('[fdp:inspections:track] DB lookup error:', err);
   }

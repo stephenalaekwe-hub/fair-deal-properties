@@ -324,11 +324,14 @@ export async function getLiveInspectionByRef(reference: string): Promise<any | n
       ADD COLUMN IF NOT EXISTS assigned_agent_id text,
       ADD COLUMN IF NOT EXISTS agent_id text,
       ADD COLUMN IF NOT EXISTS report_url text,
-      ADD COLUMN IF NOT EXISTS officer_name text;
+      ADD COLUMN IF NOT EXISTS officer_name text,
+      ADD COLUMN IF NOT EXISTS status text,
+      ADD COLUMN IF NOT EXISTS outcome text,
+      ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone;
     `);
   } catch (e) {}
 
-  const res = await p.query(
+  let res = await p.query(
     `SELECT i.id, i.reference, 
             COALESCE(i.client_name, '') as "clientName", 
             COALESCE(i.client_email, '') as "clientEmail",
@@ -336,23 +339,58 @@ export async function getLiveInspectionByRef(reference: string): Promise<any | n
             COALESCE(i.property_title, '') as "propertyTitle",
             COALESCE(i.property_location, '') as "propertyLocation", 
             i.stage, 
-            COALESCE(i.officer_name, u.name, '') as "officerName",
-            COALESCE(i.assigned_agent_id, i.agent_id, '') as "assignedAgentId",
+            COALESCE(i.officer_name, u.name, s.closed_by, '') as "officerName",
+            COALESCE(i.assigned_agent_id, i.agent_id, s.assigned_agent_id, '') as "assignedAgentId",
             i.scheduled_date as "scheduledDate", 
             COALESCE(i.report_url, '') as "reportUrl",
             COALESCE(i.notes, '') as notes, 
+            COALESCE(i.status, s.status, 'in_progress') as status,
+            COALESCE(i.outcome, s.outcome, '') as outcome,
             i.created_at as "createdAt",
+            COALESCE(i.updated_at, s.closed_at, i.created_at) as "updatedAt",
             CASE 
               WHEN u.name IS NOT NULL THEN json_build_object('id', u.id, 'name', u.name, 'email', u.email)
               WHEN i.assigned_agent IS NOT NULL AND i.assigned_agent != '' THEN json_build_object('id', COALESCE(i.assigned_agent_id, i.agent_id, ''), 'name', i.assigned_agent)
               WHEN i.officer_name IS NOT NULL AND i.officer_name != '' THEN json_build_object('name', i.officer_name)
+              WHEN s.closed_by IS NOT NULL AND s.closed_by != '' THEN json_build_object('name', s.closed_by)
               ELSE NULL
             END as "assignedAgent"
      FROM inspections i
      LEFT JOIN users u ON u.id::text = COALESCE(i.assigned_agent_id, i.agent_id)
+     LEFT JOIN submissions s ON LOWER(s.reference) = LOWER(i.reference)
      WHERE LOWER(i.reference) = LOWER($1) LIMIT 1`,
     [reference]
   );
+
+  if (!res.rows[0]) {
+    // If not yet in inspections table, check submissions table
+    try {
+      const subRes = await p.query(
+        `SELECT s.id, s.reference,
+                COALESCE(s.payload->>'clientName', s.payload->>'name', '') as "clientName",
+                COALESCE(s.payload->>'clientEmail', s.payload->>'email', '') as "clientEmail",
+                COALESCE(s.payload->>'clientPhone', s.payload->>'phone', '') as "clientPhone",
+                COALESCE(s.payload->>'propertyReference', s.payload->>'propertyTitle', 'Property Inspection') as "propertyTitle",
+                COALESCE(s.payload->>'propertyLocation', s.payload->>'location', 'Abuja FCT') as "propertyLocation",
+                CASE WHEN s.status = 'closed' OR s.status = 'resolved' THEN 9 ELSE 2 END as stage,
+                COALESCE(s.closed_by, s.assigned_agent, '') as "officerName",
+                COALESCE(s.assigned_agent_id, '') as "assignedAgentId",
+                COALESCE(s.payload->>'reportUrl', s.payload->>'sitePhotoUrl', '') as "reportUrl",
+                COALESCE(s.payload->>'notes', '') as notes,
+                COALESCE(s.status, 'in_progress') as status,
+                COALESCE(s.outcome, '') as outcome,
+                s.received_at as "createdAt",
+                COALESCE(s.closed_at, s.received_at) as "updatedAt"
+         FROM submissions s
+         WHERE LOWER(s.reference) = LOWER($1) LIMIT 1`,
+        [reference]
+      );
+      if (subRes.rows[0]) {
+        res = subRes;
+      }
+    } catch (subErr) {}
+  }
+
   if (!res.rows[0]) return fallbackMatch || null;
   const row = res.rows[0];
   const assignedAgentId = row.assignedAgentId || row.assignedAgent?.id || null;
@@ -364,8 +402,16 @@ export async function getLiveInspectionByRef(reference: string): Promise<any | n
     if (!reportUrl) reportUrl = photoMatch[1].trim();
     cleanNotes = cleanNotes.replace(/Attached Survey \/ Site Photograph:\s*[^\n\r]+/i, '').trim();
   }
+
+  const isCompleted = row.status === 'closed' || row.status === 'resolved' || row.stage >= 9;
+  const effectiveStage = isCompleted ? 9 : Math.max(1, Math.min(9, row.stage || 1));
+  const officerMessage = row.outcome || cleanNotes || null;
+
   return {
     ...row,
+    stage: effectiveStage,
+    isCompleted,
+    officerMessage,
     notes: cleanNotes,
     reportUrl,
     assignedAgentId,
@@ -620,6 +666,33 @@ export async function closeLiveSubmission(
      RETURNING *`,
     [id, outcome, closedBy, status]
   );
+
+  // If this submission is an inspection (e.g. FDP-INS-...), also sync into inspections table
+  try {
+    await p.query(`
+      ALTER TABLE inspections 
+      ADD COLUMN IF NOT EXISTS status text,
+      ADD COLUMN IF NOT EXISTS outcome text,
+      ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone;
+    `);
+    await p.query(
+      `UPDATE inspections
+       SET status = $2,
+           outcome = $3,
+           stage = CASE WHEN $2 = 'closed' OR $2 = 'resolved' THEN 9 ELSE stage END,
+           notes = CASE 
+             WHEN $3 != '' AND notes IS NOT NULL AND notes NOT LIKE '%' || $3 || '%' THEN notes || E'\nOfficer Outcome: ' || $3
+             WHEN $3 != '' AND notes IS NULL THEN $3
+             ELSE notes
+           END,
+           updated_at = now()
+       WHERE id::text = $1 OR reference = $1`,
+      [id, status, outcome || '']
+    );
+  } catch (insSyncErr) {
+    console.warn('[fdp:db] Could not sync inspection outcome:', insSyncErr);
+  }
+
   return res.rows[0] || { id, outcome, closedBy, status };
 }
 
