@@ -60,11 +60,12 @@ export default function AgentInspectionsPage() {
     await fetchApi(`/admin/inspections/${activeModal.id}/stage`, {
       method: 'PATCH',
       body: JSON.stringify({
-        stage: Number(stage),
-        officerName,
+        stage: Number(activeModal.stage),
+        officerName: user?.name || officerName,
         reportUrl,
         notes,
         notifyClient,
+        markStepDone: true,
       }),
     });
 
@@ -119,19 +120,59 @@ export default function AgentInspectionsPage() {
                           <div style={{ fontSize: '11px', color: '#64748b' }}>{ins.propertyLocation}</div>
                         </td>
                         <td style={{ padding: '14px 16px' }}>
-                          <span
-                            style={{
-                              background: ins.stage === 9 ? '#dcfce7' : '#e0f2fe',
-                              color: ins.stage === 9 ? '#15803d' : '#0369a1',
-                              padding: '4px 8px',
-                              borderRadius: '4px',
-                              fontWeight: 700,
-                              fontSize: '11px',
-                              display: 'inline-block',
-                            }}
-                          >
-                            Stage {ins.stage}: {stageInfo?.title}
-                          </span>
+                          {ins.stage >= 9 ? (
+                            <span
+                              style={{
+                                background: '#dcfce7',
+                                color: '#15803d',
+                                padding: '4px 10px',
+                                borderRadius: '20px',
+                                fontWeight: 700,
+                                fontSize: '11px',
+                                display: 'inline-block',
+                              }}
+                            >
+                              ✓ Final Dossier Delivered & Closed
+                            </span>
+                          ) : ins.currentStepDone ? (
+                            <div>
+                              <span
+                                style={{
+                                  background: '#fef3c7',
+                                  color: '#b45309',
+                                  padding: '4px 10px',
+                                  borderRadius: '20px',
+                                  fontWeight: 700,
+                                  fontSize: '11px',
+                                  display: 'inline-block',
+                                }}
+                              >
+                                ✓ Stage {ins.stage} Completed
+                              </span>
+                              <div style={{ fontSize: '11px', color: '#64748b', marginTop: '3px' }}>
+                                Awaiting Admin to Advance Stage
+                              </div>
+                            </div>
+                          ) : (
+                            <div>
+                              <span
+                                style={{
+                                  background: '#e0f2fe',
+                                  color: '#0369a1',
+                                  padding: '4px 10px',
+                                  borderRadius: '20px',
+                                  fontWeight: 700,
+                                  fontSize: '11px',
+                                  display: 'inline-block',
+                                }}
+                              >
+                                Stage {ins.stage}: {stageInfo?.title}
+                              </span>
+                              <div style={{ fontSize: '11px', color: '#0284c7', marginTop: '3px', fontWeight: 600 }}>
+                                ● Work In Progress (Officer Action Required)
+                              </div>
+                            </div>
+                          )}
                         </td>
                         <td style={{ padding: '14px 16px', textAlign: 'right' }}>
                           <button
@@ -208,22 +249,23 @@ export default function AgentInspectionsPage() {
                 <strong style={{ color: 'var(--forest)' }}>{user?.name} (You)</strong>
               </div>
 
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                  Pipeline Stage (1 - 9)
-                </label>
-                <select
-                  value={stage}
-                  onChange={(e) => setStage(Number(e.target.value))}
-                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
-                >
-                  {STAGES.map((s) => (
-                    <option key={s.stage} value={s.stage}>
-                      Stage {s.stage}: {s.title}
-                    </option>
-                  ))}
-                </select>
+              <div style={{ marginBottom: '16px', background: '#ecfdf5', padding: '12px 14px', borderRadius: '8px', border: '1px solid #a7f3d0' }}>
+                <div style={{ fontSize: '11px', textTransform: 'uppercase', color: '#047857', fontWeight: 700, letterSpacing: '0.06em' }}>
+                  Current Active Stage Assigned to You
+                </div>
+                <div style={{ fontSize: '15px', fontWeight: 700, color: '#065f46', marginTop: '2px' }}>
+                  Stage {activeModal.stage}: {STAGES.find((s) => s.stage === activeModal.stage)?.title}
+                </div>
+                <div style={{ fontSize: '12px', color: '#059669', marginTop: '3px' }}>
+                  {STAGES.find((s) => s.stage === activeModal.stage)?.detail}
+                </div>
               </div>
+
+              {activeModal.currentStepDone && (
+                <div style={{ marginBottom: '16px', background: '#fef3c7', padding: '10px 14px', borderRadius: '6px', border: '1px solid #fde68a', fontSize: '12px', color: '#b45309', lineHeight: 1.5 }}>
+                  ✓ <strong>Stage {activeModal.stage} debrief is currently submitted and waiting for Admin to review and advance.</strong> You can update your findings or photos below.
+                </div>
+              )}
 
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
@@ -292,7 +334,11 @@ export default function AgentInspectionsPage() {
                     cursor: submitting ? 'not-allowed' : 'pointer',
                   }}
                 >
-                  {submitting ? 'Saving...' : 'Save & Dispatch Updates'}
+                  {submitting
+                    ? 'Saving...'
+                    : activeModal.currentStepDone
+                    ? `Update Stage ${activeModal.stage} Findings`
+                    : `Complete Stage ${activeModal.stage} & Submit for Admin Review`}
                 </button>
               </div>
             </form>

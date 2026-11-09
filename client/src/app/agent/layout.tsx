@@ -6,17 +6,18 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import CurrencyToggle from '@/components/CurrencyToggle';
+import { fetchApi } from '@/lib/api';
 
 interface AgentLayoutProps {
   children: React.ReactNode;
 }
 
 const NAV_ITEMS = [
-  { label: 'My Overview', path: '/agent', icon: '📊' },
-  { label: 'Book a Consultation', path: '/agent/consultations', icon: '📅' },
-  { label: 'Field Inspections', path: '/agent/inspections', icon: '🔍' },
-  { label: 'Property Portfolio', path: '/agent/listings', icon: '🏢' },
-  { label: 'All Submissions', path: '/agent/submissions', icon: '📬' },
+  { key: 'overview', label: 'My Overview', path: '/agent', icon: '📊' },
+  { key: 'consultations', label: 'Book a Consultation', path: '/agent/consultations', icon: '📅' },
+  { key: 'enquiries', label: 'Property Enquiries', path: '/agent/enquiries', icon: '💬' },
+  { key: 'inspections', label: 'Field Inspections', path: '/agent/inspections', icon: '🔍' },
+  { key: 'listings', label: 'Property Portfolio', path: '/agent/listings', icon: '🏢' },
 ];
 
 export default function AgentLayout({ children }: AgentLayoutProps) {
@@ -24,6 +25,11 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
   const router = useRouter();
   const { user, loading, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [notificationCounts, setNotificationCounts] = useState<{
+    consultations?: number;
+    enquiries?: number;
+    inspections?: number;
+  }>({});
 
   const isLoginPage = pathname === '/agent/login';
 
@@ -32,6 +38,21 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
       router.push('/agent/login');
     }
   }, [user, loading, isLoginPage, router]);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchCounts = async () => {
+      try {
+        const res = await fetchApi<any>(`/admin/notifications?agentId=${encodeURIComponent(user.id)}&isAgent=true`);
+        if (res && res.ok && res.data) {
+          setNotificationCounts(res.data);
+        }
+      } catch (err) {}
+    };
+    fetchCounts();
+    const interval = setInterval(fetchCounts, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   const handleLogout = async () => {
     await logout();
@@ -89,6 +110,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
         <nav className="dash-sidebar-nav" style={{ padding: '20px 12px', flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {NAV_ITEMS.map((item) => {
             const active = pathname === item.path;
+            const count = notificationCounts[item.key as keyof typeof notificationCounts] || 0;
             return (
               <Link
                 key={item.path}
@@ -108,8 +130,34 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
                   transition: 'all 0.15s ease',
                 }}
               >
-                <span>{item.icon}</span>
-                <span>{item.label}</span>
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span>{item.icon}</span>
+                    <span>{item.label}</span>
+                  </span>
+                  {count > 0 && (
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minWidth: '18px',
+                        height: '18px',
+                        padding: '0 5px',
+                        borderRadius: '10px',
+                        background: '#ef4444',
+                        color: '#ffffff',
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        boxShadow: '0 0 0 2px rgba(239, 68, 68, 0.4)',
+                        marginLeft: '6px',
+                      }}
+                      title={`${count} pending assigned items`}
+                    >
+                      {count}
+                    </span>
+                  )}
+                </span>
               </Link>
             );
           })}

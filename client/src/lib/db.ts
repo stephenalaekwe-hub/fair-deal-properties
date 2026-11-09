@@ -254,7 +254,11 @@ export async function getLiveInspections(agentId?: string): Promise<any[]> {
       ADD COLUMN IF NOT EXISTS assigned_agent_id text,
       ADD COLUMN IF NOT EXISTS agent_id text,
       ADD COLUMN IF NOT EXISTS report_url text,
-      ADD COLUMN IF NOT EXISTS officer_name text;
+      ADD COLUMN IF NOT EXISTS officer_name text,
+      ADD COLUMN IF NOT EXISTS current_step_done boolean DEFAULT false,
+      ADD COLUMN IF NOT EXISTS status text,
+      ADD COLUMN IF NOT EXISTS outcome text,
+      ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone;
     `);
   } catch (e) {
     // Ignore schema errors
@@ -273,7 +277,11 @@ export async function getLiveInspections(agentId?: string): Promise<any[]> {
            i.scheduled_date as "scheduledDate", 
            COALESCE(i.report_url, '') as "reportUrl",
            COALESCE(i.notes, '') as notes, 
+           COALESCE(i.status, 'in_progress') as status,
+           COALESCE(i.outcome, '') as outcome,
+           COALESCE(i.current_step_done, false) as "currentStepDone",
            i.created_at as "createdAt",
+           COALESCE(i.updated_at, i.created_at) as "updatedAt",
            CASE 
              WHEN u.name IS NOT NULL THEN json_build_object('id', u.id, 'name', u.name, 'email', u.email)
              WHEN i.assigned_agent IS NOT NULL AND i.assigned_agent != '' THEN json_build_object('id', COALESCE(i.assigned_agent_id, i.agent_id, ''), 'name', i.assigned_agent)
@@ -282,7 +290,7 @@ export async function getLiveInspections(agentId?: string): Promise<any[]> {
            END as "assignedAgent"
     FROM inspections i
     LEFT JOIN users u ON u.id::text = COALESCE(i.assigned_agent_id, i.agent_id)
-    WHERE ($1::text IS NULL OR $1 = '' OR COALESCE(i.assigned_agent_id, i.agent_id) = $1)
+    WHERE ($1::text IS NULL OR $1 = '' OR COALESCE(i.assigned_agent_id, i.agent_id) = $1 OR i.assigned_agent = $1)
     ORDER BY i.created_at DESC
   `;
   const res = await p.query(sql, [agentId || null]);
@@ -296,10 +304,13 @@ export async function getLiveInspections(agentId?: string): Promise<any[]> {
       if (!reportUrl) reportUrl = photoMatch[1].trim();
       cleanNotes = cleanNotes.replace(/Attached Survey \/ Site Photograph:\s*[^\n\r]+/i, '').trim();
     }
+    const officerMessage = extractActualNote(cleanNotes, row.outcome);
     return {
       ...row,
       notes: cleanNotes,
       reportUrl,
+      officerMessage,
+      currentStepDone: Boolean(row.currentStepDone),
       assignedAgentId,
       assignedAgent: assignedAgentName ? {
         id: assignedAgentId,
@@ -471,7 +482,8 @@ export async function updateLiveInspectionStage(
   stage: number,
   notes?: string,
   officerName?: string,
-  reportUrl?: string
+  reportUrl?: string,
+  markStepDone?: boolean
 ): Promise<any> {
   const p = getDbPool();
   if (!p) {
@@ -481,6 +493,7 @@ export async function updateLiveInspectionStage(
       notes: notes || '',
       officerName: officerName || '',
       reportUrl: reportUrl || '',
+      currentStepDone: Boolean(markStepDone),
       message: 'Inspection stage and notes updated successfully.',
     };
   }
@@ -489,21 +502,57 @@ export async function updateLiveInspectionStage(
     await p.query(`
       ALTER TABLE inspections 
       ADD COLUMN IF NOT EXISTS report_url text,
-      ADD COLUMN IF NOT EXISTS officer_name text;
+      ADD COLUMN IF NOT EXISTS officer_name text,
+      ADD COLUMN IF NOT EXISTS current_step_done boolean DEFAULT false,
+      ADD COLUMN IF NOT EXISTS status text,
+      ADD COLUMN IF NOT EXISTS outcome text,
+      ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone;
     `);
   } catch (e) {}
+
+  let currentStage = stage;
+  try {
+    const curRes = await p.query(`SELECT stage, current_step_done FROM inspections WHERE id::text = $1 OR reference = $1 LIMIT 1`, [id]);
+    if (curRes.rows[0]) {
+      currentStage = Number(curRes.rows[0].stage) || 1;
+    }
+  } catch (cErr) {}
+
+  const stageChanged = Number(stage) !== currentStage;
+  const effectiveStepDone = markStepDone !== undefined 
+    ? Boolean(markStepDone) 
+    : (stageChanged ? false : undefined);
 
   const res = await p.query(
     `UPDATE inspections
      SET stage = $2,
-         status = CASE WHEN stage != $2 THEN 'in_progress' ELSE status END,
-         outcome = CASE WHEN stage != $2 THEN NULL ELSE outcome END,
+         status = CASE 
+           WHEN $2 >= 9 AND ($6::boolean = true OR current_step_done = true) THEN 'closed'
+           ELSE 'in_progress'
+         END,
+         current_step_done = CASE 
+           WHEN $6::boolean IS NOT NULL THEN $6::boolean
+           WHEN stage != $2 THEN false
+           ELSE current_step_done
+         END,
+         outcome = CASE 
+           WHEN $6::boolean = true THEN COALESCE($3, notes)
+           WHEN stage != $2 THEN NULL 
+           ELSE outcome 
+         END,
          notes = CASE WHEN $3::text IS NOT NULL THEN $3 ELSE notes END,
          officer_name = CASE WHEN $4::text IS NOT NULL AND $4 != '' THEN $4 ELSE officer_name END,
          report_url = CASE WHEN $5::text IS NOT NULL AND $5 != '' THEN $5 ELSE report_url END,
          updated_at = now()
      WHERE id::text = $1 OR reference = $1 RETURNING *`,
-    [id, stage, notes !== undefined ? notes : null, officerName ?? null, reportUrl ?? null]
+    [
+      id,
+      stage,
+      notes !== undefined ? notes : null,
+      officerName ?? null,
+      reportUrl ?? null,
+      effectiveStepDone !== undefined ? effectiveStepDone : null
+    ]
   );
 
   // If stage changed, also reset outcome in submissions table so next stage starts fresh
@@ -518,7 +567,65 @@ export async function updateLiveInspectionStage(
     }
   } catch (subResetErr) {}
 
-  return res.rows[0] || { id, stage, notes, officerName, reportUrl };
+  return res.rows[0] || { id, stage, notes, officerName, reportUrl, currentStepDone: effectiveStepDone };
+}
+
+export async function getLiveNotificationCounts(agentId?: string, isAgent?: boolean): Promise<{
+  consultations: number;
+  enquiries: number;
+  inspections: number;
+  compliance: number;
+}> {
+  const p = getDbPool();
+  if (!p) {
+    return { consultations: 1, enquiries: 1, inspections: 1, compliance: 0 };
+  }
+
+  try {
+    const agentFilter = agentId ? `'${agentId}'` : null;
+
+    let consultSql = `SELECT count(*) FROM submissions WHERE collection = 'contact' AND closed_at IS NULL`;
+    if (isAgent && agentId) {
+      consultSql += ` AND (assigned_agent_id = ${agentFilter} OR payload->>'assignedAgentId' = ${agentFilter})`;
+    } else if (!isAgent) {
+      consultSql += ` AND (assigned_agent_id IS NULL OR status = 'pending')`;
+    }
+
+    let enquirySql = `SELECT count(*) FROM submissions WHERE collection = 'enquiry' AND closed_at IS NULL`;
+    if (isAgent && agentId) {
+      enquirySql += ` AND (assigned_agent_id = ${agentFilter} OR payload->>'assignedAgentId' = ${agentFilter})`;
+    } else if (!isAgent) {
+      enquirySql += ` AND (assigned_agent_id IS NULL OR status = 'pending')`;
+    }
+
+    let insSql = `SELECT count(*) FROM inspections WHERE stage < 9`;
+    if (isAgent && agentId) {
+      insSql += ` AND (COALESCE(assigned_agent_id, agent_id) = ${agentFilter} OR assigned_agent = ${agentFilter}) AND NOT COALESCE(current_step_done, false)`;
+    } else if (!isAgent) {
+      insSql += ` AND (COALESCE(assigned_agent_id, agent_id) IS NULL OR COALESCE(current_step_done, false) = true)`;
+    }
+
+    let dsrSql = isAgent 
+      ? `SELECT 0 as count` 
+      : `SELECT count(*) FROM submissions WHERE collection = 'dsr' AND closed_at IS NULL`;
+
+    const [cRes, eRes, iRes, dRes] = await Promise.all([
+      p.query(consultSql),
+      p.query(enquirySql),
+      p.query(insSql),
+      p.query(dsrSql),
+    ]);
+
+    return {
+      consultations: parseInt(cRes.rows[0]?.count || '0', 10),
+      enquiries: parseInt(eRes.rows[0]?.count || '0', 10),
+      inspections: parseInt(iRes.rows[0]?.count || '0', 10),
+      compliance: parseInt(dRes.rows[0]?.count || '0', 10),
+    };
+  } catch (err) {
+    console.warn('[fdp:db] getLiveNotificationCounts error:', err);
+    return { consultations: 0, enquiries: 0, inspections: 0, compliance: 0 };
+  }
 }
 
 // ─── Submissions Queries ─────────────────────────────────────────────────────

@@ -11,7 +11,7 @@ async function handleStageUpdate(
   try {
     const { id } = await params;
     const body = await req.json();
-    const { stage, notes, officerName, reportUrl } = body;
+    const { stage, notes, officerName, reportUrl, markStepDone } = body;
 
     if (!stage || stage < 1 || stage > 9) {
       return NextResponse.json({ ok: false, error: 'Stage must be between 1 and 9' }, { status: 400 });
@@ -22,7 +22,8 @@ async function handleStageUpdate(
       Number(stage),
       notes,
       officerName,
-      reportUrl
+      reportUrl,
+      markStepDone
     );
     return NextResponse.json({ ok: true, data: updated });
   } catch (err: any) {

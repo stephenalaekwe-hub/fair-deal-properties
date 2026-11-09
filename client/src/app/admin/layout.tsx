@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import CurrencyToggle from '@/components/CurrencyToggle';
+import { fetchApi } from '@/lib/api';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -56,24 +57,45 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   const isAgent = user?.role === 'AGENT';
 
+  const [notificationCounts, setNotificationCounts] = useState<{
+    consultations?: number;
+    enquiries?: number;
+    inspections?: number;
+    compliance?: number;
+  }>({});
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchCounts = async () => {
+      try {
+        const res = await fetchApi<any>(`/admin/notifications?isAgent=${isAgent}`);
+        if (res && res.ok && res.data) {
+          setNotificationCounts(res.data);
+        }
+      } catch (err) {}
+    };
+    fetchCounts();
+    const interval = setInterval(fetchCounts, 30000);
+    return () => clearInterval(interval);
+  }, [user, isAgent]);
+
   const navItems = isAgent
     ? [
-        { label: 'My Overview', path: '/admin', icon: '📊' },
-        { label: 'Book a Consultation', path: '/admin/consultations', icon: '📅' },
-        { label: 'Property Enquiries', path: '/admin/enquiries', icon: '💬' },
-        { label: 'Physical Inspections', path: '/admin/inspections', icon: '🔍' },
-        { label: 'Property Portfolio', path: '/admin/listings', icon: '🏢' },
-        { label: 'All Submissions', path: '/admin/submissions', icon: '📬' },
+        { key: 'overview', label: 'My Overview', path: '/admin', icon: '📊' },
+        { key: 'consultations', label: 'Book a Consultation', path: '/admin/consultations', icon: '📅' },
+        { key: 'enquiries', label: 'Property Enquiries', path: '/admin/enquiries', icon: '💬' },
+        { key: 'inspections', label: 'Physical Inspections', path: '/admin/inspections', icon: '🔍' },
+        { key: 'listings', label: 'Property Portfolio', path: '/admin/listings', icon: '🏢' },
       ]
     : [
-        { label: 'Overview', path: '/admin', icon: '📊' },
-        { label: 'Book a Consultation', path: '/admin/consultations', icon: '📅' },
-        { label: 'Property Enquiries', path: '/admin/enquiries', icon: '💬' },
-        { label: 'Physical Inspections', path: '/admin/inspections', icon: '🔍' },
-        { label: 'Property Portfolio', path: '/admin/listings', icon: '🏢' },
-        { label: 'Field Agents', path: '/admin/agents', icon: '👥' },
-        { label: 'Rates & Scraper', path: '/admin/rates', icon: '⚡' },
-        { label: 'All Submissions & DSR', path: '/admin/submissions', icon: '📬' },
+        { key: 'overview', label: 'Overview', path: '/admin', icon: '📊' },
+        { key: 'consultations', label: 'Book a Consultation', path: '/admin/consultations', icon: '📅' },
+        { key: 'enquiries', label: 'Property Enquiries', path: '/admin/enquiries', icon: '💬' },
+        { key: 'inspections', label: 'Physical Inspections', path: '/admin/inspections', icon: '🔍' },
+        { key: 'listings', label: 'Property Portfolio', path: '/admin/listings', icon: '🏢' },
+        { key: 'agents', label: 'Field Agents', path: '/admin/agents', icon: '👥' },
+        { key: 'rates', label: 'Rates & Scraper', path: '/admin/rates', icon: '⚡' },
+        { key: 'compliance', label: 'Data Rights & Compliance', path: '/admin/compliance', icon: '🛡️' },
       ];
 
   return (
@@ -115,6 +137,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <nav className="dash-sidebar-nav" style={{ padding: '20px 12px', flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {navItems.map((item) => {
             const active = pathname === item.path;
+            const count = notificationCounts[item.key as keyof typeof notificationCounts] || 0;
             return (
               <Link
                 key={item.path}
@@ -134,8 +157,34 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   transition: 'all 0.15s ease',
                 }}
               >
-                <span>{item.icon}</span>
-                <span>{item.label}</span>
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span>{item.icon}</span>
+                    <span>{item.label}</span>
+                  </span>
+                  {count > 0 && (
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minWidth: '18px',
+                        height: '18px',
+                        padding: '0 5px',
+                        borderRadius: '10px',
+                        background: '#ef4444',
+                        color: '#ffffff',
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        boxShadow: '0 0 0 2px rgba(239, 68, 68, 0.4)',
+                        marginLeft: '6px',
+                      }}
+                      title={`${count} pending / actionable items`}
+                    >
+                      {count}
+                    </span>
+                  )}
+                </span>
               </Link>
             );
           })}

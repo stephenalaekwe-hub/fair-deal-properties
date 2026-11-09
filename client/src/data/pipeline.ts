@@ -70,4 +70,6 @@ export const inspectionPipeline: PipelineStage[] = [
 export const STAGES = inspectionPipeline.map((s) => ({
   stage: s.stage,
   title: s.title,
+  d: s.d,
+  detail: s.d,
 }));

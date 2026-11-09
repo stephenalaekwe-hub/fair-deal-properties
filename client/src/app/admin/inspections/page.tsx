@@ -109,6 +109,24 @@ export default function AdminInspectionsPage() {
     await loadData(filterAgentId);
   };
 
+  const handleAdvanceToNextStage = async (ins: any) => {
+    if (!ins || ins.stage >= 9) return;
+    setSubmitting(true);
+    await fetchApi(`/admin/inspections/${ins.id}/stage`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        stage: Number(ins.stage) + 1,
+        officerName: ins.officerName || (agents.find((a) => a.id === assignedAgentId)?.name) || '',
+        notes: '',
+        notifyClient: true,
+        markStepDone: false,
+      }),
+    });
+    setActiveModal(null);
+    setSubmitting(false);
+    await loadData(filterAgentId);
+  };
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
@@ -183,19 +201,59 @@ export default function AdminInspectionsPage() {
                         <div style={{ fontSize: '11px', color: '#64748b' }}>{ins.propertyLocation}</div>
                       </td>
                       <td style={{ padding: '14px 16px' }}>
-                        <span
-                          style={{
-                            background: ins.stage === 9 ? '#dcfce7' : '#e0f2fe',
-                            color: ins.stage === 9 ? '#15803d' : '#0369a1',
-                            padding: '4px 8px',
-                            borderRadius: '4px',
-                            fontWeight: 700,
-                            fontSize: '11px',
-                            display: 'inline-block',
-                          }}
-                        >
-                          Stage {ins.stage}: {stageInfo?.title}
-                        </span>
+                        {ins.stage >= 9 ? (
+                          <span
+                            style={{
+                              background: '#dcfce7',
+                              color: '#15803d',
+                              padding: '4px 10px',
+                              borderRadius: '20px',
+                              fontWeight: 700,
+                              fontSize: '11px',
+                              display: 'inline-block',
+                            }}
+                          >
+                            ✓ Final Dossier Delivered & Closed
+                          </span>
+                        ) : ins.currentStepDone ? (
+                          <div>
+                            <span
+                              style={{
+                                background: '#fef3c7',
+                                color: '#b45309',
+                                padding: '4px 10px',
+                                borderRadius: '20px',
+                                fontWeight: 700,
+                                fontSize: '11px',
+                                display: 'inline-block',
+                              }}
+                            >
+                              ✓ Stage {ins.stage} Completed
+                            </span>
+                            <div style={{ fontSize: '11px', color: '#b45309', fontWeight: 600, marginTop: '3px' }}>
+                              ⚡ Ready to Advance to Stage {ins.stage + 1}
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <span
+                              style={{
+                                background: '#e0f2fe',
+                                color: '#0369a1',
+                                padding: '4px 10px',
+                                borderRadius: '20px',
+                                fontWeight: 700,
+                                fontSize: '11px',
+                                display: 'inline-block',
+                              }}
+                            >
+                              Stage {ins.stage}: {stageInfo?.title}
+                            </span>
+                            <div style={{ fontSize: '11px', color: '#64748b', marginTop: '3px' }}>
+                              In Progress
+                            </div>
+                          </div>
+                        )}
                       </td>
                       <td style={{ padding: '14px 16px' }}>
                         {ins.assignedAgent?.name || ins.officerName ? (
@@ -269,6 +327,40 @@ export default function AdminInspectionsPage() {
             </div>
 
             <form onSubmit={handleSaveUpdate}>
+              {activeModal.currentStepDone && activeModal.stage < 9 && (
+                <div style={{ background: '#ecfdf5', border: '1px solid #10b981', borderRadius: '8px', padding: '16px', marginBottom: '20px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: '#047857', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    ✓ Field Officer Completed Stage {activeModal.stage}
+                  </div>
+                  <div style={{ fontSize: '13px', color: '#065f46', marginTop: '4px', lineHeight: 1.5 }}>
+                    <strong>Officer Debrief: </strong>
+                    <em>"{activeModal.officerMessage || activeModal.notes || 'Stage verification checklist completed.'}"</em>
+                  </div>
+                  <div style={{ marginTop: '12px' }}>
+                    <button
+                      type="button"
+                      disabled={submitting}
+                      onClick={() => handleAdvanceToNextStage(activeModal)}
+                      style={{
+                        background: 'var(--forest)',
+                        color: '#ffffff',
+                        border: 'none',
+                        padding: '9px 18px',
+                        borderRadius: '6px',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        cursor: submitting ? 'not-allowed' : 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      Approve & Advance to Stage {activeModal.stage + 1}: {STAGES.find((s) => s.stage === activeModal.stage + 1)?.title} →
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
                   Pipeline Stage (1 - 9)

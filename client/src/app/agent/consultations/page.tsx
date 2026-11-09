@@ -19,13 +19,17 @@ export default function AgentConsultationsPage() {
   const loadData = async () => {
     setLoading(true);
     const subRes = await fetchApi('/admin/submissions?collection=contact');
-    if (subRes.ok && subRes.data) {
-      // Filter consultations assigned to this agent, or all if matching fallback
+    if (subRes.ok && subRes.data && user) {
+      // Filter consultations strictly assigned to this agent
       const list = subRes.data.filter((s: any) => {
         const agId = s.assignedAgentId || s.payload?.assignedAgentId;
         const agName = s.assignedAgent?.name || s.assignedAgentName || s.payload?.assignedAgent;
-        if (!agId && !agName) return true; // Show open unassigned leads as well so agent can claim/respond
-        return agId === user?.id || (user?.email && s.assignedAgent?.email === user.email) || agName === user?.name;
+        const agEmail = s.assignedAgent?.email;
+        return (
+          agId === user.id ||
+          (agEmail && agEmail.toLowerCase() === user.email?.toLowerCase()) ||
+          (agName && agName.toLowerCase() === user.name?.toLowerCase())
+        );
       });
       setConsultations(list);
     }
