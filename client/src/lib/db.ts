@@ -6,8 +6,47 @@ import { Pool, type PoolConfig } from 'pg';
 import { listings as defaultListings, type Listing, type ListingSource, type PropertyType, type City, type ListingSort } from '@/data/listings';
 import { financingRoutes as defaultFinancingRoutes, type FinancingRoute } from '@/data/financing';
 import { getTestAgents } from './agentsStore';
+import { getScrapedLogs } from './scrapedStore';
 
 let pool: Pool | null = null;
+let schemaInitialized = false;
+
+export async function ensureSchemaColumns(p: Pool): Promise<void> {
+  if (schemaInitialized) return;
+  try {
+    await Promise.all([
+      p.query(`
+        ALTER TABLE listings
+        ADD COLUMN IF NOT EXISTS assigned_agent text,
+        ADD COLUMN IF NOT EXISTS assigned_agent_id text;
+      `).catch(() => {}),
+      p.query(`
+        ALTER TABLE inspections
+        ADD COLUMN IF NOT EXISTS assigned_agent text,
+        ADD COLUMN IF NOT EXISTS assigned_agent_id text,
+        ADD COLUMN IF NOT EXISTS agent_id text,
+        ADD COLUMN IF NOT EXISTS report_url text,
+        ADD COLUMN IF NOT EXISTS officer_name text,
+        ADD COLUMN IF NOT EXISTS current_step_done boolean DEFAULT false,
+        ADD COLUMN IF NOT EXISTS status text,
+        ADD COLUMN IF NOT EXISTS outcome text,
+        ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone;
+      `).catch(() => {}),
+      p.query(`
+        ALTER TABLE submissions
+        ADD COLUMN IF NOT EXISTS assigned_agent text,
+        ADD COLUMN IF NOT EXISTS assigned_agent_id text,
+        ADD COLUMN IF NOT EXISTS status text,
+        ADD COLUMN IF NOT EXISTS outcome text,
+        ADD COLUMN IF NOT EXISTS closed_by text,
+        ADD COLUMN IF NOT EXISTS closed_at timestamp with time zone;
+      `).catch(() => {}),
+    ]);
+    schemaInitialized = true;
+  } catch {
+    // Non-fatal if read-only replica
+  }
+}
 
 export function getDbPool(): Pool | null {
   const connectionString = process.env.DATABASE_URL;
@@ -64,6 +103,8 @@ export async function getLiveListings(filters: {
     if (!p) {
       return fallbackListings(filters);
     }
+
+    await ensureSchemaColumns(p);
 
     const conditions: string[] = [];
     const values: any[] = [];
@@ -127,7 +168,8 @@ export async function getLiveListings(filters: {
              affordable, off_plan as "offPlan", price_millions_ngn as "priceMillionsNGN",
              price_display as "priceDisplay", price_label as "priceLabel", listed_on as "listedOn",
              image, image_alt as "imageAlt", badges, location, specification, description,
-             tags, amenities, verification_status as "verificationStatus"
+             tags, amenities, verification_status as "verificationStatus",
+             assigned_agent as "assignedAgentName", assigned_agent_id as "assignedAgentId"
       FROM listings
       ${whereClause}
       ORDER BY ${orderBy}
@@ -177,12 +219,19 @@ export async function getLiveListingBySlug(slug: string): Promise<Listing | null
 }
 
 function mapListingRow(row: any): Listing {
+  const assignedAgentId = row.assignedAgentId || null;
+  const assignedAgentName = row.assignedAgentName || null;
   return {
     ...row,
     priceMillionsNGN: row.priceMillionsNGN ? parseFloat(row.priceMillionsNGN) : null,
     badges: typeof row.badges === 'string' ? JSON.parse(row.badges) : (row.badges || []),
     tags: typeof row.tags === 'string' ? JSON.parse(row.tags) : (row.tags || []),
     amenities: typeof row.amenities === 'string' ? JSON.parse(row.amenities) : (row.amenities || []),
+    assignedAgentId,
+    assignedAgent: (assignedAgentId || assignedAgentName) ? {
+      id: assignedAgentId,
+      name: assignedAgentName || 'Assigned Officer',
+    } : null,
   };
 }
 
@@ -760,13 +809,6 @@ export async function getLiveSubmissions(collection?: string, agentId?: string):
     params
   );
 
-  if (res.rows.length === 0 && (!agentId || agentId.includes('fallback'))) {
-    let list = defaultSubmissions;
-    if (collection) list = list.filter((s) => s.collection === collection);
-    if (agentId) list = list.filter((s) => s.assignedAgentId === agentId);
-    if (list.length > 0) return list;
-  }
-
   return res.rows.map((row) => {
     const p = row.payload || {};
     const assignedAgentId = row.assignedAgentId || p.assignedAgentId || null;
@@ -967,6 +1009,8 @@ export async function getLiveAnalyticsOverview(agentId?: string): Promise<any> {
     },
   ];
 
+  const pendingRateAlerts = getScrapedLogs().filter((l) => l.status === 'PENDING_REVIEW').length;
+
   try {
     const p = getDbPool();
     if (!p) {
@@ -975,77 +1019,87 @@ export async function getLiveAnalyticsOverview(agentId?: string): Promise<any> {
         activeInspections: 2,
         completedInspections: 1,
         pendingSubmissions: 3,
-        priceAlertsCount: 4,
+        priceAlertsCount: pendingRateAlerts,
         recentInspections: fallbackRecentInspections,
         recentSubmissions: fallbackRecentSubmissions,
       };
     }
 
-    const insWhere = agentId ? `AND (COALESCE(assigned_agent_id, agent_id) = '${agentId}')` : '';
-    const subWhere = agentId ? `AND (assigned_agent_id = '${agentId}')` : '';
+    await ensureSchemaColumns(p);
+
+    const insParams = agentId ? [agentId] : [];
+    const subParams = agentId ? [agentId] : [];
+    const insWhere = agentId ? `AND (COALESCE(assigned_agent_id, agent_id) = $1 OR assigned_agent = $1)` : '';
+    const subWhere = agentId ? `AND (assigned_agent_id = $1 OR payload->>'assignedAgentId' = $1)` : '';
 
     const [listingsCount, activeInsCount, compInsCount, subCount, recentIns, recentSubs] = await Promise.all([
-      p.query(`SELECT count(*) FROM listings`),
-      p.query(`SELECT count(*) FROM inspections WHERE stage < 9 ${insWhere}`),
-      p.query(`SELECT count(*) FROM inspections WHERE stage >= 9 ${insWhere}`),
-      p.query(`SELECT count(*) FROM submissions WHERE closed_at IS NULL ${subWhere}`),
-      p.query(`
+      p.query(`SELECT count(*) FROM listings`).catch(() => ({ rows: [{ count: '0' }] })),
+      p.query(`SELECT count(*) FROM inspections WHERE stage < 9 ${insWhere}`, insParams).catch(() => ({ rows: [{ count: '0' }] })),
+      p.query(`SELECT count(*) FROM inspections WHERE stage >= 9 ${insWhere}`, insParams).catch(() => ({ rows: [{ count: '0' }] })),
+      p.query(`SELECT count(*) FROM submissions WHERE closed_at IS NULL ${subWhere}`, subParams).catch(() => ({ rows: [{ count: '0' }] })),
+      p.query(
+        `
         SELECT i.id, i.reference, 
                COALESCE(i.client_name, 'Anonymous Client') as "clientName", 
                i.stage, 
-               COALESCE(i.officer_name, u.name, '') as "assignedAgentName"
+               COALESCE(NULLIF(i.officer_name, ''), NULLIF(i.assigned_agent, ''), u.name, '') as "assignedAgentName"
         FROM inspections i
         LEFT JOIN users u ON u.id::text = COALESCE(i.assigned_agent_id, i.agent_id)
-        ${agentId ? `WHERE COALESCE(i.assigned_agent_id, i.agent_id) = '${agentId}'` : ''}
+        ${agentId ? `WHERE (COALESCE(i.assigned_agent_id, i.agent_id) = $1 OR i.assigned_agent = $1)` : ''}
         ORDER BY i.created_at DESC
         LIMIT 5
-      `),
-      p.query(`
+        `,
+        insParams
+      ).catch(() => ({ rows: [] })),
+      p.query(
+        `
         SELECT s.id, s.reference, s.collection,
-               COALESCE(s.client_name, s.payload->>'fullName', s.payload->>'name', 'Anonymous Client') as "clientName",
-               s.closed_at as "closedAt"
+               COALESCE(s.payload->>'fullName', s.payload->>'name', s.payload->>'clientName', 'Anonymous Client') as "clientName",
+               s.closed_at as "closedAt",
+               COALESCE(s.status, s.payload->>'status', CASE WHEN s.closed_at IS NOT NULL THEN 'closed' WHEN s.assigned_agent_id IS NOT NULL OR s.assigned_agent IS NOT NULL THEN 'in_progress' ELSE 'pending' END) as status,
+               COALESCE(s.assigned_agent, s.payload->>'assignedAgent', '') as "assignedAgentName"
         FROM submissions s
-        ${agentId ? `WHERE s.assigned_agent_id = '${agentId}'` : ''}
+        ${agentId ? `WHERE (s.assigned_agent_id = $1 OR s.payload->>'assignedAgentId' = $1)` : ''}
         ORDER BY s.received_at DESC
         LIMIT 5
-      `),
+        `,
+        subParams
+      ).catch(() => ({ rows: [] })),
     ]);
 
     return {
-      totalListings: parseInt(listingsCount.rows[0].count, 10),
-      activeInspections: parseInt(activeInsCount.rows[0].count, 10),
-      completedInspections: parseInt(compInsCount.rows[0].count, 10),
-      pendingSubmissions: parseInt(subCount.rows[0].count, 10),
-      priceAlertsCount: 4,
-      recentInspections: recentIns.rows.length > 0 
-        ? recentIns.rows.map((r: any) => ({
-            id: r.id,
-            reference: r.reference,
-            clientName: r.clientName,
-            stage: r.stage || 1,
-            assignedAgent: r.assignedAgentName ? { name: r.assignedAgentName } : null,
-          }))
-        : fallbackRecentInspections,
-      recentSubmissions: recentSubs.rows.length > 0
-        ? recentSubs.rows.map((r: any) => ({
-            id: r.id,
-            reference: r.reference,
-            collection: r.collection,
-            clientName: r.clientName,
-            closedAt: r.closedAt,
-          }))
-        : fallbackRecentSubmissions,
+      totalListings: parseInt(listingsCount.rows[0]?.count || '0', 10),
+      activeInspections: parseInt(activeInsCount.rows[0]?.count || '0', 10),
+      completedInspections: parseInt(compInsCount.rows[0]?.count || '0', 10),
+      pendingSubmissions: parseInt(subCount.rows[0]?.count || '0', 10),
+      priceAlertsCount: pendingRateAlerts,
+      recentInspections: recentIns.rows.map((r: any) => ({
+        id: r.id,
+        reference: r.reference,
+        clientName: r.clientName,
+        stage: r.stage || 1,
+        assignedAgent: r.assignedAgentName ? { name: r.assignedAgentName } : null,
+      })),
+      recentSubmissions: recentSubs.rows.map((r: any) => ({
+        id: r.id,
+        reference: r.reference,
+        collection: r.collection,
+        clientName: r.clientName,
+        closedAt: r.closedAt,
+        status: r.status || (r.closedAt ? 'closed' : 'pending'),
+        assignedAgent: r.assignedAgentName ? { name: r.assignedAgentName } : null,
+      })),
     };
   } catch (err) {
     console.error('[fdp:db] getLiveAnalyticsOverview error:', err);
     return {
       totalListings: defaultListings.length,
-      activeInspections: 2,
-      completedInspections: 1,
-      pendingSubmissions: 3,
-      priceAlertsCount: 4,
-      recentInspections: fallbackRecentInspections,
-      recentSubmissions: fallbackRecentSubmissions,
+      activeInspections: 0,
+      completedInspections: 0,
+      pendingSubmissions: 0,
+      priceAlertsCount: pendingRateAlerts,
+      recentInspections: [],
+      recentSubmissions: [],
     };
   }
 }
@@ -1071,25 +1125,58 @@ export async function getLiveUsers(): Promise<any[]> {
   if (!p) return testAgents;
 
   try {
-    const res = await p.query(
-      `SELECT u.id, u.name, u.email, u.role, u.phone, u.active, u.created_at as "createdAt",
-              COALESCE((SELECT count(*) FROM inspections i WHERE COALESCE(i.assigned_agent_id, i.agent_id) = u.id::text), 0) as "inspectionsCount",
-              COALESCE((SELECT count(*) FROM listings l WHERE l.assigned_agent_id = u.id::text), 0) as "listingsCount"
-       FROM users u
-       ORDER BY u.created_at ASC`
-    );
+    await ensureSchemaColumns(p);
 
-    const dbUsers = res.rows.map((row) => ({
+    const [usersRes, insRes, listRes] = await Promise.all([
+      p.query(
+        `SELECT u.id, u.name, u.email, u.role, u.phone, u.active, u.created_at as "createdAt"
+         FROM users u
+         ORDER BY u.created_at ASC`
+      ),
+      p.query(
+        `SELECT COALESCE(assigned_agent_id, agent_id, '') as "agentId",
+                COALESCE(officer_name, assigned_agent, '') as "agentName"
+         FROM inspections`
+      ).catch(() => ({ rows: [] })),
+      p.query(
+        `SELECT COALESCE(assigned_agent_id, '') as "agentId",
+                COALESCE(assigned_agent, '') as "agentName"
+         FROM listings`
+      ).catch(() => ({ rows: [] })),
+    ]);
+
+    const countForUser = (u: { id: string; name: string }) => {
+      const uid = String(u.id || '').toLowerCase();
+      const uname = String(u.name || '').toLowerCase();
+      const baseName = uname.split('(')[0].trim();
+
+      const assignedInspections = insRes.rows.filter((r: any) => {
+        const rid = String(r.agentId || '').toLowerCase();
+        const rname = String(r.agentName || '').toLowerCase();
+        return (uid && rid === uid) || (baseName && rname && (rname === uname || rname.includes(baseName)));
+      }).length;
+
+      const assignedListings = listRes.rows.filter((r: any) => {
+        const rid = String(r.agentId || '').toLowerCase();
+        const rname = String(r.agentName || '').toLowerCase();
+        return (uid && rid === uid) || (baseName && rname && (rname === uname || rname.includes(baseName)));
+      }).length;
+
+      return { assignedInspections, assignedListings };
+    };
+
+    const dbUsers = usersRes.rows.map((row) => ({
       ...row,
-      _count: {
-        assignedInspections: parseInt(row.inspectionsCount, 10),
-        assignedListings: parseInt(row.listingsCount, 10),
-      },
+      _count: countForUser(row),
     }));
 
-    // If DB has users, merge any unique test agents so all test profiles remain available for demonstration
     const dbEmails = new Set(dbUsers.map((u: any) => u.email.toLowerCase()));
-    const additionalTestAgents = testAgents.filter((a) => !dbEmails.has(a.email.toLowerCase()));
+    const additionalTestAgents = testAgents
+      .filter((a) => !dbEmails.has(a.email.toLowerCase()))
+      .map((a) => ({
+        ...a,
+        _count: countForUser(a),
+      }));
 
     return [...dbUsers, ...additionalTestAgents];
   } catch (err) {

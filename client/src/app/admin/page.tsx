@@ -209,7 +209,7 @@ export default function AdminDashboardPage() {
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>Recent Client Inquiries & DSR</h3>
-            <Link href="/admin/submissions" style={{ fontSize: '12px', color: 'var(--forest)', fontWeight: 600 }}>
+            <Link href="/admin/enquiries" style={{ fontSize: '12px', color: 'var(--forest)', fontWeight: 600 }}>
               View All ↗
             </Link>
           </div>
@@ -226,29 +226,33 @@ export default function AdminDashboardPage() {
               </thead>
               <tbody>
                 {stats?.recentSubmissions && stats.recentSubmissions.length > 0 ? (
-                  stats.recentSubmissions.map((sub: any) => (
-                    <tr key={sub.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '10px 4px', fontWeight: 600, color: 'var(--forest)' }}>{sub.reference}</td>
-                      <td style={{ padding: '10px 4px', textTransform: 'uppercase', fontSize: '11px', fontWeight: 700 }}>
-                        {sub.collection}
-                      </td>
-                      <td style={{ padding: '10px 4px' }}>{sub.clientName || 'Anonymous'}</td>
-                      <td style={{ padding: '10px 4px' }}>
-                        <span
-                          style={{
-                            background: sub.closedAt ? '#f1f5f9' : '#fef3c7',
-                            color: sub.closedAt ? '#64748b' : '#b45309',
-                            padding: '3px 8px',
-                            borderRadius: '4px',
-                            fontWeight: 600,
-                            fontSize: '11px',
-                          }}
-                        >
-                          {sub.closedAt ? 'Closed' : 'Action Required'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
+                  stats.recentSubmissions.map((sub: any) => {
+                    const isClosed = Boolean(sub.closedAt || sub.status === 'closed');
+                    const isInProgress = !isClosed && (sub.status === 'in_progress' || sub.assignedAgent);
+                    return (
+                      <tr key={sub.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '10px 4px', fontWeight: 600, color: 'var(--forest)' }}>{sub.reference}</td>
+                        <td style={{ padding: '10px 4px', textTransform: 'uppercase', fontSize: '11px', fontWeight: 700 }}>
+                          {sub.collection}
+                        </td>
+                        <td style={{ padding: '10px 4px' }}>{sub.clientName || 'Anonymous'}</td>
+                        <td style={{ padding: '10px 4px' }}>
+                          <span
+                            style={{
+                              background: isClosed ? '#dcfce7' : isInProgress ? '#e0f2fe' : '#fef3c7',
+                              color: isClosed ? '#15803d' : isInProgress ? '#0369a1' : '#b45309',
+                              padding: '3px 8px',
+                              borderRadius: '4px',
+                              fontWeight: 600,
+                              fontSize: '11px',
+                            }}
+                          >
+                            {isClosed ? 'Closed' : isInProgress ? 'In Progress' : 'Action Required'}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr>
                     <td colSpan={4} style={{ padding: '20px 0', textAlign: 'center', color: '#94a3b8' }}>

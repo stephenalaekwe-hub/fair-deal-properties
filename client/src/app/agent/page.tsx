@@ -176,7 +176,7 @@ export default function AgentDashboardPage() {
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>My Assigned Client Inquiries</h3>
-            <Link href="/agent/submissions" style={{ fontSize: '12px', color: 'var(--forest)', fontWeight: 600, textDecoration: 'none' }}>
+            <Link href="/agent/enquiries" style={{ fontSize: '12px', color: 'var(--forest)', fontWeight: 600, textDecoration: 'none' }}>
               View All ↗
             </Link>
           </div>
@@ -215,7 +215,7 @@ export default function AgentDashboardPage() {
                       </td>
                       <td style={{ padding: '10px 4px', textAlign: 'right' }}>
                         <Link
-                          href={sub.collection === 'contact' ? '/agent/consultations' : '/agent/submissions'}
+                          href={sub.collection === 'contact' ? '/agent/consultations' : '/agent/enquiries'}
                           style={{
                             fontSize: '11px',
                             color: 'var(--forest)',
