@@ -68,7 +68,11 @@ export default function AdminListingsPage() {
     setNewPriceMillions(listing.priceMillionsNGN ? String(listing.priceMillionsNGN) : '');
     setNewPriceDisplay(listing.priceDisplay || '');
     setSelectedAgentId(listing.assignedAgentId || '');
-    setNewImage(listing.image || '');
+    setNewImage(
+      Array.isArray(listing.images) && listing.images.length > 1
+        ? JSON.stringify(listing.images)
+        : listing.image || ''
+    );
   };
 
   const handleSaveListing = async (e: React.FormEvent) => {

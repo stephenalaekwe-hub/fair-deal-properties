@@ -1,7 +1,49 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { API_BASE_URL } from '@/lib/api';
+
+export function parseImageUrls(val?: string | string[] | null): string[] {
+  if (!val) return [];
+  if (Array.isArray(val)) {
+    return val.map((u) => (typeof u === 'string' ? u.trim() : '')).filter(Boolean);
+  }
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (!trimmed) return [];
+    if (trimmed.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed.map((u) => (typeof u === 'string' ? u.trim() : '')).filter(Boolean);
+        }
+      } catch {
+        // fall through
+      }
+    }
+    if (trimmed.includes('\n')) {
+      return trimmed
+        .split(/\r?\n/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+    return [trimmed];
+  }
+  return [];
+}
+
+export function serializeImageUrls(urls: string[]): string {
+  const clean = urls.map((u) => u.trim()).filter(Boolean);
+  if (clean.length === 0) return '';
+  if (clean.length === 1) return clean[0];
+  return JSON.stringify(clean);
+}
+
+interface PhotoItem {
+  url: string;
+  name?: string;
+  size?: string;
+}
 
 interface ImageUploadProps {
   label?: string;
@@ -12,83 +54,163 @@ interface ImageUploadProps {
 }
 
 export default function ImageUpload({
-  label = 'Upload Photo',
+  label = 'Upload Photo(s)',
   value = '',
   onChange,
-  helperText = 'Pictures only (JPG, PNG, WebP) · Max 15MB. Videos are strictly prohibited.',
-  placeholder = 'Select or drop an image file...',
+  helperText = 'Pictures only (JPG, PNG, WebP) · Max 15MB per photo. You can add one or multiple photos. Videos are strictly prohibited.',
+  placeholder = 'Select or drop one or multiple image files...',
 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
   const [error, setError] = useState('');
-  const [preview, setPreview] = useState(value);
-  const [fileName, setFileName] = useState('');
-  const [fileSize, setFileSize] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [items, setItems] = useState<PhotoItem[]>(() =>
+    parseImageUrls(value).map((url) => ({ url }))
+  );
 
-  const handleFile = async (file: File) => {
-    setError('');
+  const addInputRef = useRef<HTMLInputElement>(null);
+  const replaceInputRef = useRef<HTMLInputElement>(null);
+  const replaceIndexRef = useRef<number | null>(null);
 
-    // Strict client-side check: Block any video format
-    if (file.type.startsWith('video/') || /\.(mp4|mov|avi|mkv|webm|m4v|3gp|wmv|flv)$/i.test(file.name)) {
-      setError('❌ Video files cannot be accepted. Nigerian cadastral and inspection procedures require verified still photographs (PNG, JPG, WebP) of the site, boundary beacons, or survey plan.');
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      return;
+  useEffect(() => {
+    const incomingUrls = parseImageUrls(value);
+    setItems((prev) => {
+      const prevUrls = prev.map((p) => p.url);
+      if (
+        prevUrls.length === incomingUrls.length &&
+        prevUrls.every((u, idx) => u === incomingUrls[idx])
+      ) {
+        return prev;
+      }
+      return incomingUrls.map((url) => {
+        const existing = prev.find((p) => p.url === url);
+        return existing || { url };
+      });
+    });
+  }, [value]);
+
+  const validateAndUploadSingleFile = async (file: File): Promise<PhotoItem | null> => {
+    if (
+      file.type.startsWith('video/') ||
+      /\.(mp4|mov|avi|mkv|webm|m4v|3gp|wmv|flv)$/i.test(file.name)
+    ) {
+      setError(
+        '❌ Video files cannot be accepted. Nigerian cadastral and inspection procedures require verified still photographs (PNG, JPG, WebP) of the site, boundary beacons, or survey plan.'
+      );
+      return null;
     }
 
     if (!file.type.startsWith('image/')) {
       setError('❌ Invalid file format. Please upload an image file (PNG, JPG, WebP).');
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      return;
+      return null;
     }
 
-    // Max 15MB
     if (file.size > 15 * 1024 * 1024) {
-      setError('❌ Image file exceeds 15MB limit. Please select a smaller photo.');
-      return;
+      setError(`❌ "${file.name}" exceeds the 15MB limit. Please select a smaller photo.`);
+      return null;
     }
 
-    const formattedSize = file.size > 1024 * 1024 
-      ? `${(file.size / (1024 * 1024)).toFixed(2)} MB`
-      : `${Math.round(file.size / 1024)} KB`;
-    setFileName(file.name);
-    setFileSize(formattedSize);
+    const formattedSize =
+      file.size > 1024 * 1024
+        ? `${(file.size / (1024 * 1024)).toFixed(2)} MB`
+        : `${Math.round(file.size / 1024)} KB`;
 
+    const fd = new FormData();
+    fd.append('file', file);
+
+    const res = await fetch(`${API_BASE_URL}/upload`, {
+      method: 'POST',
+      body: fd,
+    });
+
+    const json = await res.json();
+
+    if (!res.ok || !json.ok) {
+      setError(json.error || `Failed to upload "${file.name}".`);
+      return null;
+    }
+
+    return {
+      url: json.data.url,
+      name: file.name,
+      size: formattedSize,
+    };
+  };
+
+  const handleAddFiles = async (fileList: FileList | File[]) => {
+    const files = Array.from(fileList);
+    if (files.length === 0) return;
+
+    setError('');
     setUploading(true);
 
     try {
-      const fd = new FormData();
-      fd.append('file', file);
-
-      const res = await fetch(`${API_BASE_URL}/upload`, {
-        method: 'POST',
-        body: fd,
-      });
-
-      const json = await res.json();
-
-      if (!res.ok || !json.ok) {
-        setError(json.error || 'Failed to upload photo.');
-        return;
+      const newlyUploaded: PhotoItem[] = [];
+      for (let i = 0; i < files.length; i++) {
+        setUploadStatus(
+          files.length > 1
+            ? `Uploading photo ${i + 1} of ${files.length}...`
+            : 'Uploading picture to document vault...'
+        );
+        const uploaded = await validateAndUploadSingleFile(files[i]);
+        if (uploaded) {
+          newlyUploaded.push(uploaded);
+        }
       }
 
-      const uploadedUrl = json.data.url;
-      setPreview(uploadedUrl);
-      onChange(uploadedUrl);
+      if (newlyUploaded.length > 0) {
+        const nextItems = [...items, ...newlyUploaded];
+        setItems(nextItems);
+        onChange(serializeImageUrls(nextItems.map((item) => item.url)));
+      }
     } catch (err) {
       console.error('Upload error:', err);
       setError('Network error during picture upload. Please check your connection.');
     } finally {
       setUploading(false);
+      setUploadStatus('');
+      if (addInputRef.current) addInputRef.current.value = '';
     }
   };
 
-  const handleClear = () => {
-    setPreview('');
-    setFileName('');
-    setFileSize('');
+  const handleReplaceFile = async (file: File) => {
+    const targetIdx = replaceIndexRef.current;
+    if (targetIdx === null || targetIdx < 0 || targetIdx >= items.length) return;
+
+    setError('');
+    setUploading(true);
+    setUploadStatus(`Replacing photo #${targetIdx + 1}...`);
+
+    try {
+      const uploaded = await validateAndUploadSingleFile(file);
+      if (uploaded) {
+        const nextItems = items.map((item, idx) => (idx === targetIdx ? uploaded : item));
+        setItems(nextItems);
+        onChange(serializeImageUrls(nextItems.map((item) => item.url)));
+      }
+    } catch (err) {
+      console.error('Replace upload error:', err);
+      setError('Network error during picture replacement. Please check your connection.');
+    } finally {
+      setUploading(false);
+      setUploadStatus('');
+      replaceIndexRef.current = null;
+      if (replaceInputRef.current) replaceInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveIndex = (idxToRemove: number) => {
+    const nextItems = items.filter((_, idx) => idx !== idxToRemove);
+    setItems(nextItems);
+    onChange(serializeImageUrls(nextItems.map((item) => item.url)));
+    setError('');
+  };
+
+  const handleClearAll = () => {
+    setItems([]);
     onChange('');
     setError('');
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (addInputRef.current) addInputRef.current.value = '';
+    if (replaceInputRef.current) replaceInputRef.current.value = '';
   };
 
   return (
@@ -100,101 +222,270 @@ export default function ImageUpload({
       )}
 
       <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            void handleAddFiles(e.dataTransfer.files);
+          }
+        }}
         style={{
           border: '2px dashed #cbd5e1',
           borderRadius: '8px',
-          padding: '16px',
+          padding: '14px',
           background: '#f8fafc',
-          textAlign: 'center',
           transition: 'border-color 0.2s',
           position: 'relative',
         }}
       >
+        {/* Hidden input for adding one or multiple photos */}
         <input
-          ref={fileInputRef}
+          ref={addInputRef}
+          type="file"
+          multiple
+          accept="image/png, image/jpeg, image/webp"
+          onChange={(e) => {
+            if (e.target.files && e.target.files.length > 0) {
+              void handleAddFiles(e.target.files);
+            }
+          }}
+          style={{ display: 'none' }}
+        />
+
+        {/* Hidden input for replacing a single specific photo */}
+        <input
+          ref={replaceInputRef}
           type="file"
           accept="image/png, image/jpeg, image/webp"
           onChange={(e) => {
             const f = e.target.files?.[0];
-            if (f) void handleFile(f);
+            if (f) void handleReplaceFile(f);
           }}
           style={{ display: 'none' }}
-          id="photo-upload-input"
         />
 
-        {preview ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', textAlign: 'left' }}>
-            <img
-              src={preview}
-              alt="Uploaded evidence preview"
-              style={{
-                width: '72px',
-                height: '72px',
-                objectFit: 'cover',
-                borderRadius: '6px',
-                border: '1px solid #cbd5e1',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                flexShrink: 0,
-              }}
-            />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--forest)' }}>
-                ✓ Photograph attached successfully
-              </div>
-              <div style={{ fontSize: '12px', color: '#64748b', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '300px' }}>
-                  {fileName || (preview.startsWith('data:') ? 'Site survey evidence photo' : preview)}
-                </span>
-                {fileSize && <span style={{ color: '#94a3b8', fontSize: '11px', flexShrink: 0 }}>({fileSize})</span>}
-              </div>
-              <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  style={{
-                    padding: '4px 10px',
-                    fontSize: '11.5px',
-                    background: '#e2e8f0',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontWeight: 500,
-                  }}
-                >
-                  Replace photo
-                </button>
-                <button
-                  type="button"
-                  onClick={handleClear}
-                  style={{
-                    padding: '4px 10px',
-                    fontSize: '11.5px',
-                    background: '#fee2e2',
-                    color: '#991b1b',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontWeight: 500,
-                  }}
-                >
-                  Remove
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : (
+        {items.length > 0 ? (
           <div>
-            <div style={{ fontSize: '24px', marginBottom: '6px' }}>📸</div>
-            <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-              {uploading ? 'Uploading picture to document vault...' : placeholder}
+            {/* Top summary & Add More action bar */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '10px',
+                paddingBottom: '8px',
+                borderBottom: '1px solid #e2e8f0',
+                flexWrap: 'wrap',
+                gap: '8px',
+              }}
+            >
+              <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--forest)' }}>
+                ✓ {items.length} {items.length === 1 ? 'Photograph' : 'Photographs'} attached
+              </div>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  disabled={uploading}
+                  onClick={() => addInputRef.current?.click()}
+                  style={{
+                    padding: '5px 12px',
+                    fontSize: '11.5px',
+                    background: 'var(--forest)',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '5px',
+                    cursor: uploading ? 'not-allowed' : 'pointer',
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  <span>+</span>
+                  <span>{uploading ? 'Uploading…' : 'Add Photo(s)'}</span>
+                </button>
+                {items.length > 1 && (
+                  <button
+                    type="button"
+                    disabled={uploading}
+                    onClick={handleClearAll}
+                    style={{
+                      padding: '5px 10px',
+                      fontSize: '11px',
+                      background: '#fee2e2',
+                      color: '#991b1b',
+                      border: 'none',
+                      borderRadius: '5px',
+                      cursor: uploading ? 'not-allowed' : 'pointer',
+                      fontWeight: 600,
+                    }}
+                  >
+                    Remove All
+                  </button>
+                )}
+              </div>
             </div>
-            <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 12px 0' }}>
-              {helperText}
-            </p>
+
+            {/* List of attached photos */}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+                maxHeight: '240px',
+                overflowY: 'auto',
+                paddingRight: '2px',
+              }}
+            >
+              {items.map((item, idx) => (
+                <div
+                  key={`${idx}-${item.url.slice(0, 36)}`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    textAlign: 'left',
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '6px',
+                    padding: '8px 10px',
+                  }}
+                >
+                  <img
+                    src={item.url}
+                    alt={`Attached evidence photo ${idx + 1}`}
+                    style={{
+                      width: '60px',
+                      height: '60px',
+                      objectFit: 'cover',
+                      borderRadius: '5px',
+                      border: '1px solid #cbd5e1',
+                      flexShrink: 0,
+                    }}
+                  />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#1e293b' }}>
+                      Photo #{idx + 1}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '11.5px',
+                        color: '#64748b',
+                        marginTop: '2px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontWeight: 500,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          maxWidth: '220px',
+                        }}
+                      >
+                        {item.name ||
+                          (item.url.startsWith('data:')
+                            ? `Site survey evidence photo #${idx + 1}`
+                            : item.url)}
+                      </span>
+                      {item.size && (
+                        <span style={{ color: '#94a3b8', fontSize: '11px', flexShrink: 0 }}>
+                          ({item.size})
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                    <button
+                      type="button"
+                      disabled={uploading}
+                      onClick={() => {
+                        replaceIndexRef.current = idx;
+                        replaceInputRef.current?.click();
+                      }}
+                      style={{
+                        padding: '4px 9px',
+                        fontSize: '11px',
+                        background: '#e2e8f0',
+                        color: '#334155',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: uploading ? 'not-allowed' : 'pointer',
+                        fontWeight: 600,
+                      }}
+                    >
+                      Replace
+                    </button>
+                    <button
+                      type="button"
+                      disabled={uploading}
+                      onClick={() => handleRemoveIndex(idx)}
+                      style={{
+                        padding: '4px 9px',
+                        fontSize: '11px',
+                        background: '#fee2e2',
+                        color: '#991b1b',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: uploading ? 'not-allowed' : 'pointer',
+                        fontWeight: 600,
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Bottom button to easily add another photo */}
             <button
               type="button"
               disabled={uploading}
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => addInputRef.current?.click()}
+              style={{
+                marginTop: '10px',
+                width: '100%',
+                padding: '8px 12px',
+                background: '#ecfdf5',
+                color: 'var(--forest)',
+                border: '1px dashed #10b981',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: uploading ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+              }}
+            >
+              <span>📸</span>
+              <span>
+                {uploading
+                  ? uploadStatus || 'Uploading photo(s)...'
+                  : '+ Add Another Photo (or Select Multiple)'}
+              </span>
+            </button>
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '6px 0' }}>
+            <div style={{ fontSize: '24px', marginBottom: '6px' }}>📸</div>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+              {uploading ? uploadStatus || 'Uploading picture to document vault...' : placeholder}
+            </div>
+            <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 12px 0' }}>{helperText}</p>
+            <button
+              type="button"
+              disabled={uploading}
+              onClick={() => addInputRef.current?.click()}
               style={{
                 padding: '7px 16px',
                 background: 'var(--forest)',
@@ -207,7 +498,7 @@ export default function ImageUpload({
                 letterSpacing: '0.02em',
               }}
             >
-              {uploading ? 'Uploading…' : 'Select Photo from Device'}
+              {uploading ? 'Uploading…' : 'Select Photo(s) from Device'}
             </button>
           </div>
         )}

@@ -231,8 +231,28 @@ export async function getLiveListingBySlug(slug: string): Promise<Listing | null
 function mapListingRow(row: any): Listing {
   const assignedAgentId = row.assignedAgentId || null;
   const assignedAgentName = row.assignedAgentName || null;
+  let images: string[] = [];
+  if (typeof row.image === 'string') {
+    const trimmed = row.image.trim();
+    if (trimmed.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          images = parsed.filter((u) => typeof u === 'string' && u.trim().length > 0);
+        }
+      } catch {
+        images = [trimmed];
+      }
+    } else if (trimmed) {
+      images = [trimmed];
+    }
+  }
+  const primaryImage = images[0] || '/assets/illustrations/i0.svg';
+
   return {
     ...row,
+    image: primaryImage,
+    images,
     priceMillionsNGN: row.priceMillionsNGN ? parseFloat(row.priceMillionsNGN) : null,
     badges: typeof row.badges === 'string' ? JSON.parse(row.badges) : (row.badges || []),
     tags: typeof row.tags === 'string' ? JSON.parse(row.tags) : (row.tags || []),
@@ -711,7 +731,7 @@ export async function updateLiveInspectionStage(
          END,
          notes = CASE WHEN $3::text IS NOT NULL THEN $3 ELSE notes END,
          officer_name = CASE WHEN $4::text IS NOT NULL AND $4 != '' THEN $4 ELSE officer_name END,
-         report_url = CASE WHEN $5::text IS NOT NULL AND $5 != '' THEN $5 ELSE report_url END,
+         report_url = CASE WHEN $5::text IS NOT NULL THEN $5 ELSE report_url END,
          updated_at = now()
      WHERE id::text = $1 OR reference = $1 RETURNING *`,
     [

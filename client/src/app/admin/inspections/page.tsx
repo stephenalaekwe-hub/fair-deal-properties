@@ -308,10 +308,12 @@ export default function AdminInspectionsPage() {
             style={{
               background: '#ffffff',
               borderRadius: '10px',
-              maxWidth: '560px',
+              maxWidth: '580px',
               width: '100%',
               padding: '28px',
               boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+              maxHeight: '90vh',
+              overflowY: 'auto',
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -424,11 +426,11 @@ export default function AdminInspectionsPage() {
               </div>
 
               <ImageUpload
-                label="Site Inspection Photo / Evidence Dossier"
+                label="Site Inspection Photo(s) / Evidence Dossier"
                 value={reportUrl}
                 onChange={(url) => setReportUrl(url)}
-                placeholder="Click or drag to upload inspection evidence photo..."
-                helperText="Pictures only (JPG, PNG, WebP) · Max 15MB. Videos are strictly not accepted."
+                placeholder="Click or drag to upload one or multiple inspection evidence photos..."
+                helperText="Pictures only (JPG, PNG, WebP) · Max 15MB per photo. Add one or multiple photos. Videos are strictly not accepted."
               />
 
               <div style={{ marginBottom: '20px' }}>
