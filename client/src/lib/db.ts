@@ -587,6 +587,7 @@ export async function getLiveInspectionByRef(reference: string): Promise<any | n
             COALESCE(i.notes, '') as notes, 
             COALESCE(i.status, s.status, 'in_progress') as status,
             COALESCE(i.outcome, s.outcome, '') as outcome,
+            COALESCE(i.current_step_done, false) as "currentStepDone",
             i.created_at as "createdAt",
             COALESCE(i.updated_at, s.closed_at, i.created_at) as "updatedAt",
             CASE 
@@ -646,7 +647,9 @@ export async function getLiveInspectionByRef(reference: string): Promise<any | n
 
   const effectiveStage = Math.max(1, Math.min(9, Number(row.stage) || 1));
   const isCompleted = effectiveStage >= 9;
-  const currentStepDone = Boolean(row.outcome || (row.status === 'closed' || row.status === 'resolved'));
+  const currentStepDone = row.currentStepDone !== undefined
+    ? Boolean(row.currentStepDone)
+    : Boolean(row.outcome || (row.status === 'closed' || row.status === 'resolved'));
   const officerMessage = extractActualNote(cleanNotes, row.outcome);
 
   return {
@@ -672,7 +675,9 @@ export async function updateLiveInspectionStage(
   notes?: string,
   officerName?: string,
   reportUrl?: string,
-  markStepDone?: boolean
+  markStepDone?: boolean,
+  assignedAgentId?: string | null,
+  assignedAgentName?: string | null
 ): Promise<any> {
   const p = getDbPool();
   if (!p) {
@@ -683,6 +688,7 @@ export async function updateLiveInspectionStage(
       officerName: officerName || '',
       reportUrl: reportUrl || '',
       currentStepDone: Boolean(markStepDone),
+      assignedAgentId: assignedAgentId || null,
       message: 'Inspection stage and notes updated successfully.',
     };
   }
@@ -690,6 +696,9 @@ export async function updateLiveInspectionStage(
   try {
     await p.query(`
       ALTER TABLE inspections 
+      ADD COLUMN IF NOT EXISTS assigned_agent text,
+      ADD COLUMN IF NOT EXISTS assigned_agent_id text,
+      ADD COLUMN IF NOT EXISTS agent_id text,
       ADD COLUMN IF NOT EXISTS report_url text,
       ADD COLUMN IF NOT EXISTS officer_name text,
       ADD COLUMN IF NOT EXISTS current_step_done boolean DEFAULT false,
@@ -712,6 +721,9 @@ export async function updateLiveInspectionStage(
     ? Boolean(markStepDone) 
     : (stageChanged ? false : undefined);
 
+  const shouldUpdateAgentId = assignedAgentId !== undefined;
+  const shouldUpdateAgentName = assignedAgentName !== undefined;
+
   const res = await p.query(
     `UPDATE inspections
      SET stage = $2,
@@ -726,12 +738,16 @@ export async function updateLiveInspectionStage(
          END,
          outcome = CASE 
            WHEN $6::boolean = true THEN COALESCE($3, notes)
+           WHEN $6::boolean = false THEN NULL
            WHEN stage != $2 THEN NULL 
            ELSE outcome 
          END,
          notes = CASE WHEN $3::text IS NOT NULL THEN $3 ELSE notes END,
          officer_name = CASE WHEN $4::text IS NOT NULL AND $4 != '' THEN $4 ELSE officer_name END,
          report_url = CASE WHEN $5::text IS NOT NULL THEN $5 ELSE report_url END,
+         assigned_agent_id = CASE WHEN $7::boolean = true THEN $8::text ELSE assigned_agent_id END,
+         agent_id = CASE WHEN $7::boolean = true THEN $8::text ELSE agent_id END,
+         assigned_agent = CASE WHEN $9::boolean = true THEN $10::text WHEN $4::text IS NOT NULL AND $4 != '' THEN $4 ELSE assigned_agent END,
          updated_at = now()
      WHERE id::text = $1 OR reference = $1 RETURNING *`,
     [
@@ -740,18 +756,32 @@ export async function updateLiveInspectionStage(
       notes !== undefined ? notes : null,
       officerName ?? null,
       reportUrl ?? null,
-      effectiveStepDone !== undefined ? effectiveStepDone : null
+      effectiveStepDone !== undefined ? effectiveStepDone : null,
+      shouldUpdateAgentId,
+      assignedAgentId ?? null,
+      shouldUpdateAgentName,
+      assignedAgentName ?? officerName ?? null,
     ]
   );
 
-  // If stage changed, also reset outcome in submissions table so next stage starts fresh
+  // Sync submissions table if matching reference exists
   try {
     if (res.rows[0]?.reference) {
       await p.query(
         `UPDATE submissions 
-         SET status = 'in_progress', outcome = NULL 
+         SET status = CASE WHEN $2 >= 9 THEN 'closed' ELSE 'in_progress' END,
+             outcome = CASE WHEN $3::boolean = true THEN outcome ELSE NULL END,
+             assigned_agent_id = COALESCE($4::text, assigned_agent_id),
+             assigned_agent = COALESCE($5::text, assigned_agent),
+             updated_at = now()
          WHERE reference = $1`,
-        [res.rows[0].reference]
+        [
+          res.rows[0].reference,
+          stage,
+          Boolean(effectiveStepDone),
+          assignedAgentId || null,
+          assignedAgentName || officerName || null,
+        ]
       );
     }
   } catch (subResetErr) {}

@@ -83,8 +83,12 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
       } catch (err) {}
     };
     fetchCounts();
-    const interval = setInterval(fetchCounts, 20000);
-    return () => clearInterval(interval);
+    const interval = setInterval(fetchCounts, 10000);
+    window.addEventListener('focus', fetchCounts);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', fetchCounts);
+    };
   }, [user, userKey, activeSectionKey]);
 
   const handleLogout = async () => {

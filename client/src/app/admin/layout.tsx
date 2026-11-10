@@ -96,8 +96,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       } catch (err) {}
     };
     fetchCounts();
-    const interval = setInterval(fetchCounts, 20000);
-    return () => clearInterval(interval);
+    const interval = setInterval(fetchCounts, 10000);
+    window.addEventListener('focus', fetchCounts);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', fetchCounts);
+    };
   }, [user, isAgent, userKey, activeSectionKey]);
 
   const handleLogout = async () => {

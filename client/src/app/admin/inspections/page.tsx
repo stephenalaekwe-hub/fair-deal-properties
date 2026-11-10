@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { fetchApi } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
-import ImageUpload from '@/components/ImageUpload';
+import ImageUpload, { parseImageUrls } from '@/components/ImageUpload';
 import { STAGES } from '@/data/pipeline';
 
 export default function AdminInspectionsPage() {
@@ -30,8 +30,8 @@ export default function AdminInspectionsPage() {
     return '';
   });
 
-  const loadData = async (filterId = filterAgentId) => {
-    setLoading(true);
+  const loadData = async (filterId = filterAgentId, silent = false) => {
+    if (!silent) setLoading(true);
     if (isAgent) {
       const insRes = await fetchApi('/admin/inspections');
       if (insRes.ok && insRes.data) setInspections(insRes.data);
@@ -44,18 +44,38 @@ export default function AdminInspectionsPage() {
       if (insRes.ok && insRes.data) setInspections(insRes.data);
       if (agentsRes.ok && agentsRes.data) setAgents(agentsRes.data);
     }
-    setLoading(false);
+    if (!silent) setLoading(false);
   };
 
   useEffect(() => {
     loadData(filterAgentId);
+    const interval = setInterval(() => loadData(filterAgentId, true), 8000);
+    const onFocus = () => loadData(filterAgentId, true);
+    window.addEventListener('focus', onFocus);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+    };
   }, [user, filterAgentId]);
 
   const openUpdateModal = (ins: any) => {
     setActiveModal(ins);
-    setStage(ins.stage);
-    const agId = ins.assignedAgentId || ins.assignedAgent?.id || '';
-    setAssignedAgentId(agId);
+    // If the field officer already completed the current stage, default the stage selector to the next stage so "Save & Dispatch Updates" dispatches the next stage immediately
+    const nextDefaultStage = !isAgent && ins.currentStepDone && ins.stage < 9 ? Number(ins.stage) + 1 : Number(ins.stage);
+    setStage(nextDefaultStage);
+    const rawAgId = ins.assignedAgentId || ins.assignedAgent?.id || '';
+    const rawAgName = (ins.assignedAgent?.name || ins.officerName || '').split('(')[0].trim().toLowerCase();
+    const matchedAgent = agents.find((a) => {
+      if (rawAgId && a.id === rawAgId) return true;
+      const candName = (a.name || '').split('(')[0].trim().toLowerCase();
+      if (rawAgName && candName && (candName === rawAgName || candName.includes(rawAgName) || rawAgName.includes(candName))) {
+        return true;
+      }
+      const rawFirst = rawAgName.split(/\s+/)[0];
+      const candFirst = candName.split(/\s+/)[0];
+      return Boolean(rawFirst && rawFirst.length >= 3 && rawFirst === candFirst);
+    });
+    setAssignedAgentId(matchedAgent ? matchedAgent.id : rawAgId);
     setOfficerName(ins.officerName || ins.assignedAgent?.name || (isAgent ? (user?.name || '') : ''));
 
     let cleanNotes = ins.notes || '';
@@ -78,31 +98,22 @@ export default function AdminInspectionsPage() {
 
     const selectedAgent = agents.find((ag) => ag.id === assignedAgentId);
     const finalOfficerName = officerName || selectedAgent?.name || (isAgent ? (user?.name || '') : '');
+    const targetStage = Number(stage);
 
-    // 1. Update stage and details
+    // 1. Update stage, officer, agent assignment, photos, and notes atomically
     await fetchApi(`/admin/inspections/${activeModal.id}/stage`, {
       method: 'PATCH',
       body: JSON.stringify({
-        stage: Number(stage),
+        stage: targetStage,
         officerName: finalOfficerName,
+        assignedAgentId: !isAgent ? (assignedAgentId || null) : undefined,
+        assignedAgentName: !isAgent ? (selectedAgent?.name || finalOfficerName || null) : undefined,
         reportUrl,
         notes,
         notifyClient,
+        markStepDone: isAgent ? true : (targetStage >= 9 ? true : false),
       }),
     });
-
-    // 2. Update assigned agent if changed (Admin/SuperAdmin only)
-    const currentAssignedId = activeModal.assignedAgentId || activeModal.assignedAgent?.id || '';
-    if (!isAgent && assignedAgentId !== currentAssignedId) {
-      await fetchApi(`/admin/inspections/${activeModal.id}/assign-agent`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          agentId: assignedAgentId || null,
-          agentName: selectedAgent?.name || null,
-          officerName: finalOfficerName || null,
-        }),
-      });
-    }
 
     setActiveModal(null);
     setSubmitting(false);
@@ -112,12 +123,17 @@ export default function AdminInspectionsPage() {
   const handleAdvanceToNextStage = async (ins: any) => {
     if (!ins || ins.stage >= 9) return;
     setSubmitting(true);
+    const selectedAgent = agents.find((ag) => ag.id === assignedAgentId);
+    const finalOfficerName = officerName || selectedAgent?.name || ins.officerName || '';
     await fetchApi(`/admin/inspections/${ins.id}/stage`, {
       method: 'PATCH',
       body: JSON.stringify({
         stage: Number(ins.stage) + 1,
-        officerName: ins.officerName || (agents.find((a) => a.id === assignedAgentId)?.name) || '',
-        notes: '',
+        officerName: finalOfficerName,
+        assignedAgentId: !isAgent ? (assignedAgentId || ins.assignedAgentId || null) : undefined,
+        assignedAgentName: !isAgent ? (selectedAgent?.name || finalOfficerName || null) : undefined,
+        reportUrl: reportUrl !== undefined ? reportUrl : undefined,
+        notes: notes !== undefined ? notes : '',
         notifyClient: true,
         markStepDone: false,
       }),
@@ -190,7 +206,25 @@ export default function AdminInspectionsPage() {
                   return (
                     <tr key={ins.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '14px 16px', fontWeight: 700, color: 'var(--forest)' }}>
-                        {ins.reference}
+                        <div>{ins.reference}</div>
+                        {parseImageUrls(ins.reportUrl).length > 0 && (
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              marginTop: '4px',
+                              fontSize: '10.5px',
+                              fontWeight: 600,
+                              color: '#047857',
+                              background: '#ecfdf5',
+                              border: '1px solid #a7f3d0',
+                              borderRadius: '4px',
+                              padding: '1px 6px',
+                            }}
+                          >
+                            📸 {parseImageUrls(ins.reportUrl).length}{' '}
+                            {parseImageUrls(ins.reportUrl).length === 1 ? 'photo' : 'photos'}
+                          </span>
+                        )}
                       </td>
                       <td style={{ padding: '14px 16px' }}>
                         <div style={{ fontWeight: 600 }}>{ins.clientName}</div>

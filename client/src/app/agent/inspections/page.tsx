@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { fetchApi } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
-import ImageUpload from '@/components/ImageUpload';
+import ImageUpload, { parseImageUrls } from '@/components/ImageUpload';
 import { STAGES } from '@/data/pipeline';
 
 export default function AgentInspectionsPage() {
@@ -20,20 +20,27 @@ export default function AgentInspectionsPage() {
   const [notes, setNotes] = useState('');
   const [notifyClient, setNotifyClient] = useState(true);
 
-  const loadData = async () => {
+  const loadData = async (silent = false) => {
     if (!user) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     const agentKey = user.id || user.email || user.name || '';
     const qs = agentKey ? `?agentId=${encodeURIComponent(agentKey)}` : '';
     const insRes = await fetchApi(`/admin/inspections${qs}`);
     if (insRes.ok && insRes.data) {
       setInspections(insRes.data);
     }
-    setLoading(false);
+    if (!silent) setLoading(false);
   };
 
   useEffect(() => {
     loadData();
+    const interval = setInterval(() => loadData(true), 8000);
+    const onFocus = () => loadData(true);
+    window.addEventListener('focus', onFocus);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+    };
   }, [user]);
 
   const openUpdateModal = (ins: any) => {
@@ -64,6 +71,8 @@ export default function AgentInspectionsPage() {
       body: JSON.stringify({
         stage: Number(activeModal.stage),
         officerName: user?.name || officerName,
+        assignedAgentId: user?.id || undefined,
+        assignedAgentName: user?.name || officerName || undefined,
         reportUrl,
         notes,
         notifyClient,
@@ -111,7 +120,34 @@ export default function AgentInspectionsPage() {
                     return (
                       <tr key={ins.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '14px 16px', fontWeight: 700, color: 'var(--forest)' }}>
-                          {ins.reference}
+                          <div>{ins.reference}</div>
+                          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' }}>
+                            {(ins.assignedAgent?.name || ins.officerName || ins.assignedAgentId) ? (
+                              <span style={{ fontSize: '10px', fontWeight: 600, color: '#0369a1', background: '#e0f2fe', padding: '2px 6px', borderRadius: '4px' }}>
+                                👤 Assigned to You
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: '10px', fontWeight: 600, color: '#b45309', background: '#fef3c7', padding: '2px 6px', borderRadius: '4px' }}>
+                                ⚡ Open Queue
+                              </span>
+                            )}
+                            {parseImageUrls(ins.reportUrl).length > 0 && (
+                              <span
+                                style={{
+                                  fontSize: '10px',
+                                  fontWeight: 600,
+                                  color: '#047857',
+                                  background: '#ecfdf5',
+                                  border: '1px solid #a7f3d0',
+                                  borderRadius: '4px',
+                                  padding: '1px 6px',
+                                }}
+                              >
+                                📸 {parseImageUrls(ins.reportUrl).length}{' '}
+                                {parseImageUrls(ins.reportUrl).length === 1 ? 'photo' : 'photos'}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td style={{ padding: '14px 16px' }}>
                           <div style={{ fontWeight: 600 }}>{ins.clientName}</div>
@@ -173,6 +209,11 @@ export default function AgentInspectionsPage() {
                               <div style={{ fontSize: '11px', color: '#0284c7', marginTop: '3px', fontWeight: 600 }}>
                                 ● Work In Progress (Officer Action Required)
                               </div>
+                              {(ins.officerMessage || ins.notes) && (
+                                <div style={{ fontSize: '11px', color: '#475569', marginTop: '3px', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  📝 {ins.officerMessage || ins.notes}
+                                </div>
+                              )}
                             </div>
                           )}
                         </td>
