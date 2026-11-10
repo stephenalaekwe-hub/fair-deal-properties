@@ -17,21 +17,12 @@ export default function AgentConsultationsPage() {
   const [saving, setSaving] = useState(false);
 
   const loadData = async () => {
+    if (!user) return;
     setLoading(true);
-    const subRes = await fetchApi('/admin/submissions?collection=contact');
-    if (subRes.ok && subRes.data && user) {
-      // Filter consultations strictly assigned to this agent
-      const list = subRes.data.filter((s: any) => {
-        const agId = s.assignedAgentId || s.payload?.assignedAgentId;
-        const agName = s.assignedAgent?.name || s.assignedAgentName || s.payload?.assignedAgent;
-        const agEmail = s.assignedAgent?.email;
-        return (
-          agId === user.id ||
-          (agEmail && agEmail.toLowerCase() === user.email?.toLowerCase()) ||
-          (agName && agName.toLowerCase() === user.name?.toLowerCase())
-        );
-      });
-      setConsultations(list);
+    const agentKey = user.id || user.email || user.name || '';
+    const subRes = await fetchApi(`/admin/submissions?collection=contact&agentId=${encodeURIComponent(agentKey)}`);
+    if (subRes.ok && subRes.data) {
+      setConsultations(subRes.data);
     }
     setLoading(false);
   };
@@ -51,6 +42,17 @@ export default function AgentConsultationsPage() {
     e.preventDefault();
     if (!activeModal) return;
     setSaving(true);
+
+    // If consultation was in open queue (unassigned), claim it for this field officer
+    if (!activeModal.assignedAgentId && user?.id) {
+      await fetchApi(`/admin/submissions/${activeModal.id}/assign-agent`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          agentId: user.id,
+          agentName: user.name || 'Field Officer',
+        }),
+      }).catch(() => {});
+    }
 
     const closeRes = await fetchApi(`/admin/submissions/${activeModal.id}/close`, {
       method: 'PATCH',

@@ -299,29 +299,134 @@ const defaultInspections = [
   },
 ];
 
+export interface ResolvedAgentProfile {
+  ids: Set<string>;
+  emails: Set<string>;
+  baseNames: Set<string>;
+  firstNames: Set<string>;
+}
+
+export async function resolveAgentProfile(p: Pool | null, agentId?: string): Promise<ResolvedAgentProfile | null> {
+  if (!agentId || !agentId.trim()) return null;
+  const raw = agentId.trim();
+  const norm = raw.toLowerCase();
+
+  const ids = new Set<string>([norm]);
+  const emails = new Set<string>();
+  const baseNames = new Set<string>();
+  const firstNames = new Set<string>();
+
+  const addName = (n?: string | null) => {
+    if (!n) return;
+    const clean = n.split('(')[0].trim().toLowerCase();
+    if (!clean) return;
+    baseNames.add(clean);
+    const first = clean.split(/\s+/)[0];
+    if (first && first.length >= 3) {
+      firstNames.add(first);
+    }
+  };
+
+  const testAgents = getTestAgents();
+  for (const ta of testAgents) {
+    const tid = ta.id.toLowerCase();
+    const temail = ta.email.toLowerCase();
+    const tbase = ta.name.split('(')[0].trim().toLowerCase();
+    if (tid === norm || temail === norm || tbase === norm) {
+      ids.add(tid);
+      emails.add(temail);
+      addName(ta.name);
+    }
+  }
+
+  if (p) {
+    try {
+      const uRes = await p.query(
+        `SELECT id, name, email FROM users WHERE id::text = $1 OR LOWER(email) = $2 OR LOWER(name) = $2 LIMIT 5`,
+        [raw, norm]
+      );
+      for (const row of uRes.rows) {
+        if (row.id) ids.add(String(row.id).toLowerCase());
+        if (row.email) emails.add(String(row.email).toLowerCase());
+        addName(row.name);
+      }
+
+      // Cross-match with testAgents by discovered email or firstName
+      for (const ta of testAgents) {
+        const temail = ta.email.toLowerCase();
+        const tbase = ta.name.split('(')[0].trim().toLowerCase();
+        const tfirst = tbase.split(/\s+/)[0];
+        if (emails.has(temail) || baseNames.has(tbase) || (tfirst && firstNames.has(tfirst))) {
+          ids.add(ta.id.toLowerCase());
+          emails.add(temail);
+          addName(ta.name);
+        }
+      }
+
+      // Also cross-match DB users if agentId was a testAgent ID like 'agent-fallback-01'
+      if (emails.size > 0) {
+        const emailArr = Array.from(emails);
+        const dbByEmail = await p.query(
+          `SELECT id, name, email FROM users WHERE LOWER(email) = ANY($1::text[])`,
+          [emailArr]
+        );
+        for (const row of dbByEmail.rows) {
+          if (row.id) ids.add(String(row.id).toLowerCase());
+          addName(row.name);
+        }
+      }
+    } catch {
+      // Ignore lookup warning
+    }
+  }
+
+  return { ids, emails, baseNames, firstNames };
+}
+
+export function matchesAgentRecord(
+  item: {
+    assignedAgentId?: string | null;
+    assignedAgentName?: string | null;
+    officerName?: string | null;
+    assignedAgent?: { id?: string | null; name?: string | null; email?: string | null } | null;
+  },
+  profile: ResolvedAgentProfile | null,
+  includeUnassigned: boolean = true
+): boolean {
+  if (!profile) return true;
+
+  const recId = (item.assignedAgentId || item.assignedAgent?.id || '').trim().toLowerCase();
+  const recEmail = (item.assignedAgent?.email || '').trim().toLowerCase();
+  const recName = (item.assignedAgentName || item.officerName || item.assignedAgent?.name || '').trim().toLowerCase();
+  const recBase = recName.split('(')[0].trim();
+  const recFirst = recBase.split(/\s+/)[0];
+
+  // If record has no assigned agent yet, include it if includeUnassigned is true
+  if (!recId && !recName && !recEmail) {
+    return includeUnassigned;
+  }
+
+  if (recId && profile.ids.has(recId)) return true;
+  if (recEmail && profile.emails.has(recEmail)) return true;
+  if (recBase && profile.baseNames.has(recBase)) return true;
+  if (recFirst && recFirst.length >= 3 && profile.firstNames.has(recFirst)) return true;
+  for (const bn of profile.baseNames) {
+    if (bn && recName.includes(bn)) return true;
+  }
+
+  return false;
+}
+
 export async function getLiveInspections(agentId?: string): Promise<any[]> {
   const p = getDbPool();
+  const profile = agentId ? await resolveAgentProfile(p, agentId) : null;
+
   if (!p) {
-    if (agentId) return defaultInspections.filter((i) => i.assignedAgentId === agentId);
+    if (profile) return defaultInspections.filter((i) => matchesAgentRecord(i, profile, true));
     return defaultInspections;
   }
 
-  try {
-    await p.query(`
-      ALTER TABLE inspections 
-      ADD COLUMN IF NOT EXISTS assigned_agent text,
-      ADD COLUMN IF NOT EXISTS assigned_agent_id text,
-      ADD COLUMN IF NOT EXISTS agent_id text,
-      ADD COLUMN IF NOT EXISTS report_url text,
-      ADD COLUMN IF NOT EXISTS officer_name text,
-      ADD COLUMN IF NOT EXISTS current_step_done boolean DEFAULT false,
-      ADD COLUMN IF NOT EXISTS status text,
-      ADD COLUMN IF NOT EXISTS outcome text,
-      ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone;
-    `);
-  } catch (e) {
-    // Ignore schema errors
-  }
+  await ensureSchemaColumns(p);
 
   const sql = `
     SELECT i.id, i.reference, 
@@ -349,11 +454,10 @@ export async function getLiveInspections(agentId?: string): Promise<any[]> {
            END as "assignedAgent"
     FROM inspections i
     LEFT JOIN users u ON u.id::text = COALESCE(i.assigned_agent_id, i.agent_id)
-    WHERE ($1::text IS NULL OR $1 = '' OR COALESCE(i.assigned_agent_id, i.agent_id) = $1 OR i.assigned_agent = $1)
     ORDER BY i.created_at DESC
   `;
-  const res = await p.query(sql, [agentId || null]);
-  return res.rows.map((row) => {
+  const res = await p.query(sql);
+  const mapped = res.rows.map((row) => {
     const assignedAgentId = row.assignedAgentId || row.assignedAgent?.id || null;
     const assignedAgentName = row.assignedAgent?.name || row.officerName || null;
     let cleanNotes = row.notes || '';
@@ -378,6 +482,12 @@ export async function getLiveInspections(agentId?: string): Promise<any[]> {
       } : null,
     };
   });
+
+  const baseList = mapped.length > 0 ? mapped : defaultInspections;
+  if (profile) {
+    return baseList.filter((ins) => matchesAgentRecord(ins, profile, true));
+  }
+  return baseList;
 }
 
 export function extractActualNote(notes?: string | null, outcome?: string | null): string | null {
@@ -750,49 +860,62 @@ export async function getLiveNotificationCounts(
       return p.query(baseSql, extraParams).catch(() => ({ rows: [{ count: '0' }] }));
     };
 
-    const agentParams = isAgent && agentId ? [agentId] : [];
+    // If agent portal, compute counts using resolveAgentProfile-aware helpers so UUID, fallback IDs, officer names, and open queue items all match consistently
+    if (isAgent) {
+      const [agentConsults, agentEnquiries, agentInspections] = await Promise.all([
+        getLiveSubmissions('contact', agentId).catch(() => []),
+        getLiveSubmissions('enquiry', agentId).catch(() => []),
+        getLiveInspections(agentId).catch(() => []),
+      ]);
 
-    // 1. Consultations
-    const consultBase =
-      isAgent && agentId
-        ? `SELECT count(*) FROM submissions WHERE collection = 'contact' AND closed_at IS NULL AND (assigned_agent_id = $1 OR payload->>'assignedAgentId' = $1)`
-        : `SELECT count(*) FROM submissions WHERE collection = 'contact' AND closed_at IS NULL`;
+      const countUnseen = (sec: string, items: any[], getTs: (item: any) => string | null | undefined) => {
+        if (currentActive === sec) return 0;
+        const seenAt = seenMap[sec];
+        if (!seenAt) return items.length;
+        const seenTime = new Date(seenAt).getTime();
+        return items.filter((it) => {
+          const ts = getTs(it);
+          return ts ? new Date(ts).getTime() > seenTime : false;
+        }).length;
+      };
 
-    // 2. Property Enquiries
-    const enquiryBase =
-      isAgent && agentId
-        ? `SELECT count(*) FROM submissions WHERE collection = 'enquiry' AND closed_at IS NULL AND (assigned_agent_id = $1 OR payload->>'assignedAgentId' = $1)`
-        : `SELECT count(*) FROM submissions WHERE collection = 'enquiry' AND closed_at IS NULL`;
+      const openConsults = agentConsults.filter((s: any) => !s.closedAt && s.status !== 'closed');
+      const openEnquiries = agentEnquiries.filter((s: any) => !s.closedAt && s.status !== 'closed');
+      const openInspections = agentInspections.filter((i: any) => (Number(i.stage) || 1) < 9 && !i.currentStepDone);
 
-    // 3. Physical Inspections
-    const insBase =
-      isAgent && agentId
-        ? `SELECT count(*) FROM inspections WHERE stage < 9 AND (COALESCE(assigned_agent_id, agent_id) = $1 OR assigned_agent = $1) AND NOT COALESCE(current_step_done, false)`
-        : `SELECT count(*) FROM inspections WHERE stage < 9`;
+      const lRes = await buildQuery(
+        'listings',
+        agentId ? `SELECT count(*) FROM listings WHERE assigned_agent_id = $1` : `SELECT count(*) FROM listings WHERE true`,
+        'COALESCE(updated_at, created_at)',
+        agentId ? [agentId] : []
+      );
 
-    // 4. Compliance / DSR (Admin only)
+      return {
+        consultations: countUnseen('consultations', openConsults, (s) => s.updatedAt || s.receivedAt || s.createdAt),
+        enquiries: countUnseen('enquiries', openEnquiries, (s) => s.updatedAt || s.receivedAt || s.createdAt),
+        inspections: countUnseen('inspections', openInspections, (i) => i.updatedAt || i.createdAt),
+        compliance: 0,
+        listings: parseInt(lRes.rows[0]?.count || '0', 10),
+        agents: 0,
+        rates: 0,
+      };
+    }
+
+    // Admin portal queries
+    const consultBase = `SELECT count(*) FROM submissions WHERE collection = 'contact' AND closed_at IS NULL`;
+    const enquiryBase = `SELECT count(*) FROM submissions WHERE collection = 'enquiry' AND closed_at IS NULL`;
+    const insBase = `SELECT count(*) FROM inspections WHERE stage < 9`;
     const dsrBase = `SELECT count(*) FROM submissions WHERE collection IN ('dsr', 'snag') AND closed_at IS NULL`;
-
-    // 5. Listings
-    const listingsBase =
-      isAgent && agentId
-        ? `SELECT count(*) FROM listings WHERE assigned_agent_id = $1`
-        : `SELECT count(*) FROM listings WHERE true`;
-
-    // 6. Field Agents (Admin only)
+    const listingsBase = `SELECT count(*) FROM listings WHERE true`;
     const agentsBase = `SELECT count(*) FROM users WHERE true`;
 
     const [cRes, eRes, iRes, dRes, lRes, aRes] = await Promise.all([
-      buildQuery('consultations', consultBase, 'COALESCE(updated_at, received_at, created_at)', agentParams),
-      buildQuery('enquiries', enquiryBase, 'COALESCE(updated_at, received_at, created_at)', agentParams),
-      buildQuery('inspections', insBase, 'COALESCE(updated_at, created_at)', agentParams),
-      isAgent
-        ? Promise.resolve({ rows: [{ count: '0' }] })
-        : buildQuery('compliance', dsrBase, 'COALESCE(updated_at, received_at, created_at)'),
-      buildQuery('listings', listingsBase, 'COALESCE(updated_at, created_at)', agentParams),
-      isAgent
-        ? Promise.resolve({ rows: [{ count: '0' }] })
-        : buildQuery('agents', agentsBase, 'created_at'),
+      buildQuery('consultations', consultBase, 'COALESCE(updated_at, received_at, created_at)'),
+      buildQuery('enquiries', enquiryBase, 'COALESCE(updated_at, received_at, created_at)'),
+      buildQuery('inspections', insBase, 'COALESCE(updated_at, created_at)'),
+      buildQuery('compliance', dsrBase, 'COALESCE(updated_at, received_at, created_at)'),
+      buildQuery('listings', listingsBase, 'COALESCE(updated_at, created_at)'),
+      buildQuery('agents', agentsBase, 'created_at'),
     ]);
 
     // 7. Rates & Scraper (Admin only)
@@ -906,26 +1029,16 @@ export async function getLiveSubmissions(collection?: string, agentId?: string):
   ];
 
   const p = getDbPool();
+  const profile = agentId ? await resolveAgentProfile(p, agentId) : null;
+
   if (!p) {
     let list = defaultSubmissions;
     if (collection) list = list.filter((s) => s.collection === collection);
-    if (agentId) list = list.filter((s) => s.assignedAgentId === agentId);
+    if (profile) list = list.filter((s) => matchesAgentRecord(s, profile, true));
     return list;
   }
 
-  try {
-    await p.query(`
-      ALTER TABLE submissions 
-      ADD COLUMN IF NOT EXISTS assigned_agent text,
-      ADD COLUMN IF NOT EXISTS assigned_agent_id text,
-      ADD COLUMN IF NOT EXISTS status text,
-      ADD COLUMN IF NOT EXISTS outcome text,
-      ADD COLUMN IF NOT EXISTS closed_by text,
-      ADD COLUMN IF NOT EXISTS closed_at timestamp with time zone;
-    `);
-  } catch (e) {
-    // Ignore if column exists or schema is read-only
-  }
+  await ensureSchemaColumns(p);
 
   const conditions: string[] = [];
   const params: any[] = [];
@@ -935,10 +1048,6 @@ export async function getLiveSubmissions(collection?: string, agentId?: string):
     conditions.push(`s.collection = $${paramIdx++}`);
     params.push(collection);
   }
-  if (agentId) {
-    conditions.push(`(s.assigned_agent_id = $${paramIdx++} OR s.payload->>'assignedAgentId' = $${paramIdx - 1})`);
-    params.push(agentId);
-  }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
@@ -946,6 +1055,7 @@ export async function getLiveSubmissions(collection?: string, agentId?: string):
     `SELECT s.id, s.reference, s.collection, s.received_at as "receivedAt", s.due_at as "dueAt",
             s.payload, s.ip_hash as "ipHash", s.user_agent as "userAgent",
             s.closed_at as "closedAt", s.closed_by as "closedBy", s.outcome, s.created_at as "createdAt",
+            COALESCE(s.updated_at, s.closed_at, s.received_at, s.created_at) as "updatedAt",
             COALESCE(s.status, s.payload->>'status', CASE WHEN s.closed_at IS NOT NULL THEN 'closed' WHEN s.assigned_agent_id IS NOT NULL OR s.assigned_agent IS NOT NULL THEN 'in_progress' ELSE 'pending' END) as status,
             s.assigned_agent as "assignedAgentName", s.assigned_agent_id as "assignedAgentId"
      FROM submissions s
@@ -954,24 +1064,35 @@ export async function getLiveSubmissions(collection?: string, agentId?: string):
     params
   );
 
-  return res.rows.map((row) => {
-    const p = row.payload || {};
-    const assignedAgentId = row.assignedAgentId || p.assignedAgentId || null;
-    const assignedAgentName = row.assignedAgentName || p.assignedAgent || null;
-    const finalStatus = row.status || p.status || (row.closedAt ? 'closed' : ((assignedAgentId || assignedAgentName) ? 'in_progress' : 'pending'));
+  const mapped = res.rows.map((row) => {
+    const pl = row.payload || {};
+    const assignedAgentId = row.assignedAgentId || pl.assignedAgentId || null;
+    const assignedAgentName = row.assignedAgentName || pl.assignedAgent || null;
+    const finalStatus = row.status || pl.status || (row.closedAt ? 'closed' : ((assignedAgentId || assignedAgentName) ? 'in_progress' : 'pending'));
     return {
       ...row,
       status: finalStatus,
       assignedAgentId,
+      assignedAgentName,
       assignedAgent: (assignedAgentId || assignedAgentName) ? {
         id: assignedAgentId,
         name: assignedAgentName || 'Assigned Officer',
       } : null,
-      clientName: p.fullName || p.name || p.clientName || null,
-      clientEmail: p.email || p.clientEmail || null,
-      clientPhone: p.phone || p.clientPhone || p.telephone || null,
+      clientName: pl.fullName || pl.name || pl.clientName || null,
+      clientEmail: pl.email || pl.clientEmail || null,
+      clientPhone: pl.phone || pl.clientPhone || pl.telephone || null,
     };
   });
+
+  let baseList = mapped;
+  if (baseList.length === 0) {
+    baseList = collection ? defaultSubmissions.filter((s) => s.collection === collection) : defaultSubmissions;
+  }
+
+  if (profile) {
+    return baseList.filter((s) => matchesAgentRecord(s, profile, true));
+  }
+  return baseList;
 }
 
 export async function closeLiveSubmission(
@@ -1173,16 +1294,50 @@ export async function getLiveAnalyticsOverview(agentId?: string): Promise<any> {
 
     await ensureSchemaColumns(p);
 
-    const insParams = agentId ? [agentId] : [];
-    const subParams = agentId ? [agentId] : [];
-    const insWhere = agentId ? `AND (COALESCE(assigned_agent_id, agent_id) = $1 OR assigned_agent = $1)` : '';
-    const subWhere = agentId ? `AND (assigned_agent_id = $1 OR payload->>'assignedAgentId' = $1)` : '';
+    // If agentId is provided (Field Officer dashboard), use the profile-aware helpers so all metrics & tables match the agent sections
+    if (agentId) {
+      const [listingsCount, agentIns, agentSubs] = await Promise.all([
+        p.query(`SELECT count(*) FROM listings`).catch(() => ({ rows: [{ count: '0' }] })),
+        getLiveInspections(agentId).catch(() => []),
+        getLiveSubmissions(undefined, agentId).catch(() => []),
+      ]);
+
+      const dbListingsTotal = parseInt(listingsCount.rows[0]?.count || '0', 10);
+      const activeInspections = agentIns.filter((i: any) => (Number(i.stage) || 1) < 9).length;
+      const completedInspections = agentIns.filter((i: any) => (Number(i.stage) || 1) >= 9).length;
+      const actionableSubs = agentSubs.filter((s: any) => s.collection === 'enquiry' || s.collection === 'contact');
+      const pendingSubmissions = actionableSubs.filter((s: any) => !s.closedAt && s.status !== 'closed').length;
+
+      return {
+        totalListings: dbListingsTotal > 0 ? dbListingsTotal : defaultListings.length,
+        activeInspections,
+        completedInspections,
+        pendingSubmissions,
+        priceAlertsCount: pendingRateAlerts,
+        recentInspections: agentIns.slice(0, 5).map((r: any) => ({
+          id: r.id,
+          reference: r.reference,
+          clientName: r.clientName || 'Anonymous Client',
+          stage: r.stage || 1,
+          assignedAgent: r.assignedAgent || (r.officerName ? { name: r.officerName } : null),
+        })),
+        recentSubmissions: actionableSubs.slice(0, 5).map((r: any) => ({
+          id: r.id,
+          reference: r.reference,
+          collection: r.collection,
+          clientName: r.clientName || 'Anonymous Client',
+          closedAt: r.closedAt,
+          status: r.status || (r.closedAt ? 'closed' : 'pending'),
+          assignedAgent: r.assignedAgent || null,
+        })),
+      };
+    }
 
     const [listingsCount, activeInsCount, compInsCount, subCount, recentIns, recentSubs] = await Promise.all([
       p.query(`SELECT count(*) FROM listings`).catch(() => ({ rows: [{ count: '0' }] })),
-      p.query(`SELECT count(*) FROM inspections WHERE stage < 9 ${insWhere}`, insParams).catch(() => ({ rows: [{ count: '0' }] })),
-      p.query(`SELECT count(*) FROM inspections WHERE stage >= 9 ${insWhere}`, insParams).catch(() => ({ rows: [{ count: '0' }] })),
-      p.query(`SELECT count(*) FROM submissions WHERE closed_at IS NULL ${subWhere}`, subParams).catch(() => ({ rows: [{ count: '0' }] })),
+      p.query(`SELECT count(*) FROM inspections WHERE stage < 9`).catch(() => ({ rows: [{ count: '0' }] })),
+      p.query(`SELECT count(*) FROM inspections WHERE stage >= 9`).catch(() => ({ rows: [{ count: '0' }] })),
+      p.query(`SELECT count(*) FROM submissions WHERE closed_at IS NULL`).catch(() => ({ rows: [{ count: '0' }] })),
       p.query(
         `
         SELECT i.id, i.reference, 
@@ -1191,11 +1346,9 @@ export async function getLiveAnalyticsOverview(agentId?: string): Promise<any> {
                COALESCE(NULLIF(i.officer_name, ''), NULLIF(i.assigned_agent, ''), u.name, '') as "assignedAgentName"
         FROM inspections i
         LEFT JOIN users u ON u.id::text = COALESCE(i.assigned_agent_id, i.agent_id)
-        ${agentId ? `WHERE (COALESCE(i.assigned_agent_id, i.agent_id) = $1 OR i.assigned_agent = $1)` : ''}
         ORDER BY i.created_at DESC
         LIMIT 5
-        `,
-        insParams
+        `
       ).catch(() => ({ rows: [] })),
       p.query(
         `
@@ -1205,11 +1358,9 @@ export async function getLiveAnalyticsOverview(agentId?: string): Promise<any> {
                COALESCE(s.status, s.payload->>'status', CASE WHEN s.closed_at IS NOT NULL THEN 'closed' WHEN s.assigned_agent_id IS NOT NULL OR s.assigned_agent IS NOT NULL THEN 'in_progress' ELSE 'pending' END) as status,
                COALESCE(s.assigned_agent, s.payload->>'assignedAgent', '') as "assignedAgentName"
         FROM submissions s
-        ${agentId ? `WHERE (s.assigned_agent_id = $1 OR s.payload->>'assignedAgentId' = $1)` : ''}
         ORDER BY s.received_at DESC
         LIMIT 5
-        `,
-        subParams
+        `
       ).catch(() => ({ rows: [] })),
     ]);
 

@@ -11,8 +11,10 @@ export default function AgentDashboardPage() {
   const [loading, setLoading] = useState(true);
 
   const loadStats = async () => {
+    if (!user) return;
     setLoading(true);
-    const qs = user?.id ? `?agentId=${encodeURIComponent(user.id)}` : '';
+    const agentKey = user.id || user.email || user.name || '';
+    const qs = agentKey ? `?agentId=${encodeURIComponent(agentKey)}` : '';
     const res = await fetchApi(`/admin/analytics/overview${qs}`);
     if (res.ok && res.data) {
       setStats(res.data);
