@@ -20,13 +20,37 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   const isLoginPage = pathname === '/admin/login';
   const isAgent = user?.role === 'AGENT';
+  const userKey = user?.id || user?.email || (isAgent ? 'agent' : 'admin');
+
+  const activeSectionKey = (() => {
+    if (pathname.startsWith('/admin/consultations')) return 'consultations';
+    if (pathname.startsWith('/admin/enquiries')) return 'enquiries';
+    if (pathname.startsWith('/admin/inspections')) return 'inspections';
+    if (pathname.startsWith('/admin/listings')) return 'listings';
+    if (pathname.startsWith('/admin/agents')) return 'agents';
+    if (pathname.startsWith('/admin/rates')) return 'rates';
+    if (pathname.startsWith('/admin/compliance')) return 'compliance';
+    return '';
+  })();
 
   const [notificationCounts, setNotificationCounts] = useState<{
     consultations?: number;
     enquiries?: number;
     inspections?: number;
     compliance?: number;
+    listings?: number;
+    agents?: number;
+    rates?: number;
   }>({});
+
+  const markSectionSeen = (sectionKey: string) => {
+    if (!sectionKey || sectionKey === 'overview') return;
+    setNotificationCounts((prev) => (prev[sectionKey as keyof typeof prev] ? { ...prev, [sectionKey]: 0 } : prev));
+    fetchApi('/admin/notifications', {
+      method: 'POST',
+      body: JSON.stringify({ section: sectionKey, userKey, isAgent }),
+    }).catch(() => {});
+  };
 
   useEffect(() => {
     if (!loading && !user && !isLoginPage) {
@@ -47,19 +71,32 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }, [user, loading, isLoginPage, router, pathname]);
 
   useEffect(() => {
+    if (!user || !activeSectionKey) return;
+    markSectionSeen(activeSectionKey);
+  }, [user, activeSectionKey]);
+
+  useEffect(() => {
     if (!user) return;
     const fetchCounts = async () => {
       try {
-        const res = await fetchApi<any>(`/admin/notifications?isAgent=${isAgent}`);
+        const qs = new URLSearchParams({
+          isAgent: String(isAgent),
+          userKey,
+          ...(activeSectionKey ? { activeSection: activeSectionKey } : {}),
+        });
+        const res = await fetchApi<any>(`/admin/notifications?${qs.toString()}`);
         if (res && res.ok && res.data) {
-          setNotificationCounts(res.data);
+          setNotificationCounts((prev) => ({
+            ...res.data,
+            ...(activeSectionKey ? { [activeSectionKey]: 0 } : {}),
+          }));
         }
       } catch (err) {}
     };
     fetchCounts();
-    const interval = setInterval(fetchCounts, 30000);
+    const interval = setInterval(fetchCounts, 20000);
     return () => clearInterval(interval);
-  }, [user, isAgent]);
+  }, [user, isAgent, userKey, activeSectionKey]);
 
   const handleLogout = async () => {
     await logout();
@@ -136,11 +173,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <nav className="dash-sidebar-nav" style={{ padding: '20px 12px', flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {navItems.map((item) => {
             const active = pathname === item.path;
-            const count = notificationCounts[item.key as keyof typeof notificationCounts] || 0;
+            const count = active ? 0 : (notificationCounts[item.key as keyof typeof notificationCounts] || 0);
             return (
               <Link
                 key={item.path}
                 href={item.path}
+                onClick={() => {
+                  markSectionSeen(item.key);
+                  setSidebarOpen(false);
+                }}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -178,7 +219,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                         boxShadow: '0 0 0 2px rgba(239, 68, 68, 0.4)',
                         marginLeft: '6px',
                       }}
-                      title={`${count} pending / actionable items`}
+                      title={`${count} new notification${count === 1 ? '' : 's'}`}
                     >
                       {count}
                     </span>

@@ -10,6 +10,7 @@ import { getScrapedLogs } from './scrapedStore';
 
 let pool: Pool | null = null;
 let schemaInitialized = false;
+const inMemoryNotificationReads = new Map<string, string>();
 
 export async function ensureSchemaColumns(p: Pool): Promise<void> {
   if (schemaInitialized) return;
@@ -39,7 +40,16 @@ export async function ensureSchemaColumns(p: Pool): Promise<void> {
         ADD COLUMN IF NOT EXISTS status text,
         ADD COLUMN IF NOT EXISTS outcome text,
         ADD COLUMN IF NOT EXISTS closed_by text,
-        ADD COLUMN IF NOT EXISTS closed_at timestamp with time zone;
+        ADD COLUMN IF NOT EXISTS closed_at timestamp with time zone,
+        ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone;
+      `).catch(() => {}),
+      p.query(`
+        CREATE TABLE IF NOT EXISTS notification_reads (
+          user_key text NOT NULL,
+          section text NOT NULL,
+          last_seen_at timestamp with time zone NOT NULL DEFAULT now(),
+          PRIMARY KEY (user_key, section)
+        );
       `).catch(() => {}),
     ]);
     schemaInitialized = true;
@@ -619,61 +629,196 @@ export async function updateLiveInspectionStage(
   return res.rows[0] || { id, stage, notes, officerName, reportUrl, currentStepDone: effectiveStepDone };
 }
 
-export async function getLiveNotificationCounts(agentId?: string, isAgent?: boolean): Promise<{
+export async function markSectionNotificationsSeen(
+  userKey: string,
+  section: string
+): Promise<void> {
+  if (!userKey || !section) return;
+  const normUser = userKey.trim().toLowerCase();
+  const normSection = section.trim().toLowerCase();
+  inMemoryNotificationReads.set(`${normUser}:${normSection}`, new Date(Date.now() + 2000).toISOString());
+
+  const p = getDbPool();
+  if (!p) return;
+
+  try {
+    await ensureSchemaColumns(p);
+    await p.query(
+      `INSERT INTO notification_reads (user_key, section, last_seen_at)
+       VALUES (
+         $1,
+         $2,
+         GREATEST(
+           now(),
+           COALESCE((SELECT MAX(COALESCE(updated_at, received_at, created_at)) FROM submissions), now()),
+           COALESCE((SELECT MAX(COALESCE(updated_at, created_at)) FROM inspections), now()),
+           COALESCE((SELECT MAX(COALESCE(updated_at, created_at)) FROM listings), now()),
+           COALESCE((SELECT MAX(created_at) FROM users), now())
+         )
+       )
+       ON CONFLICT (user_key, section)
+       DO UPDATE SET last_seen_at = EXCLUDED.last_seen_at`,
+      [normUser, normSection]
+    );
+  } catch (err) {
+    console.warn('[fdp:db] markSectionNotificationsSeen warning:', err);
+  }
+}
+
+export async function getLiveNotificationCounts(
+  agentId?: string,
+  isAgent?: boolean,
+  userKey?: string,
+  activeSection?: string
+): Promise<{
   consultations: number;
   enquiries: number;
   inspections: number;
   compliance: number;
+  listings: number;
+  agents: number;
+  rates: number;
 }> {
+  const effectiveUserKey = (userKey || agentId || (isAgent ? 'agent-default' : 'admin-default')).trim().toLowerCase();
+  const currentActive = activeSection ? activeSection.trim().toLowerCase() : '';
+
+  if (currentActive) {
+    await markSectionNotificationsSeen(effectiveUserKey, currentActive);
+  }
+
+  const getMemSeen = (sec: string) => inMemoryNotificationReads.get(`${effectiveUserKey}:${sec}`) || null;
+
   const p = getDbPool();
   if (!p) {
-    return { consultations: 1, enquiries: 1, inspections: 1, compliance: 0 };
+    return {
+      consultations: getMemSeen('consultations') ? 0 : 1,
+      enquiries: getMemSeen('enquiries') ? 0 : 1,
+      inspections: getMemSeen('inspections') ? 0 : 1,
+      compliance: 0,
+      listings: 0,
+      agents: 0,
+      rates: getMemSeen('rates') ? 0 : getScrapedLogs().filter((l) => l.status === 'PENDING_REVIEW').length,
+    };
   }
 
   try {
-    const agentFilter = agentId ? `'${agentId}'` : null;
+    await ensureSchemaColumns(p);
 
-    let consultSql = `SELECT count(*) FROM submissions WHERE collection = 'contact' AND closed_at IS NULL`;
-    if (isAgent && agentId) {
-      consultSql += ` AND (assigned_agent_id = ${agentFilter} OR payload->>'assignedAgentId' = ${agentFilter})`;
-    } else if (!isAgent) {
-      consultSql += ` AND (assigned_agent_id IS NULL OR status = 'pending')`;
+    const seenRes = await p
+      .query(`SELECT section, last_seen_at FROM notification_reads WHERE user_key = $1`, [effectiveUserKey])
+      .catch(() => ({ rows: [] as any[] }));
+
+    const seenMap: Record<string, string> = {};
+    for (const r of seenRes.rows) {
+      if (r.section && r.last_seen_at) {
+        seenMap[String(r.section).toLowerCase()] = new Date(r.last_seen_at).toISOString();
+      }
+    }
+    for (const [k, v] of inMemoryNotificationReads.entries()) {
+      if (k.startsWith(`${effectiveUserKey}:`)) {
+        const sec = k.slice(effectiveUserKey.length + 1);
+        if (!seenMap[sec] || new Date(v) > new Date(seenMap[sec])) {
+          seenMap[sec] = v;
+        }
+      }
     }
 
-    let enquirySql = `SELECT count(*) FROM submissions WHERE collection = 'enquiry' AND closed_at IS NULL`;
-    if (isAgent && agentId) {
-      enquirySql += ` AND (assigned_agent_id = ${agentFilter} OR payload->>'assignedAgentId' = ${agentFilter})`;
-    } else if (!isAgent) {
-      enquirySql += ` AND (assigned_agent_id IS NULL OR status = 'pending')`;
+    // Initialize baseline for static catalog sections (listings, agents) on first check so existing seed catalog doesn't show a badge until something new is added
+    for (const baseSec of ['listings', 'agents']) {
+      if (!seenMap[baseSec]) {
+        await markSectionNotificationsSeen(effectiveUserKey, baseSec);
+        seenMap[baseSec] = new Date().toISOString();
+      }
     }
 
-    let insSql = `SELECT count(*) FROM inspections WHERE stage < 9`;
-    if (isAgent && agentId) {
-      insSql += ` AND (COALESCE(assigned_agent_id, agent_id) = ${agentFilter} OR assigned_agent = ${agentFilter}) AND NOT COALESCE(current_step_done, false)`;
-    } else if (!isAgent) {
-      insSql += ` AND (COALESCE(assigned_agent_id, agent_id) IS NULL OR COALESCE(current_step_done, false) = true)`;
-    }
+    const buildQuery = (
+      sectionKey: string,
+      baseSql: string,
+      tsExpr: string,
+      extraParams: any[] = []
+    ): Promise<{ rows: { count: string }[] }> => {
+      if (currentActive === sectionKey) {
+        return Promise.resolve({ rows: [{ count: '0' }] });
+      }
+      const seenAt = seenMap[sectionKey];
+      if (seenAt) {
+        const paramIdx = extraParams.length + 1;
+        return p
+          .query(`${baseSql} AND ${tsExpr} > $${paramIdx}::timestamptz`, [...extraParams, seenAt])
+          .catch(() => ({ rows: [{ count: '0' }] }));
+      }
+      return p.query(baseSql, extraParams).catch(() => ({ rows: [{ count: '0' }] }));
+    };
 
-    let dsrSql = isAgent 
-      ? `SELECT 0 as count` 
-      : `SELECT count(*) FROM submissions WHERE collection = 'dsr' AND closed_at IS NULL`;
+    const agentParams = isAgent && agentId ? [agentId] : [];
 
-    const [cRes, eRes, iRes, dRes] = await Promise.all([
-      p.query(consultSql),
-      p.query(enquirySql),
-      p.query(insSql),
-      p.query(dsrSql),
+    // 1. Consultations
+    const consultBase =
+      isAgent && agentId
+        ? `SELECT count(*) FROM submissions WHERE collection = 'contact' AND closed_at IS NULL AND (assigned_agent_id = $1 OR payload->>'assignedAgentId' = $1)`
+        : `SELECT count(*) FROM submissions WHERE collection = 'contact' AND closed_at IS NULL`;
+
+    // 2. Property Enquiries
+    const enquiryBase =
+      isAgent && agentId
+        ? `SELECT count(*) FROM submissions WHERE collection = 'enquiry' AND closed_at IS NULL AND (assigned_agent_id = $1 OR payload->>'assignedAgentId' = $1)`
+        : `SELECT count(*) FROM submissions WHERE collection = 'enquiry' AND closed_at IS NULL`;
+
+    // 3. Physical Inspections
+    const insBase =
+      isAgent && agentId
+        ? `SELECT count(*) FROM inspections WHERE stage < 9 AND (COALESCE(assigned_agent_id, agent_id) = $1 OR assigned_agent = $1) AND NOT COALESCE(current_step_done, false)`
+        : `SELECT count(*) FROM inspections WHERE stage < 9`;
+
+    // 4. Compliance / DSR (Admin only)
+    const dsrBase = `SELECT count(*) FROM submissions WHERE collection IN ('dsr', 'snag') AND closed_at IS NULL`;
+
+    // 5. Listings
+    const listingsBase =
+      isAgent && agentId
+        ? `SELECT count(*) FROM listings WHERE assigned_agent_id = $1`
+        : `SELECT count(*) FROM listings WHERE true`;
+
+    // 6. Field Agents (Admin only)
+    const agentsBase = `SELECT count(*) FROM users WHERE true`;
+
+    const [cRes, eRes, iRes, dRes, lRes, aRes] = await Promise.all([
+      buildQuery('consultations', consultBase, 'COALESCE(updated_at, received_at, created_at)', agentParams),
+      buildQuery('enquiries', enquiryBase, 'COALESCE(updated_at, received_at, created_at)', agentParams),
+      buildQuery('inspections', insBase, 'COALESCE(updated_at, created_at)', agentParams),
+      isAgent
+        ? Promise.resolve({ rows: [{ count: '0' }] })
+        : buildQuery('compliance', dsrBase, 'COALESCE(updated_at, received_at, created_at)'),
+      buildQuery('listings', listingsBase, 'COALESCE(updated_at, created_at)', agentParams),
+      isAgent
+        ? Promise.resolve({ rows: [{ count: '0' }] })
+        : buildQuery('agents', agentsBase, 'created_at'),
     ]);
+
+    // 7. Rates & Scraper (Admin only)
+    let ratesCount = 0;
+    if (!isAgent && currentActive !== 'rates') {
+      const pendingLogs = getScrapedLogs().filter((l) => l.status === 'PENDING_REVIEW');
+      const seenRatesAt = seenMap['rates'];
+      if (seenRatesAt) {
+        ratesCount = pendingLogs.filter((l) => new Date(l.detectedAt) > new Date(seenRatesAt)).length;
+      } else {
+        ratesCount = pendingLogs.length;
+      }
+    }
 
     return {
       consultations: parseInt(cRes.rows[0]?.count || '0', 10),
       enquiries: parseInt(eRes.rows[0]?.count || '0', 10),
       inspections: parseInt(iRes.rows[0]?.count || '0', 10),
       compliance: parseInt(dRes.rows[0]?.count || '0', 10),
+      listings: parseInt(lRes.rows[0]?.count || '0', 10),
+      agents: parseInt(aRes.rows[0]?.count || '0', 10),
+      rates: ratesCount,
     };
   } catch (err) {
     console.warn('[fdp:db] getLiveNotificationCounts error:', err);
-    return { consultations: 0, enquiries: 0, inspections: 0, compliance: 0 };
+    return { consultations: 0, enquiries: 0, inspections: 0, compliance: 0, listings: 0, agents: 0, rates: 0 };
   }
 }
 
@@ -863,6 +1008,7 @@ export async function closeLiveSubmission(
     `UPDATE submissions
      SET outcome = $2,
          status = $4,
+         updated_at = now(),
          closed_by = CASE WHEN $4 = 'closed' THEN $3 ELSE closed_by END,
          closed_at = CASE WHEN $4 = 'closed' THEN COALESCE(closed_at, now()) ELSE NULL END,
          payload = jsonb_set(

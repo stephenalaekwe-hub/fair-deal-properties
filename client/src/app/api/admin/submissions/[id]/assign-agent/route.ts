@@ -33,7 +33,8 @@ async function handleAssign(
         await p.query(`
           ALTER TABLE submissions 
           ADD COLUMN IF NOT EXISTS assigned_agent text,
-          ADD COLUMN IF NOT EXISTS assigned_agent_id text;
+          ADD COLUMN IF NOT EXISTS assigned_agent_id text,
+          ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone DEFAULT now();
         `);
       } catch (e) {
         // Table might already have them or lack permissions, ignore
@@ -44,6 +45,7 @@ async function handleAssign(
         `UPDATE submissions
          SET assigned_agent = $2, 
              assigned_agent_id = $3,
+             updated_at = now(),
              payload = jsonb_set(
                jsonb_set(COALESCE(payload, '{}'::jsonb), '{assignedAgent}', to_jsonb(COALESCE($2, ''))),
                '{assignedAgentId}', to_jsonb(COALESCE($3, ''))

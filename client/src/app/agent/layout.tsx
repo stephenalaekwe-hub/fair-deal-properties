@@ -29,9 +29,28 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
     consultations?: number;
     enquiries?: number;
     inspections?: number;
+    listings?: number;
   }>({});
 
   const isLoginPage = pathname === '/agent/login';
+  const userKey = user?.id || user?.email || 'agent';
+
+  const activeSectionKey = (() => {
+    if (pathname.startsWith('/agent/consultations')) return 'consultations';
+    if (pathname.startsWith('/agent/enquiries')) return 'enquiries';
+    if (pathname.startsWith('/agent/inspections')) return 'inspections';
+    if (pathname.startsWith('/agent/listings')) return 'listings';
+    return '';
+  })();
+
+  const markSectionSeen = (sectionKey: string) => {
+    if (!sectionKey || sectionKey === 'overview') return;
+    setNotificationCounts((prev) => (prev[sectionKey as keyof typeof prev] ? { ...prev, [sectionKey]: 0 } : prev));
+    fetchApi('/admin/notifications', {
+      method: 'POST',
+      body: JSON.stringify({ section: sectionKey, userKey, isAgent: true }),
+    }).catch(() => {});
+  };
 
   useEffect(() => {
     if (!loading && !user && !isLoginPage) {
@@ -40,19 +59,33 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
   }, [user, loading, isLoginPage, router]);
 
   useEffect(() => {
+    if (!user || !activeSectionKey) return;
+    markSectionSeen(activeSectionKey);
+  }, [user, activeSectionKey]);
+
+  useEffect(() => {
     if (!user) return;
     const fetchCounts = async () => {
       try {
-        const res = await fetchApi<any>(`/admin/notifications?agentId=${encodeURIComponent(user.id)}&isAgent=true`);
+        const qs = new URLSearchParams({
+          agentId: user.id || '',
+          userKey,
+          isAgent: 'true',
+          ...(activeSectionKey ? { activeSection: activeSectionKey } : {}),
+        });
+        const res = await fetchApi<any>(`/admin/notifications?${qs.toString()}`);
         if (res && res.ok && res.data) {
-          setNotificationCounts(res.data);
+          setNotificationCounts({
+            ...res.data,
+            ...(activeSectionKey ? { [activeSectionKey]: 0 } : {}),
+          });
         }
       } catch (err) {}
     };
     fetchCounts();
-    const interval = setInterval(fetchCounts, 30000);
+    const interval = setInterval(fetchCounts, 20000);
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user, userKey, activeSectionKey]);
 
   const handleLogout = async () => {
     await logout();
@@ -110,11 +143,15 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
         <nav className="dash-sidebar-nav" style={{ padding: '20px 12px', flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {NAV_ITEMS.map((item) => {
             const active = pathname === item.path;
-            const count = notificationCounts[item.key as keyof typeof notificationCounts] || 0;
+            const count = active ? 0 : (notificationCounts[item.key as keyof typeof notificationCounts] || 0);
             return (
               <Link
                 key={item.path}
                 href={item.path}
+                onClick={() => {
+                  markSectionSeen(item.key);
+                  setSidebarOpen(false);
+                }}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -152,7 +189,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
                         boxShadow: '0 0 0 2px rgba(239, 68, 68, 0.4)',
                         marginLeft: '6px',
                       }}
-                      title={`${count} pending assigned items`}
+                      title={`${count} new notification${count === 1 ? '' : 's'}`}
                     >
                       {count}
                     </span>
