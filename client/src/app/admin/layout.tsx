@@ -19,6 +19,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const isLoginPage = pathname === '/admin/login';
+  const isAgent = user?.role === 'AGENT';
+
+  const [notificationCounts, setNotificationCounts] = useState<{
+    consultations?: number;
+    enquiries?: number;
+    inspections?: number;
+    compliance?: number;
+  }>({});
 
   useEffect(() => {
     if (!loading && !user && !isLoginPage) {
@@ -38,6 +46,21 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     }
   }, [user, loading, isLoginPage, router, pathname]);
 
+  useEffect(() => {
+    if (!user) return;
+    const fetchCounts = async () => {
+      try {
+        const res = await fetchApi<any>(`/admin/notifications?isAgent=${isAgent}`);
+        if (res && res.ok && res.data) {
+          setNotificationCounts(res.data);
+        }
+      } catch (err) {}
+    };
+    fetchCounts();
+    const interval = setInterval(fetchCounts, 30000);
+    return () => clearInterval(interval);
+  }, [user, isAgent]);
+
   const handleLogout = async () => {
     await logout();
     router.push('/admin/login');
@@ -54,30 +77,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       </div>
     );
   }
-
-  const isAgent = user?.role === 'AGENT';
-
-  const [notificationCounts, setNotificationCounts] = useState<{
-    consultations?: number;
-    enquiries?: number;
-    inspections?: number;
-    compliance?: number;
-  }>({});
-
-  useEffect(() => {
-    if (!user) return;
-    const fetchCounts = async () => {
-      try {
-        const res = await fetchApi<any>(`/admin/notifications?isAgent=${isAgent}`);
-        if (res && res.ok && res.data) {
-          setNotificationCounts(res.data);
-        }
-      } catch (err) {}
-    };
-    fetchCounts();
-    const interval = setInterval(fetchCounts, 30000);
-    return () => clearInterval(interval);
-  }, [user, isAgent]);
 
   const navItems = isAgent
     ? [
