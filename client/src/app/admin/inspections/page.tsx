@@ -58,6 +58,24 @@ export default function AdminInspectionsPage() {
     };
   }, [user, filterAgentId]);
 
+  const getCleanStageNote = (ins: any, targetStage: number): string => {
+    if (!ins) return '';
+    const histNote = ins.stageHistory?.[String(targetStage)]?.note;
+    let raw =
+      histNote !== undefined
+        ? histNote
+        : Number(targetStage) === Number(ins.stage)
+          ? ins.officerMessage || ins.notes || ''
+          : '';
+    return String(raw)
+      .replace(/Attached Survey \/ Site Photograph:\s*[^\n\r]+/gi, '')
+      .replace(/Scope:\s*[^\n\r]*?Window:\s*[^\n\r.]*\.?\s*/gi, '')
+      .replace(/^Scope:\s*[^\n\r]+(\r?\n)?/gim, '')
+      .replace(/^Window:\s*[^\n\r]+(\r?\n)?/gim, '')
+      .replace(/\bNotes:\s*/gi, '')
+      .trim();
+  };
+
   const openUpdateModal = (ins: any) => {
     setActiveModal(ins);
     // If the field officer already completed the current stage, default the stage selector to the next stage so "Save & Dispatch Updates" dispatches the next stage immediately
@@ -78,22 +96,14 @@ export default function AdminInspectionsPage() {
     setAssignedAgentId(matchedAgent ? matchedAgent.id : rawAgId);
     setOfficerName(ins.officerName || ins.assignedAgent?.name || (isAgent ? (user?.name || '') : ''));
 
-    let cleanNotes = ins.officerMessage || ins.notes || '';
     let currentReportUrl = ins.reportUrl || '';
-    const photoMatch = cleanNotes.match(/Attached Survey \/ Site Photograph:\s*([^\n\r]+)/i);
-    if (photoMatch) {
-      if (!currentReportUrl) currentReportUrl = photoMatch[1].trim();
-      cleanNotes = cleanNotes.replace(/Attached Survey \/ Site Photograph:\s*[^\n\r]+/i, '').trim();
+    const photoMatch = String(ins.notes || '').match(/Attached Survey \/ Site Photograph:\s*([^\n\r]+)/i);
+    if (photoMatch && !currentReportUrl) {
+      currentReportUrl = photoMatch[1].trim();
     }
-    cleanNotes = cleanNotes
-      .replace(/Scope:\s*[^\n\r]*?Window:\s*[^\n\r.]*\.?\s*/gi, '')
-      .replace(/^Scope:\s*[^\n\r]+(\r?\n)?/gim, '')
-      .replace(/^Window:\s*[^\n\r]+(\r?\n)?/gim, '')
-      .replace(/\bNotes:\s*/gi, '')
-      .trim();
 
     setReportUrl(currentReportUrl);
-    setNotes(cleanNotes);
+    setNotes(getCleanStageNote(ins, nextDefaultStage));
     setNotifyClient(true);
   };
 
@@ -415,7 +425,11 @@ export default function AdminInspectionsPage() {
                 </label>
                 <select
                   value={stage}
-                  onChange={(e) => setStage(Number(e.target.value))}
+                  onChange={(e) => {
+                    const nextStg = Number(e.target.value);
+                    setStage(nextStg);
+                    setNotes(getCleanStageNote(activeModal, nextStg));
+                  }}
                   style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
                 >
                   {STAGES.map((s) => (

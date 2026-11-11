@@ -573,6 +573,18 @@ export function cleanNoteString(raw?: string | null): string {
   return unique.join(' — ');
 }
 
+export const DEFAULT_STAGE_MESSAGES: Record<number, string> = {
+  1: 'Client instruction, property target, inspection scope, and engagement terms verified and logged.',
+  2: 'Title documents examined; AGIS / land registry files and root of title cross-checked.',
+  3: 'Named registered field surveyor allocated; boundary beacon coordinates verified against cadastral chart.',
+  4: 'Field inspection team mobilised; site access clearance, inspection window, and route confirmed.',
+  5: 'Physical site attended; boundary beacons inspected and on-site photographic evidence captured.',
+  6: 'Structural appraisal, market valuation assessment, and physical snagging audit completed.',
+  7: 'Planning authority approvals, zoning compliance, and encumbrance clearance verified.',
+  8: 'Written assurance report, annotated photographs, and survey findings compiled into client dossier.',
+  9: 'Final assurance dossier issued to client and post-inspection advisor debrief completed.',
+};
+
 export function buildStageHistory(
   rawHistory: any,
   currentStage: number,
@@ -590,64 +602,74 @@ export function buildStageHistory(
     } catch {}
   }
 
-  const defaultStageNotes: Record<number, string> = {
-    1: 'Instruction, scope, and engagement terms logged and confirmed.',
-    2: 'Title documents and AGIS/registry records examined.',
-    3: 'Field surveyor allocated and cadastral coordinates cross-checked.',
-    4: 'Physical site inspection mobilised and access route confirmed.',
-    5: 'On-site attendance, boundary beacon check, and photographic capture completed.',
-    6: 'Valuation assessment, structural appraisal, and cost-to-complete verified.',
-    7: 'Legal & technical compliance audit completed.',
-    8: 'Comprehensive assurance dossier compiled and reviewed.',
-    9: 'Final inspection dossier issued and debrief delivered to client.',
-  };
-
   const result: Record<string, { stage: number; note: string; photos: string[]; officerName?: string; updatedAt?: string }> = {};
+  const usedCustomNotes = new Set<string>();
 
-  for (let s = 1; s <= 9; s++) {
+  // Pass 1: Process from currentStage down to 1 so the latest stage keeps a carried-over custom note
+  // while earlier stages get their own distinct note or stage-specific message.
+  for (let s = Math.min(9, currentStage); s >= 1; s--) {
     const key = String(s);
     const existing = parsed[key];
-    const isCompletedOrCurrent = s < currentStage || (s === currentStage && (currentStepDone || Boolean(currentNote)));
+    const isCurrent = s === currentStage;
+    const isCompletedOrCurrent = s < currentStage || (isCurrent && (currentStepDone || Boolean(currentNote)));
+
+    if (!isCompletedOrCurrent) continue;
+
+    let stageNote = '';
+    let stagePhotos: string[] = [];
+    let stageOfficer = officerName || undefined;
+    let stageUpdatedAt: string | undefined = undefined;
 
     if (existing && typeof existing === 'object') {
-      const cleanedExistingNote = cleanNoteString(existing.note);
-      const existingPhotos = parsePhotoList(existing.photos);
-      result[key] = {
-        stage: s,
-        note: cleanedExistingNote || (s === currentStage && currentNote ? currentNote : (s <= currentStage ? defaultStageNotes[s] : '')),
-        photos: existingPhotos.length > 0 ? existingPhotos : (s === currentStage ? currentPhotos : []),
-        officerName: existing.officerName || officerName || undefined,
-        updatedAt: existing.updatedAt || undefined,
-      };
-    } else if (isCompletedOrCurrent) {
-      result[key] = {
-        stage: s,
-        note: (s === currentStage && currentNote) ? currentNote : (currentNote || defaultStageNotes[s]),
-        photos: s === currentStage ? currentPhotos : [],
-        officerName: officerName || undefined,
-      };
+      const cleanedExisting = cleanNoteString(existing.note);
+      const normExisting = cleanedExisting.toLowerCase();
+      // Only use cleanedExisting if it wasn't already claimed by a later stage
+      if (cleanedExisting && !usedCustomNotes.has(normExisting)) {
+        stageNote = cleanedExisting;
+        usedCustomNotes.add(normExisting);
+      }
+      stagePhotos = parsePhotoList(existing.photos);
+      stageOfficer = existing.officerName || stageOfficer;
+      stageUpdatedAt = existing.updatedAt || undefined;
     }
+
+    if (!stageNote) {
+      if (isCurrent && currentNote) {
+        const cleanedCur = cleanNoteString(currentNote);
+        const normCur = cleanedCur.toLowerCase();
+        if (cleanedCur && !usedCustomNotes.has(normCur)) {
+          stageNote = cleanedCur;
+          usedCustomNotes.add(normCur);
+        }
+      }
+    }
+
+    if (!stageNote) {
+      stageNote = DEFAULT_STAGE_MESSAGES[s] || `Stage ${s} verified and completed.`;
+    }
+
+    if (stagePhotos.length === 0 && isCurrent && currentPhotos.length > 0) {
+      stagePhotos = currentPhotos;
+    }
+
+    result[key] = {
+      stage: s,
+      note: stageNote,
+      photos: stagePhotos,
+      officerName: stageOfficer,
+      updatedAt: stageUpdatedAt,
+    };
   }
 
   return result;
 }
 
 export function extractActualNote(notes?: string | null, outcome?: string | null): string | null {
-  const cleanOutcome = cleanNoteString(outcome);
   const parsedNotes = cleanNoteString(notes);
+  const cleanOutcome = cleanNoteString(outcome);
 
-  const isGenericOutcome = !cleanOutcome || /^(checked|done|completed|resolved|closed|ok|yes)$/i.test(cleanOutcome);
   const isGenericNotes = !parsedNotes || /^(checked|done|completed|resolved|closed|ok|yes)$/i.test(parsedNotes);
-
-  if (!isGenericOutcome && !isGenericNotes) {
-    if (parsedNotes.toLowerCase() === cleanOutcome.toLowerCase() || parsedNotes.toLowerCase().includes(cleanOutcome.toLowerCase())) {
-      return parsedNotes;
-    }
-    if (cleanOutcome.toLowerCase().includes(parsedNotes.toLowerCase())) {
-      return cleanOutcome;
-    }
-    return cleanNoteString(`${cleanOutcome} — ${parsedNotes}`);
-  }
+  const isGenericOutcome = !cleanOutcome || /^(checked|done|completed|resolved|closed|ok|yes)$/i.test(cleanOutcome);
 
   if (!isGenericNotes) return parsedNotes;
   if (!isGenericOutcome) return cleanOutcome;
@@ -853,8 +875,7 @@ export async function updateLiveInspectionStage(
   // If officer submitted -> true. If Admin dispatched -> false (for stages 1-8) so officer sees "Work In Progress (Officer Action Required)"
   const finalStepDone = isOfficerSubmit ? true : finalStage >= 9;
   const finalStatus = finalStage >= 9 && finalStepDone ? 'closed' : 'in_progress';
-  const finalNotes = notes !== undefined ? notes : (curRow?.notes ?? '');
-  const finalOutcome = finalStepDone ? (notes || curRow?.outcome || 'Completed') : null;
+  const rawIncomingNotes = notes !== undefined ? notes : '';
   const finalOfficerName =
     officerName && officerName.trim()
       ? officerName.trim()
@@ -867,24 +888,26 @@ export async function updateLiveInspectionStage(
       ? assignedAgentName || finalOfficerName || null
       : finalOfficerName || curRow?.assigned_agent || null;
 
-  // Build and persist per-stage history so every stage retains its own note and photos
+  // Build and persist per-stage history so every stage retains its own specific note and photos
   let existingHistory: Record<string, any> = {};
   if (curRow?.stage_history && typeof curRow.stage_history === 'object') {
     existingHistory = { ...curRow.stage_history };
   }
-  const cleanedIncomingNote = cleanNoteString(finalNotes);
+  const cleanedIncomingNote = cleanNoteString(rawIncomingNotes);
   const incomingPhotos = parsePhotoList(finalReportUrl);
   const nowIso = new Date().toISOString();
 
   // Preserve currentStage entry when advancing
+  let prevStageSavedNote = '';
   if (currentStage !== finalStage) {
     const prevKey = String(currentStage);
     const prevExisting = existingHistory[prevKey] || {};
     const prevNote = cleanNoteString(prevExisting.note || curRow?.notes || curRow?.outcome);
     const prevPhotos = parsePhotoList(prevExisting.photos || curRow?.report_url);
+    prevStageSavedNote = prevNote || DEFAULT_STAGE_MESSAGES[currentStage] || `Stage ${currentStage} verified and completed.`;
     existingHistory[prevKey] = {
       stage: currentStage,
-      note: prevNote || cleanedIncomingNote || `Stage ${currentStage} verified and completed.`,
+      note: prevStageSavedNote,
       photos: prevPhotos.length > 0 ? prevPhotos : incomingPhotos,
       officerName: prevExisting.officerName || finalOfficerName || undefined,
       completed: true,
@@ -892,17 +915,32 @@ export async function updateLiveInspectionStage(
     };
   }
 
-  // Record entry for finalStage
+  // Record entry for finalStage: if advancing to a new stage and the incoming note is identical to the previous stage's note,
+  // use finalStage's own specific message so previous stage notes are never duplicated onto the new stage.
   const targetKey = String(finalStage);
   const prevTarget = existingHistory[targetKey] || {};
+  const isDuplicateOfPrevStage =
+    currentStage !== finalStage &&
+    Boolean(cleanedIncomingNote) &&
+    cleanedIncomingNote.toLowerCase() === prevStageSavedNote.toLowerCase();
+
+  const targetStageNote =
+    (!isDuplicateOfPrevStage && cleanedIncomingNote) ||
+    cleanNoteString(prevTarget.note) ||
+    DEFAULT_STAGE_MESSAGES[finalStage] ||
+    `Stage ${finalStage} in progress.`;
+
   existingHistory[targetKey] = {
     stage: finalStage,
-    note: cleanedIncomingNote || cleanNoteString(prevTarget.note) || `Stage ${finalStage} updated.`,
+    note: targetStageNote,
     photos: incomingPhotos.length > 0 ? incomingPhotos : parsePhotoList(prevTarget.photos),
     officerName: finalOfficerName || prevTarget.officerName || undefined,
     completed: finalStepDone,
     updatedAt: nowIso,
   };
+
+  const finalNotes = targetStageNote;
+  const finalOutcome = finalStepDone ? targetStageNote : null;
 
   const res = await p.query(
     `UPDATE inspections

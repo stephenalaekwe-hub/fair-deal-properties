@@ -74,18 +74,15 @@ function formatSyncTime(dateVal?: string | Date | null): string {
 
 /** Extract the actual user or officer-typed note, stripping boilerplate scope prefixes or generic status placeholders. */
 function extractActualNote(notes?: string | null, outcome?: string | null): string {
-  const cleanOutcome = cleanNoteText(outcome);
   const parsedNotes = cleanNoteText(notes);
+  const cleanOutcome = cleanNoteText(outcome);
 
+  const isGenericNotes = !parsedNotes || /^(checked|done|completed|resolved|closed|ok|yes)$/i.test(parsedNotes);
   const isGenericOutcome = !cleanOutcome || /^(checked|done|completed|resolved|closed|ok|yes)$/i.test(cleanOutcome);
 
-  if (!isGenericOutcome && parsedNotes) {
-    return cleanNoteText(`${cleanOutcome} — ${parsedNotes}`);
-  }
-  if (!isGenericOutcome) {
-    return cleanOutcome;
-  }
-  return parsedNotes || cleanOutcome || '';
+  if (!isGenericNotes) return parsedNotes;
+  if (!isGenericOutcome) return cleanOutcome;
+  return '';
 }
 
 /**
@@ -1000,12 +997,39 @@ export default function InspectionsContent() {
 
                         const histEntry = trackData.stageHistory?.[String(stageNum)];
                         const pipeEntry = trackData.pipeline?.[i];
-                        const rawStageNote =
+                        const candidateNote = cleanNoteText(
                           histEntry?.note ||
-                          pipeEntry?.note ||
-                          (isCurrentStep ? trackData.officerMessage : '') ||
-                          (isDone ? DEFAULT_STAGE_NOTES[stageNum] : '');
-                        const stageNote = cleanNoteText(rawStageNote);
+                            pipeEntry?.note ||
+                            (isCurrentStep ? trackData.officerMessage : '')
+                        );
+
+                        // Ensure past stages never repeat the current stage's or a later stage's note
+                        let isDuplicatedLater = false;
+                        if (isPastStep && candidateNote) {
+                          const normCand = candidateNote.toLowerCase();
+                          const curMsg = cleanNoteText(trackData.officerMessage).toLowerCase();
+                          if (curMsg && normCand === curMsg && trackData.stage > stageNum) {
+                            isDuplicatedLater = true;
+                          } else {
+                            for (let later = stageNum + 1; later <= trackData.stage; later++) {
+                              const laterNote = cleanNoteText(
+                                trackData.stageHistory?.[String(later)]?.note ||
+                                  trackData.pipeline?.[later - 1]?.note
+                              ).toLowerCase();
+                              if (laterNote && laterNote === normCand) {
+                                isDuplicatedLater = true;
+                                break;
+                              }
+                            }
+                          }
+                        }
+
+                        const stageNote =
+                          !isDuplicatedLater && candidateNote
+                            ? candidateNote
+                            : isDone || isNow
+                              ? DEFAULT_STAGE_NOTES[stageNum]
+                              : '';
 
                         const stagePhotos: string[] =
                           Array.isArray(histEntry?.photos) && histEntry.photos.length > 0

@@ -48,14 +48,20 @@ export default function AgentInspectionsPage() {
     setStage(ins.stage);
     setOfficerName(ins.officerName || (user?.name || ''));
 
-    let cleanNotes = ins.officerMessage || ins.notes || '';
+    const stageHistNote = ins.stageHistory?.[String(ins.stage)]?.note;
+    let cleanNotes =
+      stageHistNote !== undefined
+        ? stageHistNote
+        : ins.currentStepDone
+          ? ins.officerMessage || ins.notes || ''
+          : '';
     let currentReportUrl = ins.reportUrl || '';
-    const photoMatch = cleanNotes.match(/Attached Survey \/ Site Photograph:\s*([^\n\r]+)/i);
-    if (photoMatch) {
-      if (!currentReportUrl) currentReportUrl = photoMatch[1].trim();
-      cleanNotes = cleanNotes.replace(/Attached Survey \/ Site Photograph:\s*[^\n\r]+/i, '').trim();
+    const photoMatch = String(ins.notes || '').match(/Attached Survey \/ Site Photograph:\s*([^\n\r]+)/i);
+    if (photoMatch && !currentReportUrl) {
+      currentReportUrl = photoMatch[1].trim();
     }
-    cleanNotes = cleanNotes
+    cleanNotes = String(cleanNotes)
+      .replace(/Attached Survey \/ Site Photograph:\s*[^\n\r]+/gi, '')
       .replace(/Scope:\s*[^\n\r]*?Window:\s*[^\n\r.]*\.?\s*/gi, '')
       .replace(/^Scope:\s*[^\n\r]+(\r?\n)?/gim, '')
       .replace(/^Window:\s*[^\n\r]+(\r?\n)?/gim, '')
