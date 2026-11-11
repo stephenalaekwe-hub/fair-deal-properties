@@ -708,85 +708,136 @@ export async function updateLiveInspectionStage(
     `);
   } catch (e) {}
 
-  let currentStage = stage;
+  let currentStage = Number(stage) || 1;
+  let dbCurrentStepDone = false;
+  let curRow: any = null;
   try {
-    const curRes = await p.query(`SELECT stage, current_step_done FROM inspections WHERE id::text = $1 OR reference = $1 LIMIT 1`, [id]);
+    const curRes = await p.query(
+      `SELECT * FROM inspections WHERE id::text = $1 OR reference = $1 LIMIT 1`,
+      [id]
+    );
     if (curRes.rows[0]) {
-      currentStage = Number(curRes.rows[0].stage) || 1;
+      curRow = curRes.rows[0];
+      currentStage = Number(curRow.stage) || 1;
+      dbCurrentStepDone = Boolean(curRow.current_step_done);
     }
   } catch (cErr) {}
 
-  const stageChanged = Number(stage) !== currentStage;
-  const effectiveStepDone = markStepDone !== undefined 
-    ? Boolean(markStepDone) 
-    : (stageChanged ? false : undefined);
+  const isOfficerSubmit = markStepDone === true;
 
-  const shouldUpdateAgentId = assignedAgentId !== undefined;
-  const shouldUpdateAgentName = assignedAgentName !== undefined;
+  // When Admin clicks "Save & Dispatch Updates" (isOfficerSubmit === false) on a stage that was already completed by the officer,
+  // automatically advance to the next stage even if the dropdown was still on currentStage.
+  let finalStage = Number(stage) || currentStage;
+  if (!isOfficerSubmit && dbCurrentStepDone && finalStage === currentStage && currentStage < 9) {
+    finalStage = currentStage + 1;
+  }
+  finalStage = Math.max(1, Math.min(9, finalStage));
+
+  // If officer submitted -> true. If Admin dispatched -> false (for stages 1-8) so officer sees "Work In Progress (Officer Action Required)"
+  const finalStepDone = isOfficerSubmit ? true : finalStage >= 9;
+  const finalStatus = finalStage >= 9 && finalStepDone ? 'closed' : 'in_progress';
+  const finalNotes = notes !== undefined ? notes : (curRow?.notes ?? '');
+  const finalOutcome = finalStepDone ? (notes || curRow?.outcome || 'Completed') : null;
+  const finalOfficerName =
+    officerName && officerName.trim()
+      ? officerName.trim()
+      : assignedAgentName && assignedAgentName.trim()
+      ? assignedAgentName.trim()
+      : curRow?.officer_name || '';
+  const finalReportUrl = reportUrl !== undefined ? reportUrl : (curRow?.report_url ?? '');
+  const finalAssignedAgent =
+    assignedAgentName !== undefined
+      ? assignedAgentName || finalOfficerName || null
+      : finalOfficerName || curRow?.assigned_agent || null;
 
   const res = await p.query(
     `UPDATE inspections
      SET stage = $2,
-         status = CASE 
-           WHEN $2 >= 9 AND ($6::boolean = true OR current_step_done = true) THEN 'closed'
-           ELSE 'in_progress'
-         END,
-         current_step_done = CASE 
-           WHEN $6::boolean IS NOT NULL THEN $6::boolean
-           WHEN stage != $2 THEN false
-           ELSE current_step_done
-         END,
-         outcome = CASE 
-           WHEN $6::boolean = true THEN COALESCE($3, notes)
-           WHEN $6::boolean = false THEN NULL
-           WHEN stage != $2 THEN NULL 
-           ELSE outcome 
-         END,
-         notes = CASE WHEN $3::text IS NOT NULL THEN $3 ELSE notes END,
-         officer_name = CASE WHEN $4::text IS NOT NULL AND $4 != '' THEN $4 ELSE officer_name END,
-         report_url = CASE WHEN $5::text IS NOT NULL THEN $5 ELSE report_url END,
-         assigned_agent_id = CASE WHEN $7::boolean = true THEN $8::text ELSE assigned_agent_id END,
-         agent_id = CASE WHEN $7::boolean = true THEN $8::text ELSE agent_id END,
-         assigned_agent = CASE WHEN $9::boolean = true THEN $10::text WHEN $4::text IS NOT NULL AND $4 != '' THEN $4 ELSE assigned_agent END,
+         status = $3,
+         current_step_done = $4,
+         outcome = $5,
+         notes = $6,
+         officer_name = $7,
+         report_url = $8,
+         assigned_agent = $9,
          updated_at = now()
-     WHERE id::text = $1 OR reference = $1 RETURNING *`,
+     WHERE id::text = $1 OR reference = $1
+     RETURNING *`,
     [
       id,
-      stage,
-      notes !== undefined ? notes : null,
-      officerName ?? null,
-      reportUrl ?? null,
-      effectiveStepDone !== undefined ? effectiveStepDone : null,
-      shouldUpdateAgentId,
-      assignedAgentId ?? null,
-      shouldUpdateAgentName,
-      assignedAgentName ?? officerName ?? null,
+      finalStage,
+      finalStatus,
+      finalStepDone,
+      finalOutcome,
+      finalNotes,
+      finalOfficerName,
+      finalReportUrl,
+      finalAssignedAgent,
     ]
   );
+
+  // Resolve and persist assigned_agent_id separately so UUID/FK constraints never block stage dispatch
+  try {
+    let resolvedAgentUuid = assignedAgentId || null;
+    const lookupName = (finalAssignedAgent || finalOfficerName || '').split('(')[0].trim().toLowerCase();
+    if (resolvedAgentUuid || lookupName) {
+      const uRes = await p.query(
+        `SELECT id, name FROM users
+         WHERE ($1::text IS NOT NULL AND id::text = $1)
+            OR ($2::text != '' AND (LOWER(name) = $2 OR LOWER(name) LIKE $3))
+         LIMIT 1`,
+        [resolvedAgentUuid, lookupName, `${lookupName.split(/\s+/)[0]}%`]
+      );
+      if (uRes.rows[0]?.id) {
+        resolvedAgentUuid = String(uRes.rows[0].id);
+      }
+    }
+    if (resolvedAgentUuid !== null || assignedAgentId === null) {
+      await p
+        .query(
+          `UPDATE inspections SET assigned_agent_id = $2 WHERE id::text = $1 OR reference = $1`,
+          [id, resolvedAgentUuid]
+        )
+        .catch(() => {});
+      await p
+        .query(
+          `UPDATE inspections SET agent_id = $2 WHERE id::text = $1 OR reference = $1`,
+          [id, resolvedAgentUuid]
+        )
+        .catch(() => {});
+    }
+  } catch (agErr) {}
 
   // Sync submissions table if matching reference exists
   try {
     if (res.rows[0]?.reference) {
       await p.query(
         `UPDATE submissions 
-         SET status = CASE WHEN $2 >= 9 THEN 'closed' ELSE 'in_progress' END,
-             outcome = CASE WHEN $3::boolean = true THEN outcome ELSE NULL END,
-             assigned_agent_id = COALESCE($4::text, assigned_agent_id),
-             assigned_agent = COALESCE($5::text, assigned_agent),
+         SET status = $2,
+             outcome = $3,
+             assigned_agent = COALESCE($4, assigned_agent),
              updated_at = now()
          WHERE reference = $1`,
         [
           res.rows[0].reference,
-          stage,
-          Boolean(effectiveStepDone),
-          assignedAgentId || null,
-          assignedAgentName || officerName || null,
+          finalStatus,
+          finalOutcome,
+          finalAssignedAgent,
         ]
       );
     }
   } catch (subResetErr) {}
 
-  return res.rows[0] || { id, stage, notes, officerName, reportUrl, currentStepDone: effectiveStepDone };
+  return (
+    res.rows[0] || {
+      id,
+      stage: finalStage,
+      notes: finalNotes,
+      officerName: finalOfficerName,
+      reportUrl: finalReportUrl,
+      currentStepDone: finalStepDone,
+    }
+  );
 }
 
 export async function markSectionNotificationsSeen(

@@ -101,7 +101,7 @@ export default function AdminInspectionsPage() {
     const targetStage = Number(stage);
 
     // 1. Update stage, officer, agent assignment, photos, and notes atomically
-    await fetchApi(`/admin/inspections/${activeModal.id}/stage`, {
+    const res = await fetchApi(`/admin/inspections/${activeModal.id}/stage`, {
       method: 'PATCH',
       body: JSON.stringify({
         stage: targetStage,
@@ -114,6 +114,12 @@ export default function AdminInspectionsPage() {
         markStepDone: isAgent ? true : (targetStage >= 9 ? true : false),
       }),
     });
+
+    if (!res.ok) {
+      alert(res.error || 'Failed to save and dispatch inspection updates.');
+      setSubmitting(false);
+      return;
+    }
 
     setActiveModal(null);
     setSubmitting(false);
