@@ -78,13 +78,19 @@ export default function AdminInspectionsPage() {
     setAssignedAgentId(matchedAgent ? matchedAgent.id : rawAgId);
     setOfficerName(ins.officerName || ins.assignedAgent?.name || (isAgent ? (user?.name || '') : ''));
 
-    let cleanNotes = ins.notes || '';
+    let cleanNotes = ins.officerMessage || ins.notes || '';
     let currentReportUrl = ins.reportUrl || '';
     const photoMatch = cleanNotes.match(/Attached Survey \/ Site Photograph:\s*([^\n\r]+)/i);
     if (photoMatch) {
       if (!currentReportUrl) currentReportUrl = photoMatch[1].trim();
       cleanNotes = cleanNotes.replace(/Attached Survey \/ Site Photograph:\s*[^\n\r]+/i, '').trim();
     }
+    cleanNotes = cleanNotes
+      .replace(/Scope:\s*[^\n\r]*?Window:\s*[^\n\r.]*\.?\s*/gi, '')
+      .replace(/^Scope:\s*[^\n\r]+(\r?\n)?/gim, '')
+      .replace(/^Window:\s*[^\n\r]+(\r?\n)?/gim, '')
+      .replace(/\bNotes:\s*/gi, '')
+      .trim();
 
     setReportUrl(currentReportUrl);
     setNotes(cleanNotes);

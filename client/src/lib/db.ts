@@ -29,6 +29,7 @@ export async function ensureSchemaColumns(p: Pool): Promise<void> {
         ADD COLUMN IF NOT EXISTS report_url text,
         ADD COLUMN IF NOT EXISTS officer_name text,
         ADD COLUMN IF NOT EXISTS current_step_done boolean DEFAULT false,
+        ADD COLUMN IF NOT EXISTS stage_history jsonb DEFAULT '{}'::jsonb,
         ADD COLUMN IF NOT EXISTS status text,
         ADD COLUMN IF NOT EXISTS outcome text,
         ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone;
@@ -464,6 +465,7 @@ export async function getLiveInspections(agentId?: string): Promise<any[]> {
            COALESCE(i.status, 'in_progress') as status,
            COALESCE(i.outcome, '') as outcome,
            COALESCE(i.current_step_done, false) as "currentStepDone",
+           COALESCE(i.stage_history, '{}'::jsonb) as "stageHistory",
            i.created_at as "createdAt",
            COALESCE(i.updated_at, i.created_at) as "updatedAt",
            CASE 
@@ -488,10 +490,21 @@ export async function getLiveInspections(agentId?: string): Promise<any[]> {
       cleanNotes = cleanNotes.replace(/Attached Survey \/ Site Photograph:\s*[^\n\r]+/i, '').trim();
     }
     const officerMessage = extractActualNote(cleanNotes, row.outcome);
+    const photos = parsePhotoList(reportUrl);
+    const stageHistory = buildStageHistory(
+      row.stageHistory,
+      Math.max(1, Math.min(9, Number(row.stage) || 1)),
+      Boolean(row.currentStepDone),
+      officerMessage,
+      photos,
+      assignedAgentName
+    );
     return {
       ...row,
       notes: cleanNotes,
       reportUrl,
+      photos,
+      stageHistory,
       officerMessage,
       currentStepDone: Boolean(row.currentStepDone),
       assignedAgentId,
@@ -510,45 +523,135 @@ export async function getLiveInspections(agentId?: string): Promise<any[]> {
   return baseList;
 }
 
-export function extractActualNote(notes?: string | null, outcome?: string | null): string | null {
-  const cleanOutcome = (outcome || '').trim();
-  const rawNotes = (notes || '').trim();
+export function parsePhotoList(val?: string | string[] | null): string[] {
+  if (!val) return [];
+  if (Array.isArray(val)) {
+    return Array.from(new Set(val.map((u) => (typeof u === 'string' ? u.trim() : '')).filter(Boolean)));
+  }
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (!trimmed) return [];
+    if (trimmed.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return Array.from(new Set(parsed.map((u) => (typeof u === 'string' ? u.trim() : '')).filter(Boolean)));
+        }
+      } catch {}
+    }
+    if (trimmed.includes('\n')) {
+      return Array.from(new Set(trimmed.split(/\r?\n/).map((s) => s.trim()).filter(Boolean)));
+    }
+    return [trimmed];
+  }
+  return [];
+}
 
-  // Check if notes contains an officer outcome append: "Officer Outcome: ..."
-  const officerOutcomeMatch = rawNotes.match(/Officer Outcome:\s*([^\n\r]+)/i);
-  const officerOutcome = officerOutcomeMatch ? officerOutcomeMatch[1].trim() : '';
-
-  // Extract user-typed notes by removing boilerplate prefixes
-  let parsedNotes = rawNotes
-    .replace(/^Scope:\s*[^\n\r]+(\r?\n)?/im, '')
-    .replace(/^Window:\s*[^\n\r]+(\r?\n)?/im, '')
-    .replace(/^Notes:\s*/im, '')
-    .replace(/Attached Survey \/ Site Photograph:\s*[^\n\r]+/im, '')
-    .replace(/Officer Outcome:\s*[^\n\r]+/im, '')
+export function cleanNoteString(raw?: string | null): string {
+  if (!raw) return '';
+  let s = String(raw)
+    .replace(/Attached Survey \/ Site Photograph:\s*[^\n\r]+/gi, '')
+    .replace(/Officer Outcome:\s*/gi, '')
+    .replace(/Scope:\s*[^\n\r]*?Window:\s*[^\n\r.]*\.?\s*/gi, '')
+    .replace(/^Scope:\s*[^\n\r]+(\r?\n)?/gim, '')
+    .replace(/^Window:\s*[^\n\r]+(\r?\n)?/gim, '')
+    .replace(/\bNotes:\s*/gi, '')
     .trim();
 
-  const isGenericOutcome = !cleanOutcome || /^(checked|done|completed|resolved|closed|ok|yes)$/i.test(cleanOutcome);
+  // Deduplicate repeated segments joined by " — " or newlines
+  const parts = s
+    .split(/\s+—\s+|\r?\n/)
+    .map((p) => p.trim())
+    .filter(Boolean);
 
-  // If there's an actual specific officer outcome typed (and not just a generic "Checked")
-  if (!isGenericOutcome) {
-    if (parsedNotes && parsedNotes !== cleanOutcome && !parsedNotes.includes(cleanOutcome)) {
-      return `${cleanOutcome} — ${parsedNotes}`;
+  const unique: string[] = [];
+  for (const p of parts) {
+    if (!unique.some((u) => u.toLowerCase() === p.toLowerCase())) {
+      unique.push(p);
     }
-    return cleanOutcome;
+  }
+  return unique.join(' — ');
+}
+
+export function buildStageHistory(
+  rawHistory: any,
+  currentStage: number,
+  currentStepDone: boolean,
+  currentNote: string | null,
+  currentPhotos: string[],
+  officerName: string | null
+): Record<string, { stage: number; note: string; photos: string[]; officerName?: string; updatedAt?: string }> {
+  let parsed: Record<string, any> = {};
+  if (rawHistory && typeof rawHistory === 'object' && !Array.isArray(rawHistory)) {
+    parsed = { ...rawHistory };
+  } else if (typeof rawHistory === 'string' && rawHistory.trim().startsWith('{')) {
+    try {
+      parsed = JSON.parse(rawHistory);
+    } catch {}
   }
 
-  // If there is an officer outcome appended to notes that is not generic
-  if (officerOutcome && !/^(checked|done|completed|resolved|closed|ok|yes)$/i.test(officerOutcome)) {
-    return officerOutcome;
+  const defaultStageNotes: Record<number, string> = {
+    1: 'Instruction, scope, and engagement terms logged and confirmed.',
+    2: 'Title documents and AGIS/registry records examined.',
+    3: 'Field surveyor allocated and cadastral coordinates cross-checked.',
+    4: 'Physical site inspection mobilised and access route confirmed.',
+    5: 'On-site attendance, boundary beacon check, and photographic capture completed.',
+    6: 'Valuation assessment, structural appraisal, and cost-to-complete verified.',
+    7: 'Legal & technical compliance audit completed.',
+    8: 'Comprehensive assurance dossier compiled and reviewed.',
+    9: 'Final inspection dossier issued and debrief delivered to client.',
+  };
+
+  const result: Record<string, { stage: number; note: string; photos: string[]; officerName?: string; updatedAt?: string }> = {};
+
+  for (let s = 1; s <= 9; s++) {
+    const key = String(s);
+    const existing = parsed[key];
+    const isCompletedOrCurrent = s < currentStage || (s === currentStage && (currentStepDone || Boolean(currentNote)));
+
+    if (existing && typeof existing === 'object') {
+      const cleanedExistingNote = cleanNoteString(existing.note);
+      const existingPhotos = parsePhotoList(existing.photos);
+      result[key] = {
+        stage: s,
+        note: cleanedExistingNote || (s === currentStage && currentNote ? currentNote : (s <= currentStage ? defaultStageNotes[s] : '')),
+        photos: existingPhotos.length > 0 ? existingPhotos : (s === currentStage ? currentPhotos : []),
+        officerName: existing.officerName || officerName || undefined,
+        updatedAt: existing.updatedAt || undefined,
+      };
+    } else if (isCompletedOrCurrent) {
+      result[key] = {
+        stage: s,
+        note: (s === currentStage && currentNote) ? currentNote : (currentNote || defaultStageNotes[s]),
+        photos: s === currentStage ? currentPhotos : [],
+        officerName: officerName || undefined,
+      };
+    }
   }
 
-  // Return the actual note typed by the user
-  if (parsedNotes) {
-    return parsedNotes;
+  return result;
+}
+
+export function extractActualNote(notes?: string | null, outcome?: string | null): string | null {
+  const cleanOutcome = cleanNoteString(outcome);
+  const parsedNotes = cleanNoteString(notes);
+
+  const isGenericOutcome = !cleanOutcome || /^(checked|done|completed|resolved|closed|ok|yes)$/i.test(cleanOutcome);
+  const isGenericNotes = !parsedNotes || /^(checked|done|completed|resolved|closed|ok|yes)$/i.test(parsedNotes);
+
+  if (!isGenericOutcome && !isGenericNotes) {
+    if (parsedNotes.toLowerCase() === cleanOutcome.toLowerCase() || parsedNotes.toLowerCase().includes(cleanOutcome.toLowerCase())) {
+      return parsedNotes;
+    }
+    if (cleanOutcome.toLowerCase().includes(parsedNotes.toLowerCase())) {
+      return cleanOutcome;
+    }
+    return cleanNoteString(`${cleanOutcome} — ${parsedNotes}`);
   }
 
-  // Fallback to whatever note or outcome exists
-  return cleanOutcome || officerOutcome || rawNotes || null;
+  if (!isGenericNotes) return parsedNotes;
+  if (!isGenericOutcome) return cleanOutcome;
+  return null;
 }
 
 export async function getLiveInspectionByRef(reference: string): Promise<any | null> {
@@ -566,6 +669,7 @@ export async function getLiveInspectionByRef(reference: string): Promise<any | n
       ADD COLUMN IF NOT EXISTS agent_id text,
       ADD COLUMN IF NOT EXISTS report_url text,
       ADD COLUMN IF NOT EXISTS officer_name text,
+      ADD COLUMN IF NOT EXISTS stage_history jsonb DEFAULT '{}'::jsonb,
       ADD COLUMN IF NOT EXISTS status text,
       ADD COLUMN IF NOT EXISTS outcome text,
       ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone;
@@ -588,6 +692,7 @@ export async function getLiveInspectionByRef(reference: string): Promise<any | n
             COALESCE(i.status, s.status, 'in_progress') as status,
             COALESCE(i.outcome, s.outcome, '') as outcome,
             COALESCE(i.current_step_done, false) as "currentStepDone",
+            COALESCE(i.stage_history, '{}'::jsonb) as "stageHistory",
             i.created_at as "createdAt",
             COALESCE(i.updated_at, s.closed_at, i.created_at) as "updatedAt",
             CASE 
@@ -651,6 +756,15 @@ export async function getLiveInspectionByRef(reference: string): Promise<any | n
     ? Boolean(row.currentStepDone)
     : Boolean(row.outcome || (row.status === 'closed' || row.status === 'resolved'));
   const officerMessage = extractActualNote(cleanNotes, row.outcome);
+  const photos = parsePhotoList(reportUrl);
+  const stageHistory = buildStageHistory(
+    row.stageHistory,
+    effectiveStage,
+    currentStepDone,
+    officerMessage,
+    photos,
+    assignedAgentName
+  );
 
   return {
     ...row,
@@ -660,6 +774,8 @@ export async function getLiveInspectionByRef(reference: string): Promise<any | n
     officerMessage,
     notes: cleanNotes,
     reportUrl,
+    photos,
+    stageHistory,
     assignedAgentId,
     assignedAgent: assignedAgentName ? {
       id: assignedAgentId,
@@ -702,6 +818,7 @@ export async function updateLiveInspectionStage(
       ADD COLUMN IF NOT EXISTS report_url text,
       ADD COLUMN IF NOT EXISTS officer_name text,
       ADD COLUMN IF NOT EXISTS current_step_done boolean DEFAULT false,
+      ADD COLUMN IF NOT EXISTS stage_history jsonb DEFAULT '{}'::jsonb,
       ADD COLUMN IF NOT EXISTS status text,
       ADD COLUMN IF NOT EXISTS outcome text,
       ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone;
@@ -750,6 +867,43 @@ export async function updateLiveInspectionStage(
       ? assignedAgentName || finalOfficerName || null
       : finalOfficerName || curRow?.assigned_agent || null;
 
+  // Build and persist per-stage history so every stage retains its own note and photos
+  let existingHistory: Record<string, any> = {};
+  if (curRow?.stage_history && typeof curRow.stage_history === 'object') {
+    existingHistory = { ...curRow.stage_history };
+  }
+  const cleanedIncomingNote = cleanNoteString(finalNotes);
+  const incomingPhotos = parsePhotoList(finalReportUrl);
+  const nowIso = new Date().toISOString();
+
+  // Preserve currentStage entry when advancing
+  if (currentStage !== finalStage) {
+    const prevKey = String(currentStage);
+    const prevExisting = existingHistory[prevKey] || {};
+    const prevNote = cleanNoteString(prevExisting.note || curRow?.notes || curRow?.outcome);
+    const prevPhotos = parsePhotoList(prevExisting.photos || curRow?.report_url);
+    existingHistory[prevKey] = {
+      stage: currentStage,
+      note: prevNote || cleanedIncomingNote || `Stage ${currentStage} verified and completed.`,
+      photos: prevPhotos.length > 0 ? prevPhotos : incomingPhotos,
+      officerName: prevExisting.officerName || finalOfficerName || undefined,
+      completed: true,
+      updatedAt: prevExisting.updatedAt || nowIso,
+    };
+  }
+
+  // Record entry for finalStage
+  const targetKey = String(finalStage);
+  const prevTarget = existingHistory[targetKey] || {};
+  existingHistory[targetKey] = {
+    stage: finalStage,
+    note: cleanedIncomingNote || cleanNoteString(prevTarget.note) || `Stage ${finalStage} updated.`,
+    photos: incomingPhotos.length > 0 ? incomingPhotos : parsePhotoList(prevTarget.photos),
+    officerName: finalOfficerName || prevTarget.officerName || undefined,
+    completed: finalStepDone,
+    updatedAt: nowIso,
+  };
+
   const res = await p.query(
     `UPDATE inspections
      SET stage = $2,
@@ -760,6 +914,7 @@ export async function updateLiveInspectionStage(
          officer_name = $7,
          report_url = $8,
          assigned_agent = $9,
+         stage_history = $10::jsonb,
          updated_at = now()
      WHERE id::text = $1 OR reference = $1
      RETURNING *`,
@@ -773,6 +928,7 @@ export async function updateLiveInspectionStage(
       finalOfficerName,
       finalReportUrl,
       finalAssignedAgent,
+      JSON.stringify(existingHistory),
     ]
   );
 

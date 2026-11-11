@@ -22,37 +22,10 @@ export async function GET(
   const { reference } = await params;
   const ref = (reference || '').trim().toUpperCase();
 
-  if (ref === DEMO_REFERENCE) {
-    return NextResponse.json({
-      ok: true,
-      data: {
-        reference: ref,
-        demonstration: true,
-        propertyTitle: 'Plot 42, Hutu Exclusive Phase III, Airport Road',
-        propertyLocation: 'Abuja FCT - within city',
-        stage: 6,
-        stageTitle: 'Registry Cross-Check & Cadastral Verification',
-        stageName: 'Registry Cross-Check & Cadastral Verification',
-        stageDescription: 'On-site coordinates being reconciled with AGIS cadastral map.',
-        officerName: 'Emeka Nwachukwu (NIS Registered)',
-        officer: 'Emeka Nwachukwu (NIS Registered)',
-        scheduledDate: '2026-10-18',
-        scheduledFor: '2026-10-18',
-        pipeline: inspectionPipeline.map((s, i) => ({
-          index: i,
-          title: s.t,
-          detail: s.d,
-          state: i < 5 ? 'complete' : i === 5 ? 'active' : 'pending',
-        })),
-        note: 'This is a demonstration record. It describes the process, not a live engagement.',
-        updatedAt: new Date().toISOString(),
-      },
-    });
-  }
-
   // Try live database lookup first
   try {
     const liveRec = await getLiveInspectionByRef(ref);
+    if (liveRec) {
       const currentStage = Math.max(1, Math.min(9, Number(liveRec.stage) || 1));
       const isCompleted = currentStage >= 9;
       const currentStepDone = Boolean(liveRec.currentStepDone || liveRec.outcome || liveRec.status === 'closed' || liveRec.status === 'resolved');
@@ -77,9 +50,14 @@ export async function GET(
           outcome: liveRec.outcome || null,
           officerName: officerVal,
           officer: officerVal,
+          reportUrl: liveRec.reportUrl || '',
+          photos: liveRec.photos || [],
+          stageHistory: liveRec.stageHistory || {},
           scheduledDate: liveRec.scheduledDate || null,
           scheduledFor: liveRec.scheduledDate || null,
           pipeline: inspectionPipeline.map((s, i) => {
+            const stageNum = i + 1;
+            const histEntry = liveRec.stageHistory?.[String(stageNum)];
             let state: 'complete' | 'active' | 'pending';
             if (i < currentStage - 1) {
               state = 'complete';
@@ -90,17 +68,54 @@ export async function GET(
             }
             return {
               index: i,
+              stage: stageNum,
               title: s.t,
               detail: s.d,
               state,
+              note: histEntry?.note || (state === 'complete' ? officerMessage : null),
+              photos: histEntry?.photos || [],
+              officerName: histEntry?.officerName || officerVal,
             };
           }),
           note: liveRec.notes || undefined,
           updatedAt: liveRec.updatedAt || liveRec.createdAt || new Date().toISOString(),
         },
       });
+    }
   } catch (err) {
     console.error('[fdp:inspections:track] DB lookup error:', err);
+  }
+
+  if (ref === DEMO_REFERENCE) {
+    return NextResponse.json({
+      ok: true,
+      data: {
+        reference: ref,
+        demonstration: true,
+        propertyTitle: 'Plot 42, Hutu Exclusive Phase III, Airport Road',
+        propertyLocation: 'Abuja FCT - within city',
+        stage: 6,
+        stageTitle: 'Registry Cross-Check & Cadastral Verification',
+        stageName: 'Registry Cross-Check & Cadastral Verification',
+        stageDescription: 'On-site coordinates being reconciled with AGIS cadastral map.',
+        officerName: 'Emeka Nwachukwu (NIS Registered)',
+        officer: 'Emeka Nwachukwu (NIS Registered)',
+        scheduledDate: '2026-10-18',
+        scheduledFor: '2026-10-18',
+        reportUrl: '',
+        photos: [],
+        stageHistory: {},
+        pipeline: inspectionPipeline.map((s, i) => ({
+          index: i,
+          stage: i + 1,
+          title: s.t,
+          detail: s.d,
+          state: i < 5 ? 'complete' : i === 5 ? 'active' : 'pending',
+        })),
+        note: 'This is a demonstration record. It describes the process, not a live engagement.',
+        updatedAt: new Date().toISOString(),
+      },
+    });
   }
 
   // Fallback to store lookup

@@ -63,6 +63,7 @@ export default function ImageUpload({
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
   const [error, setError] = useState('');
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [items, setItems] = useState<PhotoItem[]>(() =>
     parseImageUrls(value).map((url) => ({ url }))
   );
@@ -358,6 +359,8 @@ export default function ImageUpload({
                   <img
                     src={item.url}
                     alt={`Attached evidence photo ${idx + 1}`}
+                    onClick={() => setPreviewIndex(idx)}
+                    title="Click to view full-size photo"
                     style={{
                       width: '60px',
                       height: '60px',
@@ -365,6 +368,7 @@ export default function ImageUpload({
                       borderRadius: '5px',
                       border: '1px solid #cbd5e1',
                       flexShrink: 0,
+                      cursor: 'pointer',
                     }}
                   />
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -403,6 +407,22 @@ export default function ImageUpload({
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewIndex(idx)}
+                      style={{
+                        padding: '4px 9px',
+                        fontSize: '11px',
+                        background: '#dcfce7',
+                        color: '#15803d',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                      }}
+                    >
+                      View
+                    </button>
                     <button
                       type="button"
                       disabled={uploading}
@@ -507,6 +527,131 @@ export default function ImageUpload({
       {error && (
         <div style={{ marginTop: '6px', fontSize: '11.5px', color: '#b91c1c', fontWeight: 500 }}>
           {error}
+        </div>
+      )}
+
+      {/* Lightbox modal for viewing attached photos */}
+      {previewIndex !== null && items[previewIndex] && (
+        <div
+          onClick={() => setPreviewIndex(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.85)',
+            zIndex: 10000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#ffffff',
+              borderRadius: '12px',
+              maxWidth: '820px',
+              width: '100%',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.45)',
+            }}
+          >
+            <div
+              style={{
+                padding: '12px 16px',
+                background: 'var(--forest)',
+                color: '#ffffff',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <div style={{ fontSize: '13px', fontWeight: 700 }}>
+                Photograph #{previewIndex + 1} of {items.length}
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewIndex(null)}
+                style={{
+                  background: 'rgba(255,255,255,0.2)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '5px',
+                  padding: '5px 10px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                ✕ Close
+              </button>
+            </div>
+            <div
+              style={{
+                padding: '16px',
+                background: '#0f172a',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflowY: 'auto',
+              }}
+            >
+              <img
+                src={items[previewIndex].url}
+                alt={`Preview ${previewIndex + 1}`}
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '65vh',
+                  objectFit: 'contain',
+                  borderRadius: '6px',
+                  background: '#ffffff',
+                }}
+              />
+              {items.length > 1 && (
+                <div style={{ display: 'flex', gap: '10px', marginTop: '12px', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewIndex((previewIndex - 1 + items.length) % items.length)}
+                    style={{
+                      padding: '5px 12px',
+                      background: '#ffffff',
+                      color: '#0f172a',
+                      border: 'none',
+                      borderRadius: '5px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ← Prev
+                  </button>
+                  <span style={{ color: '#e2e8f0', fontSize: '12px', fontWeight: 600 }}>
+                    {previewIndex + 1} / {items.length}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewIndex((previewIndex + 1) % items.length)}
+                    style={{
+                      padding: '5px 12px',
+                      background: '#ffffff',
+                      color: '#0f172a',
+                      border: 'none',
+                      borderRadius: '5px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Next →
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

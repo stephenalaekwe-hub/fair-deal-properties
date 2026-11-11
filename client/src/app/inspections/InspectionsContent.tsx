@@ -4,9 +4,46 @@ import Link from 'next/link';
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { walkthroughs } from '@/data/walkthroughs';
 import { fetchApi } from '@/lib/api';
-import ImageUpload from '@/components/ImageUpload';
+import ImageUpload, { parseImageUrls } from '@/components/ImageUpload';
 import { sanitizePhone, isValidPhone, sanitizeName } from '@/lib/validation';
 import { inspectionPipeline } from '@/data/pipeline';
+
+const DEFAULT_STAGE_NOTES: Record<number, string> = {
+  1: 'Inspection instruction, scope, and engagement fee verified and logged.',
+  2: 'Title documents examined and cadastral registry records cross-checked.',
+  3: 'Registered field surveyor allocated and cadastral coordinates verified.',
+  4: 'Field inspection mobilised; site access protocol and inspection window confirmed.',
+  5: 'On-site physical examination conducted; boundary beacons and site condition verified.',
+  6: 'Structural appraisal, valuation assessment, and physical snagging completed.',
+  7: 'Legal & compliance clearance verified against FCT / State planning authority records.',
+  8: 'Comprehensive inspection dossier, survey evidence, and photographs compiled.',
+  9: 'Final assurance dossier issued and client debrief completed.',
+};
+
+function cleanNoteText(raw?: string | null): string {
+  if (!raw) return '';
+  const s = String(raw)
+    .replace(/Attached Survey \/ Site Photograph:\s*[^\n\r]+/gi, '')
+    .replace(/Officer Outcome:\s*/gi, '')
+    .replace(/Scope:\s*[^\n\r]*?Window:\s*[^\n\r.]*\.?\s*/gi, '')
+    .replace(/^Scope:\s*[^\n\r]+(\r?\n)?/gim, '')
+    .replace(/^Window:\s*[^\n\r]+(\r?\n)?/gim, '')
+    .replace(/\bNotes:\s*/gi, '')
+    .trim();
+
+  const parts = s
+    .split(/\s+—\s+|\r?\n/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  const unique: string[] = [];
+  for (const p of parts) {
+    if (!unique.some((u) => u.toLowerCase() === p.toLowerCase())) {
+      unique.push(p);
+    }
+  }
+  return unique.join(' — ');
+}
 
 type Tab = 'virtual' | 'physical' | 'track';
 interface LogLine { at: string; text: string; kind: 'sys' | 'ok' | 'ev' }
@@ -37,38 +74,18 @@ function formatSyncTime(dateVal?: string | Date | null): string {
 
 /** Extract the actual user or officer-typed note, stripping boilerplate scope prefixes or generic status placeholders. */
 function extractActualNote(notes?: string | null, outcome?: string | null): string {
-  const cleanOutcome = (outcome || '').trim();
-  const rawNotes = (notes || '').trim();
-
-  const officerOutcomeMatch = rawNotes.match(/Officer Outcome:\s*([^\n\r]+)/i);
-  const officerOutcome = officerOutcomeMatch ? officerOutcomeMatch[1].trim() : '';
-
-  let parsedNotes = rawNotes
-    .replace(/^Scope:\s*[^\n\r]+(\r?\n)?/im, '')
-    .replace(/^Window:\s*[^\n\r]+(\r?\n)?/im, '')
-    .replace(/^Notes:\s*/im, '')
-    .replace(/Attached Survey \/ Site Photograph:\s*[^\n\r]+/im, '')
-    .replace(/Officer Outcome:\s*[^\n\r]+/im, '')
-    .trim();
+  const cleanOutcome = cleanNoteText(outcome);
+  const parsedNotes = cleanNoteText(notes);
 
   const isGenericOutcome = !cleanOutcome || /^(checked|done|completed|resolved|closed|ok|yes)$/i.test(cleanOutcome);
 
+  if (!isGenericOutcome && parsedNotes) {
+    return cleanNoteText(`${cleanOutcome} — ${parsedNotes}`);
+  }
   if (!isGenericOutcome) {
-    if (parsedNotes && parsedNotes !== cleanOutcome && !parsedNotes.includes(cleanOutcome)) {
-      return `${cleanOutcome} — ${parsedNotes}`;
-    }
     return cleanOutcome;
   }
-
-  if (officerOutcome && !/^(checked|done|completed|resolved|closed|ok|yes)$/i.test(officerOutcome)) {
-    return officerOutcome;
-  }
-
-  if (parsedNotes) {
-    return parsedNotes;
-  }
-
-  return cleanOutcome || officerOutcome || rawNotes || '';
+  return parsedNotes || cleanOutcome || '';
 }
 
 /**
@@ -285,6 +302,11 @@ export default function InspectionsContent() {
   const [trackRefInput, setTrackRefInput] = useState('');
   const [trackLoading, setTrackLoading] = useState(false);
   const [trackError, setTrackError] = useState('');
+  const [lightboxState, setLightboxState] = useState<{
+    photos: string[];
+    index: number;
+    title?: string;
+  } | null>(null);
   const [trackData, setTrackData] = useState<{
     reference: string;
     propertyTitle: string;
@@ -298,6 +320,19 @@ export default function InspectionsContent() {
     isCompleted?: boolean;
     currentStepDone?: boolean;
     officerMessage?: string | null;
+    reportUrl?: string;
+    photos?: string[];
+    stageHistory?: Record<string, { stage: number; note: string; photos: string[]; officerName?: string; updatedAt?: string }>;
+    pipeline?: Array<{
+      index: number;
+      stage?: number;
+      title: string;
+      detail: string;
+      state: string;
+      note?: string | null;
+      photos?: string[];
+      officerName?: string;
+    }>;
   } | null>(null);
 
   const handleTrackLookup = async (lookupRef?: string) => {
@@ -310,41 +345,13 @@ export default function InspectionsContent() {
     setTrackLoading(true);
     setTrackError('');
     try {
-      if (refToTrack === 'FDP-INS-DEMO01') {
-        setTrackData({
-          reference: 'FDP-INS-DEMO01',
-          propertyTitle: 'Plot 42, Hutu Exclusive Phase III, Airport Road',
-          propertyLocation: 'Abuja FCT - within city',
-          stage: 6,
-          stageTitle: 'Registry Cross-Check & Cadastral Verification',
-          stageDescription: 'On-site coordinates being reconciled with AGIS cadastral map.',
-          officerName: 'Emeka Nwachukwu (NIS Registered)',
-          scheduledDate: '2026-10-18',
-          updatedAt: new Date().toISOString(),
-        });
-        setTrackLoading(false);
-        return;
-      }
-      if (refToTrack === 'FDP-INS-890214') {
-        setTrackData({
-          reference: 'FDP-INS-890214',
-          propertyTitle: 'Plot 42, Hutu Exclusive Phase III, Airport Road',
-          propertyLocation: 'Abuja FCT - Airport Road Corridor',
-          stage: 4,
-          stageTitle: 'Physical Inspection Mobilised & Site Surveyor Dispatched',
-          stageDescription: 'Field surveyor on transit to site for physical inspection and boundary walk.',
-          officerName: 'Emeka Nwosu (Senior Surveyor)',
-          scheduledDate: '2026-11-12',
-          updatedAt: new Date().toISOString(),
-        });
-        setTrackLoading(false);
-        return;
-      }
-
       const res = await fetchApi<any>(`/inspections/${encodeURIComponent(refToTrack)}`);
 
       if (res && res.ok && res.data) {
         const actualNote = extractActualNote(res.data.note, res.data.officerMessage || res.data.outcome);
+        const photos = Array.isArray(res.data.photos) && res.data.photos.length > 0
+          ? res.data.photos
+          : parseImageUrls(res.data.reportUrl);
         setTrackData({
           reference: res.data.reference,
           propertyTitle: res.data.propertyTitle || 'Subject Property',
@@ -358,6 +365,40 @@ export default function InspectionsContent() {
           isCompleted: Boolean(res.data.isCompleted),
           currentStepDone: Boolean(res.data.currentStepDone),
           officerMessage: actualNote || null,
+          reportUrl: res.data.reportUrl || '',
+          photos,
+          stageHistory: res.data.stageHistory || {},
+          pipeline: Array.isArray(res.data.pipeline) ? res.data.pipeline : undefined,
+        });
+      } else if (refToTrack === 'FDP-INS-DEMO01') {
+        setTrackData({
+          reference: 'FDP-INS-DEMO01',
+          propertyTitle: 'Plot 42, Hutu Exclusive Phase III, Airport Road',
+          propertyLocation: 'Abuja FCT - within city',
+          stage: 6,
+          stageTitle: 'Valuation & Cost-to-Complete',
+          stageDescription: 'On-site coordinates being reconciled with AGIS cadastral map.',
+          officerName: 'Emeka Nwachukwu (NIS Registered)',
+          scheduledDate: '2026-10-18',
+          updatedAt: new Date().toISOString(),
+          officerMessage: 'Foundation and perimeter beacons verified against AGIS coordinates.',
+          photos: [],
+          stageHistory: {},
+        });
+      } else if (refToTrack === 'FDP-INS-890214') {
+        setTrackData({
+          reference: 'FDP-INS-890214',
+          propertyTitle: 'Plot 42, Hutu Exclusive Phase III, Airport Road',
+          propertyLocation: 'Abuja FCT - Airport Road Corridor',
+          stage: 4,
+          stageTitle: 'Physical Inspection Mobilised',
+          stageDescription: 'Field surveyor on transit to site for physical inspection and boundary walk.',
+          officerName: 'Emeka Nwosu (Senior Surveyor)',
+          scheduledDate: '2026-11-12',
+          updatedAt: new Date().toISOString(),
+          officerMessage: 'Field surveyor mobilised with access clearance.',
+          photos: [],
+          stageHistory: {},
         });
       } else {
         setTrackError(res?.error || 'No inspection found against that reference. Check the reference or contact the firm.');
@@ -950,24 +991,158 @@ export default function InspectionsContent() {
                     />
                     <div id="pipeSteps">
                       {inspectionPipeline.map((p, i) => {
+                        const stageNum = i + 1;
                         const isPastStep = i < trackData.stage - 1;
                         const isCurrentStep = i === trackData.stage - 1;
                         const isDone = isPastStep || (isCurrentStep && Boolean(trackData.currentStepDone || trackData.stage >= 9));
                         const isNow = isCurrentStep && !isDone;
                         const cls = isDone ? 'pstep done' : isNow ? 'pstep now' : 'pstep';
+
+                        const histEntry = trackData.stageHistory?.[String(stageNum)];
+                        const pipeEntry = trackData.pipeline?.[i];
+                        const rawStageNote =
+                          histEntry?.note ||
+                          pipeEntry?.note ||
+                          (isCurrentStep ? trackData.officerMessage : '') ||
+                          (isDone ? DEFAULT_STAGE_NOTES[stageNum] : '');
+                        const stageNote = cleanNoteText(rawStageNote);
+
+                        const stagePhotos: string[] =
+                          Array.isArray(histEntry?.photos) && histEntry.photos.length > 0
+                            ? histEntry.photos
+                            : Array.isArray(pipeEntry?.photos) && pipeEntry.photos.length > 0
+                              ? pipeEntry.photos
+                              : isCurrentStep && Array.isArray(trackData.photos) && trackData.photos.length > 0
+                                ? trackData.photos
+                                : [];
+
                         return (
                           <div key={p.t} className={cls}>
-                            <div className="pdot">{isDone ? '✓' : isNow ? '●' : i + 1}</div>
+                            <div className="pdot">{isDone ? '✓' : isNow ? '●' : stageNum}</div>
                             <div className="pttl">{p.t}</div>
                             <div className="pdesc">{p.d}</div>
                             {isDone && (
-                              <div className="pstamp" style={{fontSize:'10px',color:'var(--forest)',marginTop:'2px'}}>
-                                {isCurrentStep && trackData.officerMessage ? `Completed · Note: ${trackData.officerMessage}` : 'Completed'}
+                              <div className="pstamp" style={{fontSize:'10.5px',color:'var(--forest)',fontWeight:600,marginTop:'3px'}}>
+                                ✓ Completed
                               </div>
                             )}
                             {isNow && (
-                              <div className="pstamp" style={{fontSize:'10px',color:'var(--gold-dark)',fontWeight:'600',marginTop:'2px'}}>
-                                In Progress
+                              <div className="pstamp" style={{fontSize:'10.5px',color:'var(--gold-dark)',fontWeight:600,marginTop:'3px'}}>
+                                ● In Progress
+                              </div>
+                            )}
+                            {(isDone || isNow) && stageNote && (
+                              <div
+                                style={{
+                                  marginTop: '6px',
+                                  padding: '6px 10px',
+                                  background: isDone ? '#f0fdf4' : '#fffbeb',
+                                  border: isDone ? '1px solid #bbf7d0' : '1px solid #fde68a',
+                                  borderRadius: '6px',
+                                  fontSize: '11.5px',
+                                  color: '#1e293b',
+                                  lineHeight: '1.45',
+                                }}
+                              >
+                                <span style={{ fontWeight: 700, color: isDone ? 'var(--forest)' : '#b45309' }}>
+                                  Stage {stageNum} Note:{' '}
+                                </span>
+                                <span>{stageNote}</span>
+                              </div>
+                            )}
+                            {(isDone || isNow) && (
+                              <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                {stagePhotos.length > 0 ? (
+                                  <>
+                                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                      {stagePhotos.slice(0, 3).map((photoUrl, pIdx) => (
+                                        <button
+                                          key={`${stageNum}-ph-${pIdx}`}
+                                          type="button"
+                                          onClick={() =>
+                                            setLightboxState({
+                                              photos: stagePhotos,
+                                              index: pIdx,
+                                              title: `Stage ${stageNum}: ${p.t}`,
+                                            })
+                                          }
+                                          style={{
+                                            padding: 0,
+                                            border: '1px solid #86efac',
+                                            borderRadius: '5px',
+                                            overflow: 'hidden',
+                                            width: '40px',
+                                            height: '40px',
+                                            cursor: 'pointer',
+                                            background: '#fff',
+                                          }}
+                                          title="Click to view full-size photograph"
+                                        >
+                                          <img
+                                            src={photoUrl}
+                                            alt={`Stage ${stageNum} photo ${pIdx + 1}`}
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                          />
+                                        </button>
+                                      ))}
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setLightboxState({
+                                          photos: stagePhotos,
+                                          index: 0,
+                                          title: `Stage ${stageNum}: ${p.t}`,
+                                        })
+                                      }
+                                      style={{
+                                        padding: '4px 10px',
+                                        fontSize: '11px',
+                                        fontWeight: 600,
+                                        background: 'var(--forest)',
+                                        color: '#ffffff',
+                                        border: 'none',
+                                        borderRadius: '5px',
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
+                                      }}
+                                    >
+                                      <span>🖼️</span>
+                                      <span>
+                                        View {stagePhotos.length === 1 ? 'Photograph' : `${stagePhotos.length} Photographs`}
+                                      </span>
+                                    </button>
+                                  </>
+                                ) : isCurrentStep ? (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setLightboxState({
+                                        photos: trackData.photos || [],
+                                        index: 0,
+                                        title: `Stage ${stageNum}: ${p.t} — Site Photographs`,
+                                      })
+                                    }
+                                    style={{
+                                      padding: '3px 9px',
+                                      fontSize: '10.5px',
+                                      fontWeight: 600,
+                                      background: '#f8fafc',
+                                      color: '#475569',
+                                      border: '1px solid #cbd5e1',
+                                      borderRadius: '5px',
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                    }}
+                                  >
+                                    <span>📷</span>
+                                    <span>View Stage Pictures</span>
+                                  </button>
+                                ) : null}
                               </div>
                             )}
                           </div>
@@ -1013,7 +1188,7 @@ export default function InspectionsContent() {
                     </div>
                   </div>
                 </div>
-                <div className="card" style={{padding:'1.5rem'}}>
+                <div className="card" style={{padding:'1.5rem',marginBottom:'1.25rem'}}>
                   <h4 style={{fontSize:'.95rem',marginBottom:'.9rem'}}>Recent Audit Updates</h4>
                   <div id="notifFeed" style={{display:'flex',flexDirection:'column',gap:'.75rem'}}>
                     <div style={{fontSize:'12px',padding:'.5rem .75rem',background:'var(--cream)',borderRadius:'var(--radius-sm)',lineHeight:'1.5'}}>
@@ -1048,11 +1223,335 @@ export default function InspectionsContent() {
                     )}
                   </div>
                 </div>
+
+                {/* Site Inspection Photographs & Evidence Provision */}
+                {(() => {
+                  const collectedPhotos: string[] = [];
+                  if (Array.isArray(trackData.photos)) {
+                    for (const u of trackData.photos) {
+                      if (u && !collectedPhotos.includes(u)) collectedPhotos.push(u);
+                    }
+                  }
+                  if (trackData.stageHistory) {
+                    for (const entry of Object.values(trackData.stageHistory)) {
+                      if (entry && Array.isArray(entry.photos)) {
+                        for (const u of entry.photos) {
+                          if (u && !collectedPhotos.includes(u)) collectedPhotos.push(u);
+                        }
+                      }
+                    }
+                  }
+
+                  return (
+                    <div className="card" id="photoDossierCard" style={{ padding: '1.5rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '.9rem', gap: '8px' }}>
+                        <h4 style={{ fontSize: '.95rem', margin: 0 }}>Site Inspection Photographs</h4>
+                        <span
+                          style={{
+                            fontSize: '10.5px',
+                            fontWeight: 700,
+                            padding: '2px 8px',
+                            borderRadius: '999px',
+                            background: collectedPhotos.length > 0 ? '#dcfce7' : '#f1f5f9',
+                            color: collectedPhotos.length > 0 ? '#15803d' : '#64748b',
+                          }}
+                        >
+                          {collectedPhotos.length} {collectedPhotos.length === 1 ? 'Photo' : 'Photos'}
+                        </span>
+                      </div>
+
+                      {collectedPhotos.length > 0 ? (
+                        <div>
+                          <div
+                            style={{
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(auto-fill, minmax(84px, 1fr))',
+                              gap: '10px',
+                              marginBottom: '12px',
+                            }}
+                          >
+                            {collectedPhotos.map((url, idx) => (
+                              <button
+                                key={`dossier-ph-${idx}`}
+                                type="button"
+                                onClick={() =>
+                                  setLightboxState({
+                                    photos: collectedPhotos,
+                                    index: idx,
+                                    title: `${trackData.reference} — Site Evidence Photograph #${idx + 1}`,
+                                  })
+                                }
+                                style={{
+                                  padding: 0,
+                                  border: '1px solid #cbd5e1',
+                                  borderRadius: '8px',
+                                  overflow: 'hidden',
+                                  aspectRatio: '1 / 1',
+                                  cursor: 'pointer',
+                                  position: 'relative',
+                                  background: '#f8fafc',
+                                }}
+                                title={`Click to view Photograph #${idx + 1}`}
+                              >
+                                <img
+                                  src={url}
+                                  alt={`Site evidence ${idx + 1}`}
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                              </button>
+                            ))}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setLightboxState({
+                                photos: collectedPhotos,
+                                index: 0,
+                                title: `${trackData.reference} — Site Inspection Photographs`,
+                              })
+                            }
+                            style={{
+                              width: '100%',
+                              padding: '9px 14px',
+                              background: 'var(--forest)',
+                              color: '#ffffff',
+                              border: 'none',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '6px',
+                            }}
+                          >
+                            <span>🖼️</span>
+                            <span>
+                              View {collectedPhotos.length === 1 ? 'Site Photograph' : `All ${collectedPhotos.length} Site Photographs`}
+                            </span>
+                          </button>
+                        </div>
+                      ) : (
+                        <div
+                          style={{
+                            padding: '14px',
+                            background: '#f8fafc',
+                            border: '1px dashed #cbd5e1',
+                            borderRadius: '8px',
+                            textAlign: 'center',
+                          }}
+                        >
+                          <div style={{ fontSize: '22px', marginBottom: '6px' }}>📷</div>
+                          <div style={{ fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                            No photographs attached to this inspection yet
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#64748b', lineHeight: '1.45', marginBottom: '10px' }}>
+                            When the field officer uploads site photographs, boundary beacon evidence, or survey plans at any stage, they will be available here for full-screen viewing.
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setLightboxState({
+                                photos: [],
+                                index: 0,
+                                title: `${trackData.reference} — Site Inspection Photo Viewer`,
+                              })
+                            }
+                            style={{
+                              padding: '7px 14px',
+                              background: '#ffffff',
+                              color: 'var(--forest)',
+                              border: '1px solid var(--forest)',
+                              borderRadius: '6px',
+                              fontSize: '11.5px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                            }}
+                          >
+                            <span>🖼️</span>
+                            <span>Open Photo Evidence Viewer</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </div>
         )}
       </div>
+
+      {/* Full-Screen Lightbox Modal for Viewing Inspection Photographs */}
+      {lightboxState && (
+        <div
+          onClick={() => setLightboxState(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.85)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#ffffff',
+              borderRadius: '12px',
+              maxWidth: '860px',
+              width: '100%',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.45)',
+            }}
+          >
+            <div
+              style={{
+                padding: '14px 18px',
+                borderBottom: '1px solid #e2e8f0',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                background: 'var(--forest)',
+                color: '#ffffff',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '13.5px', fontWeight: 700 }}>
+                  {lightboxState.title || 'Site Inspection Photograph Viewer'}
+                </div>
+                {lightboxState.photos.length > 0 && (
+                  <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.8)', marginTop: '2px' }}>
+                    Photograph {lightboxState.index + 1} of {lightboxState.photos.length}
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setLightboxState(null)}
+                style={{
+                  background: 'rgba(255,255,255,0.15)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '6px 12px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                ✕ Close
+              </button>
+            </div>
+
+            <div
+              style={{
+                padding: '20px',
+                overflowY: 'auto',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#0f172a',
+                minHeight: '320px',
+              }}
+            >
+              {lightboxState.photos.length > 0 ? (
+                <>
+                  <img
+                    src={lightboxState.photos[lightboxState.index]}
+                    alt={`Inspection evidence ${lightboxState.index + 1}`}
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '62vh',
+                      objectFit: 'contain',
+                      borderRadius: '6px',
+                      background: '#ffffff',
+                    }}
+                  />
+                  {lightboxState.photos.length > 1 && (
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '14px', alignItems: 'center' }}>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setLightboxState((prev) =>
+                            prev
+                              ? {
+                                  ...prev,
+                                  index: (prev.index - 1 + prev.photos.length) % prev.photos.length,
+                                }
+                              : null
+                          )
+                        }
+                        style={{
+                          padding: '6px 14px',
+                          background: '#ffffff',
+                          color: '#0f172a',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        ← Previous
+                      </button>
+                      <span style={{ color: '#e2e8f0', fontSize: '12px', fontWeight: 600 }}>
+                        {lightboxState.index + 1} / {lightboxState.photos.length}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setLightboxState((prev) =>
+                            prev
+                              ? {
+                                  ...prev,
+                                  index: (prev.index + 1) % prev.photos.length,
+                                }
+                              : null
+                          )
+                        }
+                        style={{
+                          padding: '6px 14px',
+                          background: '#ffffff',
+                          color: '#0f172a',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Next →
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div style={{ textAlign: 'center', color: '#e2e8f0', padding: '30px 20px', maxWidth: '440px' }}>
+                  <div style={{ fontSize: '36px', marginBottom: '10px' }}>📷</div>
+                  <div style={{ fontSize: '15px', fontWeight: 700, marginBottom: '6px' }}>
+                    No Site Photographs Uploaded Yet
+                  </div>
+                  <div style={{ fontSize: '12.5px', color: '#94a3b8', lineHeight: '1.55' }}>
+                    The inspecting field officer has not attached photographs for this stage yet. Once site photos or survey plans are uploaded from the Field Agent or Admin portal, you can view and inspect them right here.
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   </section>
