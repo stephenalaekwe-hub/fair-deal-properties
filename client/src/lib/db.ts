@@ -514,7 +514,7 @@ export function matchesAgentRecord(
     assignedAgent?: { id?: string | null; name?: string | null; email?: string | null } | null;
   },
   profile: ResolvedAgentProfile | null,
-  includeUnassigned: boolean = true
+  includeUnassigned: boolean = false
 ): boolean {
   if (!profile) return true;
 
@@ -524,7 +524,7 @@ export function matchesAgentRecord(
   const recBase = recName.split('(')[0].trim();
   const recFirst = recBase.split(/\s+/)[0];
 
-  // If record has no assigned agent yet, include it if includeUnassigned is true
+  // If record has no assigned agent yet, do not show to any agent unless explicitly requested
   if (!recId && !recName && !recEmail) {
     return includeUnassigned;
   }
@@ -545,7 +545,7 @@ export async function getLiveInspections(agentId?: string): Promise<any[]> {
   const profile = agentId ? await resolveAgentProfile(p, agentId) : null;
 
   if (!p) {
-    if (profile) return defaultInspections.filter((i) => matchesAgentRecord(i, profile, true));
+    if (profile) return defaultInspections.filter((i) => matchesAgentRecord(i, profile, false));
     return defaultInspections;
   }
 
@@ -654,7 +654,7 @@ export async function getLiveInspections(agentId?: string): Promise<any[]> {
 
   const baseList = mapped.length > 0 ? mapped : defaultInspections;
   if (profile) {
-    return baseList.filter((ins) => matchesAgentRecord(ins, profile, true));
+    return baseList.filter((ins) => matchesAgentRecord(ins, profile, false));
   }
   return baseList;
 }
@@ -1490,7 +1490,7 @@ export async function getLiveSubmissions(collection?: string, agentId?: string):
   if (!p) {
     let list = defaultSubmissions;
     if (collection) list = list.filter((s) => s.collection === collection);
-    if (profile) list = list.filter((s) => matchesAgentRecord(s, profile, true));
+    if (profile) list = list.filter((s) => matchesAgentRecord(s, profile, false));
     return list;
   }
 
@@ -1546,7 +1546,7 @@ export async function getLiveSubmissions(collection?: string, agentId?: string):
   }
 
   if (profile) {
-    return baseList.filter((s) => matchesAgentRecord(s, profile, true));
+    return baseList.filter((s) => matchesAgentRecord(s, profile, false));
   }
   return baseList;
 }
