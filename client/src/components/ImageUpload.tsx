@@ -89,6 +89,60 @@ export default function ImageUpload({
     });
   }, [value]);
 
+  const compressImageIfNeeded = async (file: File): Promise<File> => {
+    if (typeof window === 'undefined' || file.size <= 700 * 1024) {
+      return file;
+    }
+    return new Promise((resolve) => {
+      try {
+        const img = new Image();
+        const objUrl = URL.createObjectURL(file);
+        img.onload = () => {
+          URL.revokeObjectURL(objUrl);
+          const maxDim = 1600;
+          let { width, height } = img;
+          if (width > maxDim || height > maxDim) {
+            if (width >= height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(file);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob(
+            (blob) => {
+              if (!blob || blob.size >= file.size) {
+                resolve(file);
+                return;
+              }
+              const compressedName = file.name.replace(/\.[^.]+$/, '') + '.jpg';
+              resolve(new File([blob], compressedName, { type: 'image/jpeg' }));
+            },
+            'image/jpeg',
+            0.82
+          );
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(objUrl);
+          resolve(file);
+        };
+        img.src = objUrl;
+      } catch {
+        resolve(file);
+      }
+    });
+  };
+
   const validateAndUploadSingleFile = async (file: File): Promise<PhotoItem | null> => {
     if (
       file.type.startsWith('video/') ||
@@ -110,23 +164,31 @@ export default function ImageUpload({
       return null;
     }
 
+    const uploadFile = await compressImageIfNeeded(file);
+
     const formattedSize =
-      file.size > 1024 * 1024
-        ? `${(file.size / (1024 * 1024)).toFixed(2)} MB`
-        : `${Math.round(file.size / 1024)} KB`;
+      uploadFile.size > 1024 * 1024
+        ? `${(uploadFile.size / (1024 * 1024)).toFixed(2)} MB`
+        : `${Math.round(uploadFile.size / 1024)} KB`;
 
     const fd = new FormData();
-    fd.append('file', file);
+    fd.append('file', uploadFile);
 
     const res = await fetch(`${API_BASE_URL}/upload`, {
       method: 'POST',
       body: fd,
     });
 
-    const json = await res.json();
+    const rawText = await res.text();
+    let json: any = null;
+    try {
+      json = rawText ? JSON.parse(rawText) : null;
+    } catch {
+      json = null;
+    }
 
-    if (!res.ok || !json.ok) {
-      setError(json.error || `Failed to upload "${file.name}".`);
+    if (!res.ok || !json?.ok) {
+      setError(json?.error || `Failed to upload "${file.name}" (HTTP ${res.status}).`);
       return null;
     }
 

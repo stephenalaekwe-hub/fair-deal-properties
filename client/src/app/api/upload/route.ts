@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { saveUploadedMedia } from '@/lib/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -29,12 +30,12 @@ export async function POST(req: Request) {
     const buffer = Buffer.from(await file.arrayBuffer());
     const mimeType = file.type || 'image/jpeg';
     const base64Data = buffer.toString('base64');
-    const dataUrl = `data:${mimeType};base64,${base64Data}`;
+    const mediaUrl = await saveUploadedMedia(mimeType, base64Data, file.name);
 
     return NextResponse.json({
       ok: true,
       data: {
-        url: dataUrl,
+        url: mediaUrl,
         name: file.name,
         size: file.size,
         mimeType,

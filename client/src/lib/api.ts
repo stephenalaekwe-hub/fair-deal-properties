@@ -37,8 +37,23 @@ export async function fetchApi<T = any>(
       credentials: 'include',
     });
 
-    const json = await res.json();
-    return json;
+    const rawText = await res.text();
+    if (!rawText) {
+      return {
+        ok: false,
+        error: `Server returned an empty response (HTTP ${res.status}).`,
+      };
+    }
+
+    try {
+      const json = JSON.parse(rawText);
+      return json;
+    } catch {
+      return {
+        ok: false,
+        error: `Request failed with HTTP ${res.status}.`,
+      };
+    }
   } catch (err) {
     console.error(`Fetch API error (${endpoint}):`, err);
     return { ok: false, error: 'Network request failed. Is the backend server running?' };

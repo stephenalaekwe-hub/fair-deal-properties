@@ -2,6 +2,7 @@
 // FAIR DEAL PROPERTIES LTD - POSTGRESQL DATABASE CLIENT
 // ══════════════════════════════════════════════════════════════════════════════
 
+import { createHash } from 'crypto';
 import { Pool, type PoolConfig } from 'pg';
 import { listings as defaultListings, type Listing, type ListingSource, type PropertyType, type City, type ListingSort } from '@/data/listings';
 import { financingRoutes as defaultFinancingRoutes, type FinancingRoute } from '@/data/financing';
@@ -11,6 +12,7 @@ import { getScrapedLogs } from './scrapedStore';
 let pool: Pool | null = null;
 let schemaInitialized = false;
 const inMemoryNotificationReads = new Map<string, string>();
+const inMemoryMediaStore = new Map<string, { mimeType: string; base64Data: string; fileName?: string }>();
 
 export async function ensureSchemaColumns(p: Pool): Promise<void> {
   if (schemaInitialized) return;
@@ -52,11 +54,111 @@ export async function ensureSchemaColumns(p: Pool): Promise<void> {
           PRIMARY KEY (user_key, section)
         );
       `).catch(() => {}),
+      p.query(`
+        CREATE TABLE IF NOT EXISTS uploaded_media (
+          id text PRIMARY KEY,
+          mime_type text NOT NULL DEFAULT 'image/jpeg',
+          base64_data text NOT NULL,
+          file_name text,
+          created_at timestamp with time zone NOT NULL DEFAULT now()
+        );
+      `).catch(() => {}),
     ]);
     schemaInitialized = true;
   } catch {
     // Non-fatal if read-only replica
   }
+}
+
+export async function saveUploadedMedia(
+  mimeType: string,
+  base64Data: string,
+  fileName?: string
+): Promise<string> {
+  const hash = createHash('sha1').update(base64Data).digest('hex').slice(0, 24);
+  const id = `img_${hash}`;
+  const cleanMime = mimeType || 'image/jpeg';
+  inMemoryMediaStore.set(id, { mimeType: cleanMime, base64Data, fileName });
+
+  const p = getDbPool();
+  if (p) {
+    try {
+      await ensureSchemaColumns(p);
+      await p.query(
+        `INSERT INTO uploaded_media (id, mime_type, base64_data, file_name)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (id) DO NOTHING`,
+        [id, cleanMime, base64Data, fileName || null]
+      );
+    } catch (err) {
+      console.warn('[fdp:db] saveUploadedMedia warning:', err);
+    }
+  }
+  return `/api/media/${id}`;
+}
+
+export async function getUploadedMediaById(
+  id: string
+): Promise<{ mimeType: string; base64Data: string; fileName?: string } | null> {
+  if (!id) return null;
+  const cached = inMemoryMediaStore.get(id);
+  if (cached) return cached;
+
+  const p = getDbPool();
+  if (!p) return null;
+
+  try {
+    await ensureSchemaColumns(p);
+    const res = await p.query(
+      `SELECT mime_type as "mimeType", base64_data as "base64Data", file_name as "fileName"
+       FROM uploaded_media
+       WHERE id = $1
+       LIMIT 1`,
+      [id]
+    );
+    if (res.rows[0]?.base64Data) {
+      const record = {
+        mimeType: res.rows[0].mimeType || 'image/jpeg',
+        base64Data: res.rows[0].base64Data,
+        fileName: res.rows[0].fileName || undefined,
+      };
+      inMemoryMediaStore.set(id, record);
+      return record;
+    }
+  } catch (err) {
+    console.warn('[fdp:db] getUploadedMediaById warning:', err);
+  }
+  return null;
+}
+
+export async function offloadSinglePhotoUrl(url: string): Promise<string> {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  if (!trimmed.startsWith('data:')) return trimmed;
+  const match = trimmed.match(/^data:([^;]+);base64,([\s\S]+)$/);
+  if (!match) return trimmed;
+  const mimeType = match[1] || 'image/jpeg';
+  const base64Data = match[2].replace(/\s+/g, '');
+  return saveUploadedMedia(mimeType, base64Data);
+}
+
+export async function offloadPhotoArray(urls: string[]): Promise<string[]> {
+  if (!Array.isArray(urls) || urls.length === 0) return [];
+  const results: string[] = [];
+  for (const u of urls) {
+    const offloaded = await offloadSinglePhotoUrl(u);
+    if (offloaded && !results.includes(offloaded)) {
+      results.push(offloaded);
+    }
+  }
+  return results;
+}
+
+export function serializePhotoList(urls: string[]): string {
+  const clean = urls.map((u) => u.trim()).filter(Boolean);
+  if (clean.length === 0) return '';
+  if (clean.length === 1) return clean[0];
+  return JSON.stringify(clean);
 }
 
 export function getDbPool(): Pool | null {
@@ -479,42 +581,76 @@ export async function getLiveInspections(agentId?: string): Promise<any[]> {
     ORDER BY i.created_at DESC
   `;
   const res = await p.query(sql);
-  const mapped = res.rows.map((row) => {
-    const assignedAgentId = row.assignedAgentId || row.assignedAgent?.id || null;
-    const assignedAgentName = row.assignedAgent?.name || row.officerName || null;
-    let cleanNotes = row.notes || '';
-    let reportUrl = row.reportUrl || '';
-    const photoMatch = cleanNotes.match(/Attached Survey \/ Site Photograph:\s*([^\n\r]+)/i);
-    if (photoMatch) {
-      if (!reportUrl) reportUrl = photoMatch[1].trim();
-      cleanNotes = cleanNotes.replace(/Attached Survey \/ Site Photograph:\s*[^\n\r]+/i, '').trim();
-    }
-    const officerMessage = extractActualNote(cleanNotes, row.outcome);
-    const photos = parsePhotoList(reportUrl);
-    const stageHistory = buildStageHistory(
-      row.stageHistory,
-      Math.max(1, Math.min(9, Number(row.stage) || 1)),
-      Boolean(row.currentStepDone),
-      officerMessage,
-      photos,
-      assignedAgentName
-    );
-    return {
-      ...row,
-      notes: cleanNotes,
-      reportUrl,
-      photos,
-      stageHistory,
-      officerMessage,
-      currentStepDone: Boolean(row.currentStepDone),
-      assignedAgentId,
-      assignedAgent: assignedAgentName ? {
-        id: assignedAgentId,
-        name: assignedAgentName,
-        email: row.assignedAgent?.email || null,
-      } : null,
-    };
-  });
+  const mapped = await Promise.all(
+    res.rows.map(async (row) => {
+      const assignedAgentId = row.assignedAgentId || row.assignedAgent?.id || null;
+      const assignedAgentName = row.assignedAgent?.name || row.officerName || null;
+      let cleanNotes = row.notes || '';
+      let rawReportUrl = row.reportUrl || '';
+      const photoMatch = cleanNotes.match(/Attached Survey \/ Site Photograph:\s*([^\n\r]+)/i);
+      if (photoMatch) {
+        if (!rawReportUrl) rawReportUrl = photoMatch[1].trim();
+        cleanNotes = cleanNotes.replace(/Attached Survey \/ Site Photograph:\s*[^\n\r]+/i, '').trim();
+      }
+      const officerMessage = extractActualNote(cleanNotes, row.outcome);
+      const rawPhotos = parsePhotoList(rawReportUrl);
+      const photos = await offloadPhotoArray(rawPhotos);
+      const reportUrl = serializePhotoList(photos);
+
+      // Offload any base64 data URLs inside stageHistory as well
+      let rawHistoryObj: Record<string, any> = {};
+      let hadBase64InHistory = false;
+      if (row.stageHistory && typeof row.stageHistory === 'object' && !Array.isArray(row.stageHistory)) {
+        rawHistoryObj = { ...row.stageHistory };
+        for (const [k, v] of Object.entries(rawHistoryObj)) {
+          if (v && typeof v === 'object' && Array.isArray(v.photos)) {
+            const hasData = v.photos.some((u: any) => typeof u === 'string' && u.trim().startsWith('data:'));
+            if (hasData) {
+              hadBase64InHistory = true;
+              rawHistoryObj[k] = {
+                ...v,
+                photos: await offloadPhotoArray(v.photos),
+              };
+            }
+          }
+        }
+      }
+
+      const hadBase64InReport = rawPhotos.some((u) => u.startsWith('data:'));
+      if ((hadBase64InReport || hadBase64InHistory) && row.id) {
+        p.query(
+          `UPDATE inspections SET report_url = $2, stage_history = $3::jsonb WHERE id = $1`,
+          [row.id, reportUrl, JSON.stringify(rawHistoryObj)]
+        ).catch(() => {});
+      }
+
+      const stageHistory = buildStageHistory(
+        rawHistoryObj,
+        Math.max(1, Math.min(9, Number(row.stage) || 1)),
+        Boolean(row.currentStepDone),
+        officerMessage,
+        photos,
+        assignedAgentName
+      );
+      return {
+        ...row,
+        notes: cleanNotes,
+        reportUrl,
+        photos,
+        stageHistory,
+        officerMessage,
+        currentStepDone: Boolean(row.currentStepDone),
+        assignedAgentId,
+        assignedAgent: assignedAgentName
+          ? {
+              id: assignedAgentId,
+              name: assignedAgentName,
+              email: row.assignedAgent?.email || null,
+            }
+          : null,
+      };
+    })
+  );
 
   const baseList = mapped.length > 0 ? mapped : defaultInspections;
   if (profile) {
@@ -778,9 +914,25 @@ export async function getLiveInspectionByRef(reference: string): Promise<any | n
     ? Boolean(row.currentStepDone)
     : Boolean(row.outcome || (row.status === 'closed' || row.status === 'resolved'));
   const officerMessage = extractActualNote(cleanNotes, row.outcome);
-  const photos = parsePhotoList(reportUrl);
+  const rawPhotos = parsePhotoList(reportUrl);
+  const photos = await offloadPhotoArray(rawPhotos);
+  reportUrl = serializePhotoList(photos);
+
+  let rawHistoryObj: Record<string, any> = {};
+  if (row.stageHistory && typeof row.stageHistory === 'object' && !Array.isArray(row.stageHistory)) {
+    rawHistoryObj = { ...row.stageHistory };
+    for (const [k, v] of Object.entries(rawHistoryObj)) {
+      if (v && typeof v === 'object' && Array.isArray(v.photos)) {
+        rawHistoryObj[k] = {
+          ...v,
+          photos: await offloadPhotoArray(v.photos),
+        };
+      }
+    }
+  }
+
   const stageHistory = buildStageHistory(
-    row.stageHistory,
+    rawHistoryObj,
     effectiveStage,
     currentStepDone,
     officerMessage,
@@ -892,9 +1044,18 @@ export async function updateLiveInspectionStage(
   let existingHistory: Record<string, any> = {};
   if (curRow?.stage_history && typeof curRow.stage_history === 'object') {
     existingHistory = { ...curRow.stage_history };
+    for (const [k, v] of Object.entries(existingHistory)) {
+      if (v && typeof v === 'object' && Array.isArray(v.photos)) {
+        existingHistory[k] = {
+          ...v,
+          photos: await offloadPhotoArray(v.photos),
+        };
+      }
+    }
   }
   const cleanedIncomingNote = cleanNoteString(rawIncomingNotes);
-  const incomingPhotos = parsePhotoList(finalReportUrl);
+  const incomingPhotos = await offloadPhotoArray(parsePhotoList(finalReportUrl));
+  const compactReportUrl = serializePhotoList(incomingPhotos);
   const nowIso = new Date().toISOString();
 
   // Preserve currentStage entry when advancing
@@ -903,7 +1064,7 @@ export async function updateLiveInspectionStage(
     const prevKey = String(currentStage);
     const prevExisting = existingHistory[prevKey] || {};
     const prevNote = cleanNoteString(prevExisting.note || curRow?.notes || curRow?.outcome);
-    const prevPhotos = parsePhotoList(prevExisting.photos || curRow?.report_url);
+    const prevPhotos = await offloadPhotoArray(parsePhotoList(prevExisting.photos || curRow?.report_url));
     prevStageSavedNote = prevNote || DEFAULT_STAGE_MESSAGES[currentStage] || `Stage ${currentStage} verified and completed.`;
     existingHistory[prevKey] = {
       stage: currentStage,
@@ -933,7 +1094,7 @@ export async function updateLiveInspectionStage(
   existingHistory[targetKey] = {
     stage: finalStage,
     note: targetStageNote,
-    photos: incomingPhotos.length > 0 ? incomingPhotos : parsePhotoList(prevTarget.photos),
+    photos: incomingPhotos.length > 0 ? incomingPhotos : await offloadPhotoArray(parsePhotoList(prevTarget.photos)),
     officerName: finalOfficerName || prevTarget.officerName || undefined,
     completed: finalStepDone,
     updatedAt: nowIso,
@@ -964,7 +1125,7 @@ export async function updateLiveInspectionStage(
       finalOutcome,
       finalNotes,
       finalOfficerName,
-      finalReportUrl,
+      compactReportUrl,
       finalAssignedAgent,
       JSON.stringify(existingHistory),
     ]
