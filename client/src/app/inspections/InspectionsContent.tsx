@@ -306,6 +306,7 @@ export default function InspectionsContent() {
   } | null>(null);
   const [trackData, setTrackData] = useState<{
     reference: string;
+    clientName?: string | null;
     propertyTitle: string;
     propertyLocation: string;
     stage: number;
@@ -351,6 +352,7 @@ export default function InspectionsContent() {
           : parseImageUrls(res.data.reportUrl);
         setTrackData({
           reference: res.data.reference,
+          clientName: res.data.clientName || null,
           propertyTitle: res.data.propertyTitle || 'Subject Property',
           propertyLocation: res.data.propertyLocation || 'Abuja FCT',
           stage: res.data.stage || 1,
@@ -370,6 +372,7 @@ export default function InspectionsContent() {
       } else if (refToTrack === 'FDP-INS-DEMO01') {
         setTrackData({
           reference: 'FDP-INS-DEMO01',
+          clientName: 'Amina Bello',
           propertyTitle: 'Plot 42, Hutu Exclusive Phase III, Airport Road',
           propertyLocation: 'Abuja FCT - within city',
           stage: 6,
@@ -385,6 +388,7 @@ export default function InspectionsContent() {
       } else if (refToTrack === 'FDP-INS-890214') {
         setTrackData({
           reference: 'FDP-INS-890214',
+          clientName: 'Dr. Chidi Okonkwo',
           propertyTitle: 'Plot 42, Hutu Exclusive Phase III, Airport Road',
           propertyLocation: 'Abuja FCT - Airport Road Corridor',
           stage: 4,
@@ -944,6 +948,25 @@ export default function InspectionsContent() {
                   <div>
                     <div style={{fontSize:'9.5px',letterSpacing:'.2em',textTransform:'uppercase',color:'rgba(201,168,76,.65)',marginBottom:'4px'}}>Tracking Reference</div>
                     <div className="trk-ref" id="trkRef">{trackData.reference}</div>
+                    {trackData.clientName && (
+                      <div
+                        id="trkClientName"
+                        style={{
+                          fontSize: '12.5px',
+                          color: 'rgba(255, 255, 255, 0.9)',
+                          fontWeight: 500,
+                          marginTop: '5px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                        }}
+                      >
+                        <span style={{ color: 'rgba(201,168,76,.85)', fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '.1em', fontWeight: 700 }}>
+                          Client:
+                        </span>
+                        <span>{trackData.clientName}</span>
+                      </div>
+                    )}
                   </div>
                   <span
                     className="trk-status"

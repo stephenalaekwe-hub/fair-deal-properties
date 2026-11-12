@@ -1239,6 +1239,7 @@ export async function getLiveNotificationCounts(
 ): Promise<{
   consultations: number;
   enquiries: number;
+  alerts: number;
   inspections: number;
   compliance: number;
   listings: number;
@@ -1259,6 +1260,7 @@ export async function getLiveNotificationCounts(
     return {
       consultations: getMemSeen('consultations') ? 0 : 1,
       enquiries: getMemSeen('enquiries') ? 0 : 1,
+      alerts: getMemSeen('alerts') ? 0 : 1,
       inspections: getMemSeen('inspections') ? 0 : 1,
       compliance: 0,
       listings: 0,
@@ -1318,9 +1320,10 @@ export async function getLiveNotificationCounts(
 
     // If agent portal, compute counts using resolveAgentProfile-aware helpers so UUID, fallback IDs, officer names, and open queue items all match consistently
     if (isAgent) {
-      const [agentConsults, agentEnquiries, agentInspections] = await Promise.all([
+      const [agentConsults, agentEnquiries, agentAlerts, agentInspections] = await Promise.all([
         getLiveSubmissions('contact', agentId).catch(() => []),
         getLiveSubmissions('enquiry', agentId).catch(() => []),
+        getLiveSubmissions('alert', agentId).catch(() => []),
         getLiveInspections(agentId).catch(() => []),
       ]);
 
@@ -1337,6 +1340,7 @@ export async function getLiveNotificationCounts(
 
       const openConsults = agentConsults.filter((s: any) => !s.closedAt && s.status !== 'closed');
       const openEnquiries = agentEnquiries.filter((s: any) => !s.closedAt && s.status !== 'closed');
+      const openAlerts = agentAlerts.filter((s: any) => !s.closedAt && s.status !== 'closed');
       const openInspections = agentInspections.filter((i: any) => (Number(i.stage) || 1) < 9 && !i.currentStepDone);
 
       const lRes = await buildQuery(
@@ -1349,6 +1353,7 @@ export async function getLiveNotificationCounts(
       return {
         consultations: countUnseen('consultations', openConsults, (s) => s.updatedAt || s.receivedAt || s.createdAt),
         enquiries: countUnseen('enquiries', openEnquiries, (s) => s.updatedAt || s.receivedAt || s.createdAt),
+        alerts: countUnseen('alerts', openAlerts, (s) => s.updatedAt || s.receivedAt || s.createdAt),
         inspections: countUnseen('inspections', openInspections, (i) => i.updatedAt || i.createdAt),
         compliance: 0,
         listings: parseInt(lRes.rows[0]?.count || '0', 10),
@@ -1360,14 +1365,16 @@ export async function getLiveNotificationCounts(
     // Admin portal queries
     const consultBase = `SELECT count(*) FROM submissions WHERE collection = 'contact' AND closed_at IS NULL`;
     const enquiryBase = `SELECT count(*) FROM submissions WHERE collection = 'enquiry' AND closed_at IS NULL`;
+    const alertBase = `SELECT count(*) FROM submissions WHERE collection = 'alert' AND closed_at IS NULL`;
     const insBase = `SELECT count(*) FROM inspections WHERE stage < 9`;
     const dsrBase = `SELECT count(*) FROM submissions WHERE collection IN ('dsr', 'snag') AND closed_at IS NULL`;
     const listingsBase = `SELECT count(*) FROM listings WHERE true`;
     const agentsBase = `SELECT count(*) FROM users WHERE true`;
 
-    const [cRes, eRes, iRes, dRes, lRes, aRes] = await Promise.all([
+    const [cRes, eRes, alRes, iRes, dRes, lRes, aRes] = await Promise.all([
       buildQuery('consultations', consultBase, 'COALESCE(updated_at, received_at, created_at)'),
       buildQuery('enquiries', enquiryBase, 'COALESCE(updated_at, received_at, created_at)'),
+      buildQuery('alerts', alertBase, 'COALESCE(updated_at, received_at, created_at)'),
       buildQuery('inspections', insBase, 'COALESCE(updated_at, created_at)'),
       buildQuery('compliance', dsrBase, 'COALESCE(updated_at, received_at, created_at)'),
       buildQuery('listings', listingsBase, 'COALESCE(updated_at, created_at)'),
@@ -1389,6 +1396,7 @@ export async function getLiveNotificationCounts(
     return {
       consultations: parseInt(cRes.rows[0]?.count || '0', 10),
       enquiries: parseInt(eRes.rows[0]?.count || '0', 10),
+      alerts: parseInt(alRes.rows[0]?.count || '0', 10),
       inspections: parseInt(iRes.rows[0]?.count || '0', 10),
       compliance: parseInt(dRes.rows[0]?.count || '0', 10),
       listings: parseInt(lRes.rows[0]?.count || '0', 10),
@@ -1397,7 +1405,7 @@ export async function getLiveNotificationCounts(
     };
   } catch (err) {
     console.warn('[fdp:db] getLiveNotificationCounts error:', err);
-    return { consultations: 0, enquiries: 0, inspections: 0, compliance: 0, listings: 0, agents: 0, rates: 0 };
+    return { consultations: 0, enquiries: 0, alerts: 0, inspections: 0, compliance: 0, listings: 0, agents: 0, rates: 0 };
   }
 }
 
@@ -1482,6 +1490,27 @@ export async function getLiveSubmissions(collection?: string, agentId?: string):
       closedAt: null,
       outcome: null,
     },
+    {
+      id: 'sub-demo-04',
+      reference: 'FDP-ALE-30419',
+      collection: 'alert',
+      receivedAt: new Date(Date.now() - 3600000 * 6).toISOString(),
+      dueAt: new Date(Date.now() + 86400000).toISOString(),
+      payload: {
+        email: 'ibrahim.musa@gmail.com',
+        propertyType: 'Residential',
+        budgetRange: '₦100M - ₦300M',
+      },
+      clientName: 'ibrahim.musa@gmail.com',
+      clientEmail: 'ibrahim.musa@gmail.com',
+      clientPhone: null,
+      assignedAgentName: null,
+      assignedAgentId: null,
+      assignedAgent: null,
+      status: 'pending',
+      closedAt: null,
+      outcome: null,
+    },
   ];
 
   const p = getDbPool();
@@ -1534,7 +1563,7 @@ export async function getLiveSubmissions(collection?: string, agentId?: string):
         id: assignedAgentId,
         name: assignedAgentName || 'Assigned Officer',
       } : null,
-      clientName: pl.fullName || pl.name || pl.clientName || null,
+      clientName: pl.fullName || pl.name || pl.clientName || pl.email || null,
       clientEmail: pl.email || pl.clientEmail || null,
       clientPhone: pl.phone || pl.clientPhone || pl.telephone || null,
     };
@@ -1761,7 +1790,7 @@ export async function getLiveAnalyticsOverview(agentId?: string): Promise<any> {
       const dbListingsTotal = parseInt(listingsCount.rows[0]?.count || '0', 10);
       const activeInspections = agentIns.filter((i: any) => (Number(i.stage) || 1) < 9).length;
       const completedInspections = agentIns.filter((i: any) => (Number(i.stage) || 1) >= 9).length;
-      const actionableSubs = agentSubs.filter((s: any) => s.collection === 'enquiry' || s.collection === 'contact');
+      const actionableSubs = agentSubs.filter((s: any) => s.collection === 'enquiry' || s.collection === 'contact' || s.collection === 'alert');
       const pendingSubmissions = actionableSubs.filter((s: any) => !s.closedAt && s.status !== 'closed').length;
 
       return {
@@ -1781,7 +1810,7 @@ export async function getLiveAnalyticsOverview(agentId?: string): Promise<any> {
           id: r.id,
           reference: r.reference,
           collection: r.collection,
-          clientName: r.clientName || 'Anonymous Client',
+          clientName: r.clientName || r.clientEmail || r.payload?.email || 'Anonymous Client',
           closedAt: r.closedAt,
           status: r.status || (r.closedAt ? 'closed' : 'pending'),
           assignedAgent: r.assignedAgent || null,
@@ -1809,7 +1838,7 @@ export async function getLiveAnalyticsOverview(agentId?: string): Promise<any> {
       p.query(
         `
         SELECT s.id, s.reference, s.collection,
-               COALESCE(s.payload->>'fullName', s.payload->>'name', s.payload->>'clientName', 'Anonymous Client') as "clientName",
+               COALESCE(s.payload->>'fullName', s.payload->>'name', s.payload->>'clientName', s.payload->>'email', 'Anonymous Client') as "clientName",
                s.closed_at as "closedAt",
                COALESCE(s.status, s.payload->>'status', CASE WHEN s.closed_at IS NOT NULL THEN 'closed' WHEN s.assigned_agent_id IS NOT NULL OR s.assigned_agent IS NOT NULL THEN 'in_progress' ELSE 'pending' END) as status,
                COALESCE(s.assigned_agent, s.payload->>'assignedAgent', '') as "assignedAgentName"

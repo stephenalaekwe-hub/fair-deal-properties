@@ -37,6 +37,7 @@ export async function GET(
         ok: true,
         data: {
           reference: liveRec.reference,
+          clientName: liveRec.clientName || 'Valued Client',
           propertyTitle: liveRec.propertyTitle || 'Subject Property',
           propertyLocation: liveRec.propertyLocation || 'Abuja FCT',
           stage: currentStage,
@@ -91,6 +92,7 @@ export async function GET(
       ok: true,
       data: {
         reference: ref,
+        clientName: 'Amina Bello',
         demonstration: true,
         propertyTitle: 'Plot 42, Hutu Exclusive Phase III, Airport Road',
         propertyLocation: 'Abuja FCT - within city',
@@ -133,6 +135,7 @@ export async function GET(
     ok: true,
     data: {
       reference: rec.reference,
+      clientName: p.clientName || p.name || 'Valued Client',
       receivedAt: rec.receivedAt,
       propertyTitle: p.propertyTitle || p.propertyReference || 'Subject Property',
       propertyLocation: p.propertyLocation || p.location || 'Abuja FCT',

@@ -25,6 +25,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const activeSectionKey = (() => {
     if (pathname.startsWith('/admin/consultations')) return 'consultations';
     if (pathname.startsWith('/admin/enquiries')) return 'enquiries';
+    if (pathname.startsWith('/admin/alerts')) return 'alerts';
     if (pathname.startsWith('/admin/inspections')) return 'inspections';
     if (pathname.startsWith('/admin/listings')) return 'listings';
     if (pathname.startsWith('/admin/agents')) return 'agents';
@@ -36,6 +37,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const [notificationCounts, setNotificationCounts] = useState<{
     consultations?: number;
     enquiries?: number;
+    alerts?: number;
     inspections?: number;
     compliance?: number;
     listings?: number;
@@ -60,6 +62,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         router.push('/agent/consultations');
       } else if (pathname === '/admin/enquiries') {
         router.push('/agent/enquiries');
+      } else if (pathname === '/admin/alerts') {
+        router.push('/agent/alerts');
       } else if (pathname === '/admin/inspections') {
         router.push('/agent/inspections');
       } else if (pathname === '/admin/listings') {
@@ -126,6 +130,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         { key: 'overview', label: 'My Overview', path: '/admin', icon: '📊' },
         { key: 'consultations', label: 'Book a Consultation', path: '/admin/consultations', icon: '📅' },
         { key: 'enquiries', label: 'Property Enquiries', path: '/admin/enquiries', icon: '💬' },
+        { key: 'alerts', label: 'Property Alerts', path: '/admin/alerts', icon: '🔔' },
         { key: 'inspections', label: 'Physical Inspections', path: '/admin/inspections', icon: '🔍' },
         { key: 'listings', label: 'Property Portfolio', path: '/admin/listings', icon: '🏢' },
       ]
@@ -133,6 +138,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         { key: 'overview', label: 'Overview', path: '/admin', icon: '📊' },
         { key: 'consultations', label: 'Book a Consultation', path: '/admin/consultations', icon: '📅' },
         { key: 'enquiries', label: 'Property Enquiries', path: '/admin/enquiries', icon: '💬' },
+        { key: 'alerts', label: 'Property Alerts', path: '/admin/alerts', icon: '🔔' },
         { key: 'inspections', label: 'Physical Inspections', path: '/admin/inspections', icon: '🔍' },
         { key: 'listings', label: 'Property Portfolio', path: '/admin/listings', icon: '🏢' },
         { key: 'agents', label: 'Field Agents', path: '/admin/agents', icon: '👥' },

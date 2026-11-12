@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   { key: 'overview', label: 'My Overview', path: '/agent', icon: '📊' },
   { key: 'consultations', label: 'Book a Consultation', path: '/agent/consultations', icon: '📅' },
   { key: 'enquiries', label: 'Property Enquiries', path: '/agent/enquiries', icon: '💬' },
+  { key: 'alerts', label: 'Property Alerts', path: '/agent/alerts', icon: '🔔' },
   { key: 'inspections', label: 'Field Inspections', path: '/agent/inspections', icon: '🔍' },
   { key: 'listings', label: 'Property Portfolio', path: '/agent/listings', icon: '🏢' },
 ];
@@ -28,6 +29,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
   const [notificationCounts, setNotificationCounts] = useState<{
     consultations?: number;
     enquiries?: number;
+    alerts?: number;
     inspections?: number;
     listings?: number;
   }>({});
@@ -38,6 +40,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
   const activeSectionKey = (() => {
     if (pathname.startsWith('/agent/consultations')) return 'consultations';
     if (pathname.startsWith('/agent/enquiries')) return 'enquiries';
+    if (pathname.startsWith('/agent/alerts')) return 'alerts';
     if (pathname.startsWith('/agent/inspections')) return 'inspections';
     if (pathname.startsWith('/agent/listings')) return 'listings';
     return '';

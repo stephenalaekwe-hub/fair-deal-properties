@@ -217,7 +217,7 @@ export default function AgentDashboardPage() {
                       </td>
                       <td style={{ padding: '10px 4px', textAlign: 'right' }}>
                         <Link
-                          href={sub.collection === 'contact' ? '/agent/consultations' : '/agent/enquiries'}
+                          href={sub.collection === 'contact' ? '/agent/consultations' : sub.collection === 'alert' ? '/agent/alerts' : '/agent/enquiries'}
                           style={{
                             fontSize: '11px',
                             color: 'var(--forest)',
