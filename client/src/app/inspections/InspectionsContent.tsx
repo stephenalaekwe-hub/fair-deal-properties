@@ -952,19 +952,15 @@ export default function InspectionsContent() {
                       <div
                         id="trkClientName"
                         style={{
-                          fontSize: '12.5px',
-                          color: 'rgba(255, 255, 255, 0.9)',
-                          fontWeight: 500,
-                          marginTop: '5px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
+                          fontFamily: 'var(--font-body)',
+                          fontSize: '0.95rem',
+                          color: 'rgba(255, 255, 255, 0.6)',
+                          fontWeight: 300,
+                          lineHeight: 1.6,
+                          marginTop: '4px',
                         }}
                       >
-                        <span style={{ color: 'rgba(201,168,76,.85)', fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '.1em', fontWeight: 700 }}>
-                          Client:
-                        </span>
-                        <span>{trackData.clientName}</span>
+                        {trackData.clientName}
                       </div>
                     )}
                   </div>
