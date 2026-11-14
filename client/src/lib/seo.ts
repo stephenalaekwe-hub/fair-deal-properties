@@ -175,6 +175,8 @@ export function pageMetadata(key: RouteKey): Metadata {
     },
     twitter: {
       card: 'summary_large_image',
+      site: FIRM.social.x.handle,
+      creator: FIRM.social.x.handle,
       title: fullTitle,
       description: seo.description,
       images: ['/assets/logo-primary.png'],

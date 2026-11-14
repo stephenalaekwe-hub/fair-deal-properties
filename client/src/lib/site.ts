@@ -18,10 +18,30 @@ export const FIRM = {
   diasporaMarkets: ['United Kingdom', 'United States', 'Canada', 'United Arab Emirates'],
   /**
    * Populate with the firm's verified profiles. This is the property Google uses to
-   * bind a website to its social presence. Left empty rather than guessed - an
-   * incorrect sameAs is worse than an absent one.
+   * bind a website to its social presence.
    */
-  sameAs: [] as string[],
+  sameAs: [
+    'https://www.facebook.com/fairdealpropertiesng',
+    'https://x.com/fdpropertiesng',
+    'https://www.instagram.com/fairdealpropertiesng',
+  ] as string[],
+  social: {
+    facebook: {
+      label: 'Facebook',
+      handle: '@fairdealpropertiesng',
+      url: 'https://www.facebook.com/fairdealpropertiesng',
+    },
+    x: {
+      label: 'X',
+      handle: '@fdpropertiesng',
+      url: 'https://x.com/fdpropertiesng',
+    },
+    instagram: {
+      label: 'Instagram',
+      handle: '@fairdealpropertiesng',
+      url: 'https://www.instagram.com/fairdealpropertiesng',
+    },
+  },
 } as const;
 
 export type RouteKey =
