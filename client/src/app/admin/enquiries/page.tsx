@@ -13,6 +13,8 @@ export default function AdminEnquiriesPage() {
   const [enquiries, setEnquiries] = useState<any[]>([]);
   const [agents, setAgents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'in_progress' | 'closed'>('all');
   const [activeModal, setActiveModal] = useState<any>(null);
   const [selectedAgentId, setSelectedAgentId] = useState('');
   const [statusChoice, setStatusChoice] = useState<'pending' | 'in_progress' | 'closed'>('pending');
@@ -82,18 +84,96 @@ export default function AdminEnquiriesPage() {
     await loadData();
   };
 
+  const filteredEnquiries = enquiries.filter((sub) => {
+    const isClosed = Boolean(sub.closedAt);
+    const isAssigned = Boolean(sub.assignedAgent?.name || sub.assignedAgentName || sub.payload?.assignedAgent || sub.assignedAgentId);
+    const derivedStatus = isClosed ? 'closed' : isAssigned ? 'in_progress' : 'pending';
+    if (statusFilter !== 'all' && derivedStatus !== statusFilter) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const hay = `${sub.reference || ''} ${sub.clientName || ''} ${sub.clientEmail || ''} ${sub.clientPhone || ''} ${sub.payload?.propertyTitle || ''} ${sub.payload?.buyerType || ''}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  const exportCsv = () => {
+    const headers = ['Reference', 'Property Title', 'Property Price', 'Client Name', 'Client Email', 'Client Phone', 'Preferred Viewing', 'Buyer Type', 'Assigned Agent', 'Status', 'Created At'];
+    const rows = filteredEnquiries.map((sub) => {
+      const isClosed = Boolean(sub.closedAt);
+      const isAssigned = Boolean(sub.assignedAgent?.name || sub.assignedAgentName || sub.payload?.assignedAgent || sub.assignedAgentId);
+      const status = isClosed ? 'Closed' : isAssigned ? 'In Progress' : 'Pending';
+      return [
+        sub.reference || '',
+        sub.payload?.propertyTitle || 'Marketplace Property',
+        sub.payload?.propertyPrice || '',
+        sub.clientName || sub.payload?.fullName || sub.payload?.name || '',
+        sub.clientEmail || sub.payload?.email || '',
+        sub.clientPhone || sub.payload?.phone || '',
+        sub.payload?.preferredDate || '',
+        sub.payload?.buyerType || 'Private Buyer',
+        sub.assignedAgent?.name || sub.assignedAgentName || sub.payload?.assignedAgent || 'Unassigned',
+        status,
+        sub.createdAt ? new Date(sub.createdAt).toISOString() : '',
+      ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',');
+    });
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `fdp-property-enquiries-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--forest)' }}>
-            💬 Property Enquiries Hub
+            💬 Property Enquiries Hub ({filteredEnquiries.length})
           </h1>
           <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}>
             {isAgent
               ? 'Property purchase enquiries and private viewing requests assigned to you.'
               : 'Direct marketplace property enquiries, private viewing bookings, and buyer qualification.'}
           </p>
+        </div>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="🔍 Search client, ref, or property..."
+            style={{ padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '13px', minWidth: '220px' }}
+          />
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as any)}
+            style={{ padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '13px', background: '#ffffff', fontWeight: 600 }}
+          >
+            <option value="all">All Statuses</option>
+            <option value="pending">Pending Assignment</option>
+            <option value="in_progress">In Progress</option>
+            <option value="closed">Fulfilled / Closed</option>
+          </select>
+          <button
+            type="button"
+            onClick={exportCsv}
+            style={{
+              padding: '8px 14px',
+              background: '#f8fafc',
+              color: 'var(--forest)',
+              border: '1px solid #cbd5e1',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            ⬇ Export CSV
+          </button>
         </div>
       </div>
 
@@ -116,14 +196,14 @@ export default function AdminEnquiriesPage() {
                 </tr>
               </thead>
               <tbody>
-                {enquiries.length === 0 ? (
+                {filteredEnquiries.length === 0 ? (
                   <tr>
                     <td colSpan={8} style={{ padding: '32px 16px', textAlign: 'center', color: '#64748b' }}>
-                      No property enquiries logged yet.
+                      No property enquiries match your current filters.
                     </td>
                   </tr>
                 ) : (
-                  enquiries.map((sub) => {
+                  filteredEnquiries.map((sub) => {
                     const clientName = sub.clientName || sub.payload?.fullName || sub.payload?.name || 'Prospective Buyer';
                     const clientEmail = sub.clientEmail || sub.payload?.email || '';
                     const clientPhone = sub.clientPhone || sub.payload?.phone || '';

@@ -13,6 +13,8 @@ export default function AdminInspectionsPage() {
   const [inspections, setInspections] = useState<any[]>([]);
   const [agents, setAgents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [stageFilter, setStageFilter] = useState<string>('all');
   const [activeModal, setActiveModal] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -165,12 +167,53 @@ export default function AdminInspectionsPage() {
     await loadData(filterAgentId);
   };
 
+  const filteredInspections = inspections.filter((ins) => {
+    if (stageFilter !== 'all') {
+      if (stageFilter === 'completed' && Number(ins.stage) < 9) return false;
+      if (stageFilter === 'active' && Number(ins.stage) >= 9) return false;
+      if (stageFilter !== 'completed' && stageFilter !== 'active' && String(ins.stage) !== stageFilter) return false;
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const hay = `${ins.reference || ''} ${ins.clientName || ''} ${ins.clientEmail || ''} ${ins.clientPhone || ''} ${ins.propertyAddress || ''} ${ins.location || ''} ${ins.officerName || ''} ${ins.assignedAgent?.name || ''}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  const exportCsv = () => {
+    const headers = ['Reference', 'Client Name', 'Client Email', 'Client Phone', 'Property Target', 'Location', 'Stage', 'Stage Title', 'Assigned Officer', 'Created At'];
+    const rows = filteredInspections.map((ins) => {
+      const stageInfo = STAGES.find((s) => s.stage === ins.stage);
+      return [
+        ins.reference || '',
+        ins.clientName || '',
+        ins.clientEmail || '',
+        ins.clientPhone || '',
+        ins.propertyAddress || '',
+        ins.location || '',
+        ins.stage || 1,
+        stageInfo?.title || '',
+        ins.assignedAgent?.name || ins.officerName || 'Unassigned',
+        ins.createdAt ? new Date(ins.createdAt).toISOString() : '',
+      ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',');
+    });
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `fdp-inspections-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--forest)' }}>
-            {isAgent ? 'My Field Inspection Pipeline' : 'Physical & Virtual Inspection Hub'}
+            {isAgent ? 'My Field Inspection Pipeline' : 'Physical & Virtual Inspection Hub'} ({filteredInspections.length})
           </h1>
           <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}>
             {isAgent
@@ -179,9 +222,29 @@ export default function AdminInspectionsPage() {
           </p>
         </div>
 
-        {!isAgent && agents.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>Filter by Officer:</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="🔍 Search ref, client, or property..."
+            style={{ padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '13px', minWidth: '210px' }}
+          />
+          <select
+            value={stageFilter}
+            onChange={(e) => setStageFilter(e.target.value)}
+            style={{ padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '13px', background: '#ffffff', fontWeight: 600 }}
+          >
+            <option value="all">All Pipeline Stages</option>
+            <option value="active">Active (Stages 1–8)</option>
+            <option value="completed">Completed (Stage 9)</option>
+            {STAGES.map((st) => (
+              <option key={st.stage} value={String(st.stage)}>
+                Stage {st.stage}: {st.title}
+              </option>
+            ))}
+          </select>
+          {!isAgent && agents.length > 0 && (
             <select
               value={filterAgentId}
               onChange={(e) => setFilterAgentId(e.target.value)}
@@ -195,15 +258,31 @@ export default function AdminInspectionsPage() {
                 cursor: 'pointer',
               }}
             >
-              <option value="">All Field Officers (Full Master View)</option>
+              <option value="">All Field Officers</option>
               {agents.map((ag) => (
                 <option key={ag.id} value={ag.id}>
                   👤 {ag.name} ({ag._count?.assignedInspections || 0} active)
                 </option>
               ))}
             </select>
-          </div>
-        )}
+          )}
+          <button
+            type="button"
+            onClick={exportCsv}
+            style={{
+              padding: '8px 14px',
+              background: '#f8fafc',
+              color: 'var(--forest)',
+              border: '1px solid #cbd5e1',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            ⬇ Export CSV
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -223,7 +302,7 @@ export default function AdminInspectionsPage() {
                 </tr>
               </thead>
               <tbody>
-                {inspections.map((ins) => {
+                {filteredInspections.map((ins) => {
                   const stageInfo = STAGES.find((s) => s.stage === ins.stage);
                   return (
                     <tr key={ins.id} style={{ borderBottom: '1px solid #f1f5f9' }}>

@@ -55,6 +55,10 @@ export default function AdminAgentsPage() {
   };
 
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [resetAgent, setResetAgent] = useState<any | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [resettingPwd, setResettingPwd] = useState(false);
+  const [resetMsg, setResetMsg] = useState('');
 
   const handleToggleStatus = async (agent: any) => {
     setTogglingId(agent.id);
@@ -67,6 +71,31 @@ export default function AdminAgentsPage() {
     }
     await loadAgents();
     setTogglingId(null);
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetAgent || !newPassword.trim()) return;
+    setResettingPwd(true);
+    setResetMsg('');
+    const res = await fetchApi(`/admin/agents/${encodeURIComponent(resetAgent.id)}/password`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        password: newPassword.trim(),
+        email: resetAgent.email,
+      }),
+    });
+    setResettingPwd(false);
+    if (res.ok) {
+      setResetMsg('✓ Password updated successfully!');
+      setTimeout(() => {
+        setResetAgent(null);
+        setNewPassword('');
+        setResetMsg('');
+      }, 1000);
+    } else {
+      alert(res.error || 'Failed to reset password.');
+    }
   };
 
   return (
@@ -208,6 +237,25 @@ export default function AdminAgentsPage() {
                         >
                           View Pipeline
                         </Link>
+                        <button
+                          onClick={() => {
+                            setResetAgent(ag);
+                            setNewPassword('');
+                            setResetMsg('');
+                          }}
+                          style={{
+                            padding: '6px 10px',
+                            background: '#fef3c7',
+                            color: '#92400e',
+                            border: '1px solid #fde68a',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          🔑 Reset Password
+                        </button>
                         <button
                           onClick={() => handleToggleStatus(ag)}
                           disabled={togglingId === ag.id}
@@ -369,6 +417,99 @@ export default function AdminAgentsPage() {
                   }}
                 >
                   {submitting ? 'Creating...' : 'Create Agent Account'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Reset Agent Password Modal ── */}
+      {resetAgent && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px',
+          }}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '10px',
+              maxWidth: '440px',
+              width: '100%',
+              padding: '28px',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div>
+                <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--forest)', margin: 0 }}>
+                  Reset Account Password
+                </h2>
+                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '3px' }}>
+                  {resetAgent.name} ({resetAgent.email})
+                </div>
+              </div>
+              <button
+                onClick={() => setResetAgent(null)}
+                style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#64748b' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {resetMsg && (
+              <div style={{ background: '#ecfdf5', border: '1px solid #10b981', color: '#065f46', padding: '10px 14px', borderRadius: '6px', fontSize: '13px', marginBottom: '16px' }}>
+                {resetMsg}
+              </div>
+            )}
+
+            <form onSubmit={handleResetPassword}>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                  New Password *
+                </label>
+                <input
+                  type="text"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  placeholder="Enter new password (min 6 chars)"
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '13px' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setResetAgent(null)}
+                  style={{ padding: '10px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={resettingPwd}
+                  style={{
+                    padding: '10px 20px',
+                    background: 'var(--forest)',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontWeight: 600,
+                    fontSize: '13px',
+                    cursor: resettingPwd ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  {resettingPwd ? 'Saving...' : 'Save New Password'}
                 </button>
               </div>
             </form>

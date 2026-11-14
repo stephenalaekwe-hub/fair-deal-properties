@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { fetchApi } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
-import ImageUpload from '@/components/ImageUpload';
+import ImageUpload, { parseImageUrls } from '@/components/ImageUpload';
 import { useCurrency } from '@/components/CurrencyProvider';
 
 function inferMillions(displayStr: string): string {
@@ -41,6 +42,7 @@ export default function AdminListingsPage() {
 
   const [listings, setListings] = useState<any[]>([]);
   const [agents, setAgents] = useState<any[]>([]);
+  const [alerts, setAlerts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusBanner, setStatusBanner] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -103,17 +105,55 @@ export default function AdminListingsPage() {
   const loadData = async () => {
     setLoading(true);
     if (isAgent) {
-      const listingsRes = await fetchApi('/listings?pageSize=200');
+      const [listingsRes, alertsRes] = await Promise.all([
+        fetchApi('/listings?pageSize=200'),
+        fetchApi('/admin/submissions?collection=alert'),
+      ]);
       if (listingsRes.ok && listingsRes.data) setListings(listingsRes.data.listings || []);
+      if (alertsRes.ok && alertsRes.data) setAlerts(alertsRes.data || []);
     } else {
-      const [listingsRes, agentsRes] = await Promise.all([
+      const [listingsRes, agentsRes, alertsRes] = await Promise.all([
         fetchApi('/listings?pageSize=200'),
         fetchApi('/admin/agents'),
+        fetchApi('/admin/submissions?collection=alert'),
       ]);
       if (listingsRes.ok && listingsRes.data) setListings(listingsRes.data.listings || []);
       if (agentsRes.ok && agentsRes.data) setAgents(agentsRes.data || []);
+      if (alertsRes.ok && alertsRes.data) setAlerts(alertsRes.data || []);
     }
     setLoading(false);
+  };
+
+  const countMatchingAlertsForListing = (listing: any): number => {
+    const activeAlerts = alerts.filter((a) => !a.closedAt && a.status !== 'closed');
+    return activeAlerts.filter((a) => {
+      const prefType = String(a.payload?.propertyType || a.payload?.type || '').toLowerCase();
+      const budgetRaw = String(a.payload?.budget || a.payload?.budgetRange || '').toLowerCase();
+      const lType = String(listing.propertyType || '').toLowerCase();
+      const lTitle = String(listing.title || '').toLowerCase();
+      const lSpec = String(listing.specification || '').toLowerCase();
+      const lPriceM = Number(listing.priceMillionsNGN || 0);
+
+      let typeMatch = true;
+      if (prefType && !prefType.includes('any')) {
+        if (prefType.includes('land') && lType !== 'land') typeMatch = false;
+        else if (prefType.includes('commercial') && lType !== 'commercial') typeMatch = false;
+        else if ((prefType.includes('residential') || prefType.includes('duplex') || prefType.includes('terrace') || prefType.includes('apartment') || prefType.includes('villa')) && lType !== 'residential') {
+          typeMatch = false;
+        }
+        if (typeMatch && prefType.includes('terrace') && !lTitle.includes('terrace') && !lSpec.includes('terrace')) typeMatch = false;
+      }
+
+      let budgetMatch = true;
+      if (budgetRaw && lPriceM > 0) {
+        if (budgetRaw.includes('under') && budgetRaw.includes('50')) budgetMatch = lPriceM <= 55;
+        else if (budgetRaw.includes('50') && budgetRaw.includes('100')) budgetMatch = lPriceM >= 40 && lPriceM <= 115;
+        else if (budgetRaw.includes('100') && budgetRaw.includes('250')) budgetMatch = lPriceM >= 90 && lPriceM <= 275;
+        else if (budgetRaw.includes('250') || budgetRaw.includes('above')) budgetMatch = lPriceM >= 200;
+      }
+
+      return typeMatch && budgetMatch;
+    }).length;
   };
 
   useEffect(() => {
@@ -473,6 +513,46 @@ export default function AdminListingsPage() {
             Reset
           </button>
         )}
+        <button
+          type="button"
+          onClick={() => {
+            const headers = ['ID', 'Title', 'Location', 'City', 'Category', 'Source', 'Price Display', 'Price Millions NGN', 'Specification', 'Assigned Agent'];
+            const rows = filteredListings.map((l) =>
+              [
+                l.id || l.slug || '',
+                l.title || '',
+                l.location || '',
+                l.city || '',
+                l.propertyType || '',
+                l.source || '',
+                l.priceDisplay || '',
+                l.priceMillionsNGN ?? '',
+                l.specification || '',
+                l.assignedAgentName || 'FDP Advisory Desk',
+              ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')
+            );
+            const csv = [headers.join(','), ...rows].join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `fdp-property-register-${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+          }}
+          style={{
+            padding: '9px 14px',
+            background: '#f8fafc',
+            color: 'var(--forest)',
+            border: '1px solid #cbd5e1',
+            borderRadius: '6px',
+            fontSize: '12px',
+            fontWeight: 700,
+            cursor: 'pointer',
+          }}
+        >
+          ⬇ Export CSV
+        </button>
       </div>
 
       {loading ? (
@@ -495,13 +575,16 @@ export default function AdminListingsPage() {
                 {filteredListings.map((l) => {
                   const rowKey = getListingKey(l);
                   const isEditingQuickPrice = quickPriceKey === rowKey;
-                  const isCustomPhoto = l.image && !l.image.startsWith('/assets/illustrations/');
+                  const parsedPhotos = Array.isArray(l.images) && l.images.length > 0 ? l.images : parseImageUrls(l.image);
+                  const primaryPhoto = parsedPhotos[0] || l.image || '';
+                  const isCustomPhoto = primaryPhoto && !primaryPhoto.startsWith('/assets/illustrations/');
+                  const matchingAlertsCount = countMatchingAlertsForListing(l);
 
                   return (
                     <tr key={rowKey} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '14px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          {l.image ? (
+                          {primaryPhoto ? (
                             <div
                               onClick={() => !isAgent && openEditModal(l)}
                               title={!isAgent ? 'Click to upload or change property photograph' : l.title}
@@ -518,10 +601,27 @@ export default function AdminListingsPage() {
                               }}
                             >
                               <img
-                                src={l.image}
+                                src={primaryPhoto}
                                 alt={l.title}
                                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                               />
+                              {parsedPhotos.length > 1 && (
+                                <span
+                                  style={{
+                                    position: 'absolute',
+                                    bottom: '2px',
+                                    right: '2px',
+                                    background: 'rgba(13,43,29,0.88)',
+                                    color: '#fff',
+                                    fontSize: '9px',
+                                    fontWeight: 700,
+                                    padding: '1px 4px',
+                                    borderRadius: '3px',
+                                  }}
+                                >
+                                  +{parsedPhotos.length - 1}
+                                </span>
+                              )}
                             </div>
                           ) : (
                             <div style={{ width: '54px', height: '54px', borderRadius: '6px', background: '#ecfdf5', color: 'var(--forest)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>
@@ -564,6 +664,25 @@ export default function AdminListingsPage() {
                         <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'capitalize' }}>
                           {l.propertyType}
                         </div>
+                        {matchingAlertsCount > 0 && (
+                          <Link
+                            href="/admin/alerts"
+                            style={{
+                              display: 'inline-block',
+                              marginTop: '4px',
+                              fontSize: '10.5px',
+                              fontWeight: 700,
+                              color: '#065f46',
+                              background: '#ecfdf5',
+                              border: '1px solid #a7f3d0',
+                              borderRadius: '4px',
+                              padding: '1px 6px',
+                              textDecoration: 'none',
+                            }}
+                          >
+                            🔔 {matchingAlertsCount} {matchingAlertsCount === 1 ? 'Alert Match' : 'Alert Matches'}
+                          </Link>
+                        )}
                       </td>
                       <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>
                         {isEditingQuickPrice ? (

@@ -4,13 +4,60 @@ import { useEffect, useState } from 'react';
 import { fetchApi } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 
+function parseAlertBudgetBounds(budgetStr?: string | null): [number, number] | null {
+  if (!budgetStr) return null;
+  const s = String(budgetStr).toLowerCase();
+  if (/under\s*₦?30m|below\s*₦?30m|<\s*30/i.test(s)) return [0, 35];
+  if (/30m.*100m/i.test(s)) return [25, 110];
+  if (/100m.*300m/i.test(s)) return [90, 320];
+  if (/300m.*1b/i.test(s)) return [280, 1050];
+  if (/above\s*₦?1b|1b\+/i.test(s)) return [900, 999999];
+  return null;
+}
+
+function matchListingToAlert(listing: any, alertSub: any): boolean {
+  const p = alertSub?.payload || {};
+  const prefType = String(p.propertyType || '').toLowerCase();
+  const budgetRange = String(p.budgetRange || p.budget || '');
+
+  // 1. Property type check
+  let typeMatches = true;
+  if (prefType && !/all|any|preference/i.test(prefType)) {
+    if (prefType.includes('residential')) {
+      typeMatches = listing.propertyType === 'residential';
+    } else if (prefType.includes('commercial')) {
+      typeMatches = listing.propertyType === 'commercial';
+    } else if (prefType.includes('land')) {
+      typeMatches = listing.propertyType === 'land';
+    } else if (prefType.includes('affordable') || prefType.includes('mreif') || prefType.includes('fmbn')) {
+      typeMatches = Boolean(listing.affordable || listing.mortgageEligible || ['mreif', 'fmbn', 'fhf', 'fha'].includes(listing.source));
+    } else if (prefType.includes('off-plan') || prefType.includes('offplan')) {
+      typeMatches = Boolean(listing.offPlan);
+    }
+  }
+  if (!typeMatches) return false;
+
+  // 2. Budget range check
+  const bounds = parseAlertBudgetBounds(budgetRange);
+  if (bounds && listing.priceMillionsNGN !== null && listing.priceMillionsNGN !== undefined) {
+    const priceM = Number(listing.priceMillionsNGN);
+    if (!Number.isNaN(priceM)) {
+      return priceM >= bounds[0] && priceM <= bounds[1];
+    }
+  }
+  return true;
+}
+
 export default function AdminAlertsPage() {
   const { user } = useAuth();
   const isAgent = user?.role === 'AGENT';
 
   const [alerts, setAlerts] = useState<any[]>([]);
+  const [listings, setListings] = useState<any[]>([]);
   const [agents, setAgents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [activeModal, setActiveModal] = useState<any>(null);
   const [selectedAgentId, setSelectedAgentId] = useState('');
   const [statusChoice, setStatusChoice] = useState<'pending' | 'in_progress' | 'closed'>('pending');
@@ -19,13 +66,18 @@ export default function AdminAlertsPage() {
 
   const loadData = async () => {
     setLoading(true);
-    const agentQuery = isAgent && user?.id ? `&agentId=${encodeURIComponent(user.id)}` : '';
-    const [subRes, agentsRes] = await Promise.all([
+    const agentKey = isAgent ? (user?.id || user?.email || user?.name || '') : '';
+    const agentQuery = agentKey ? `&agentId=${encodeURIComponent(agentKey)}` : '';
+    const [subRes, listingsRes, agentsRes] = await Promise.all([
       fetchApi(`/admin/submissions?collection=alert${agentQuery}`),
+      fetchApi('/listings?pageSize=200'),
       isAgent ? Promise.resolve({ ok: true, data: [] }) : fetchApi('/admin/agents'),
     ]);
     if (subRes.ok && subRes.data) {
       setAlerts(subRes.data);
+    }
+    if (listingsRes.ok && listingsRes.data) {
+      setListings((listingsRes.data as any).listings || []);
     }
     if (agentsRes.ok && agentsRes.data) {
       setAgents(agentsRes.data);
@@ -81,9 +133,49 @@ export default function AdminAlertsPage() {
     await loadData();
   };
 
+  const filteredAlerts = alerts.filter((sub) => {
+    const p = sub.payload || {};
+    const email = (sub.clientEmail || p.email || sub.clientName || '').toLowerCase();
+    const ref = (sub.reference || '').toLowerCase();
+    const pType = (p.propertyType || '').toLowerCase();
+    const budget = (p.budgetRange || p.budget || '').toLowerCase();
+    const agName = (sub.assignedAgent?.name || sub.assignedAgentName || p.assignedAgent || '').toLowerCase();
+    const itemStatus = sub.status || (sub.closedAt ? 'closed' : ((agName || sub.assignedAgentId) ? 'in_progress' : 'pending'));
+
+    if (statusFilter !== 'all' && itemStatus !== statusFilter) return false;
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase().trim();
+    return email.includes(q) || ref.includes(q) || pType.includes(q) || budget.includes(q) || agName.includes(q);
+  });
+
+  const handleExportCsv = () => {
+    const headers = ['Reference', 'Subscriber Email', 'Property Type', 'Budget Range', 'Matches', 'Assigned Agent', 'Status', 'Date'];
+    const rows = filteredAlerts.map((sub) => {
+      const p = sub.payload || {};
+      const email = sub.clientEmail || p.email || sub.clientName || '';
+      const pType = p.propertyType || 'All Property Types';
+      const budget = p.budgetRange || p.budget || 'Any Budget';
+      const matchesCount = listings.filter((l) => matchListingToAlert(l, sub)).length;
+      const agName = sub.assignedAgent?.name || sub.assignedAgentName || p.assignedAgent || 'Unassigned';
+      const itemStatus = sub.status || (sub.closedAt ? 'closed' : ((agName !== 'Unassigned' || sub.assignedAgentId) ? 'in_progress' : 'pending'));
+      const dt = sub.receivedAt || sub.createdAt || '';
+      return [sub.reference, email, pType, budget, `${matchesCount} properties`, agName, itemStatus, dt]
+        .map((v) => `"${String(v || '').replace(/"/g, '""')}"`)
+        .join(',');
+    });
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `fdp-property-alerts-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--forest)' }}>
             🔔 Client Property Alerts
@@ -93,6 +185,42 @@ export default function AdminAlertsPage() {
               ? 'Marketplace property alert subscriptions assigned to you for property matching.'
               : 'Prospective buyer criteria submitted via the Marketplace "Set a Property Alert" subscription.'}
           </p>
+        </div>
+
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search email, ref, type, budget..."
+            style={{ padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '13px', minWidth: '220px' }}
+          />
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            style={{ padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '13px', background: '#fff' }}
+          >
+            <option value="all">All Statuses</option>
+            <option value="pending">Active Alert</option>
+            <option value="in_progress">Matching in Progress</option>
+            <option value="closed">Matched &amp; Closed</option>
+          </select>
+          <button
+            type="button"
+            onClick={handleExportCsv}
+            style={{
+              padding: '8px 14px',
+              background: '#f8fafc',
+              color: 'var(--forest)',
+              border: '1px solid #cbd5e1',
+              borderRadius: '6px',
+              fontSize: '12.5px',
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            ⬇ Export CSV
+          </button>
         </div>
       </div>
 
@@ -108,6 +236,7 @@ export default function AdminAlertsPage() {
                   <th style={{ padding: '12px 16px' }}>Subscriber Email</th>
                   <th style={{ padding: '12px 16px' }}>Property Type Preference</th>
                   <th style={{ padding: '12px 16px' }}>Budget Range</th>
+                  <th style={{ padding: '12px 16px' }}>Portfolio Matches</th>
                   <th style={{ padding: '12px 16px' }}>Subscribed On</th>
                   <th style={{ padding: '12px 16px' }}>Assigned Agent</th>
                   <th style={{ padding: '12px 16px' }}>Status</th>
@@ -115,14 +244,14 @@ export default function AdminAlertsPage() {
                 </tr>
               </thead>
               <tbody>
-                {alerts.length === 0 ? (
+                {filteredAlerts.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ padding: '32px 16px', textAlign: 'center', color: '#64748b' }}>
+                    <td colSpan={9} style={{ padding: '32px 16px', textAlign: 'center', color: '#64748b' }}>
                       No property alerts registered yet.
                     </td>
                   </tr>
                 ) : (
-                  alerts.map((sub) => {
+                  filteredAlerts.map((sub) => {
                     const p = sub.payload || {};
                     const subscriberEmail = sub.clientEmail || p.email || sub.clientName || 'No email provided';
                     const propertyType = p.propertyType || 'All Property Types';
@@ -130,6 +259,7 @@ export default function AdminAlertsPage() {
                     const receivedDate = sub.receivedAt || sub.createdAt;
                     const assignedAgentName = sub.assignedAgent?.name || sub.assignedAgentName || p.assignedAgent || null;
                     const itemStatus = sub.status || (sub.closedAt ? 'closed' : ((assignedAgentName || sub.assignedAgentId) ? 'in_progress' : 'pending'));
+                    const matchedProps = listings.filter((l) => matchListingToAlert(l, sub));
 
                     return (
                       <tr key={sub.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
@@ -158,6 +288,20 @@ export default function AdminAlertsPage() {
                           <span style={{ fontWeight: 700, color: '#92400e', background: '#fef3c7', padding: '4px 10px', borderRadius: '4px', fontSize: '12px', display: 'inline-block' }}>
                             💰 {budgetRange}
                           </span>
+                        </td>
+                        <td style={{ padding: '14px 16px' }}>
+                          {matchedProps.length > 0 ? (
+                            <div>
+                              <span style={{ background: '#dcfce7', color: '#15803d', padding: '3px 8px', borderRadius: '999px', fontSize: '11px', fontWeight: 700 }}>
+                                ✓ {matchedProps.length} {matchedProps.length === 1 ? 'Match' : 'Matches'}
+                              </span>
+                              <div style={{ fontSize: '11px', color: '#475569', marginTop: '3px', maxWidth: '180px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                Top: {matchedProps[0].title}
+                              </div>
+                            </div>
+                          ) : (
+                            <span style={{ color: '#94a3b8', fontSize: '11.5px' }}>Awaiting match</span>
+                          )}
                         </td>
                         <td style={{ padding: '14px 16px', color: '#64748b', fontSize: '12px' }}>
                           {receivedDate
@@ -294,6 +438,44 @@ export default function AdminAlertsPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Auto-Matched Portfolio Properties Section */}
+              {(() => {
+                const modalMatches = listings.filter((l) => matchListingToAlert(l, activeModal));
+                return (
+                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '14px', marginBottom: '18px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 700, color: '#166534', marginBottom: '8px' }}>
+                      🏠 Auto-Matched Portfolio Properties ({modalMatches.length})
+                    </div>
+                    {modalMatches.length > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '140px', overflowY: 'auto' }}>
+                        {modalMatches.slice(0, 6).map((m) => (
+                          <div key={m.slug} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#ffffff', padding: '6px 10px', borderRadius: '6px', border: '1px solid #dcfce7', fontSize: '12px' }}>
+                            <div>
+                              <strong style={{ color: 'var(--forest)' }}>{m.title}</strong>
+                              <span style={{ color: '#64748b', marginLeft: '6px' }}>({m.priceDisplay})</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const snippet = `Matched with ${m.title} (${m.priceDisplay}, ${m.location}).`;
+                                setOutcome((prev) => (prev ? `${prev} ${snippet}` : snippet));
+                              }}
+                              style={{ padding: '3px 8px', background: 'var(--forest)', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                            >
+                              + Add to Note
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '12px', color: '#475569' }}>
+                        No exact matches in current portfolio yet. When a matching property is published, it will appear here automatically.
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               <form onSubmit={handleSave}>
                 {!isAgent && (

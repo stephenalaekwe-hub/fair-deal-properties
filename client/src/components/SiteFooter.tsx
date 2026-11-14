@@ -28,8 +28,6 @@ const LEGAL_LINKS = [
   { href: '/cookie-notice', label: 'Cookie Notice' },
   { href: '/data-rights', label: 'Your Data Rights' },
   { href: '/terms', label: 'Terms of Service' },
-  { href: '/admin', label: 'Admin Console' },
-  { href: '/agent', label: 'Field Agent Portal' },
 ];
 
 export default function SiteFooter() {

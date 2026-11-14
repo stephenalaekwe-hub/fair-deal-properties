@@ -143,15 +143,35 @@ export default function InspectionsContent() {
       // ignore JSON error
     }
 
-    // Auto-track if ?ref=... is in the URL query string
+    // Auto-track if ?ref=... is in the URL query string, or pre-fill physical inspection if ?property=... is passed
     try {
       if (typeof window !== 'undefined') {
         const params = new URLSearchParams(window.location.search);
         const urlRef = params.get('ref');
+        const urlProp = params.get('property');
+        const urlLoc = params.get('location');
         if (urlRef) {
           setTab('track');
           setTrackRefInput(urlRef);
           void handleTrackLookup(urlRef);
+        } else if (urlProp) {
+          setTab('physical');
+          const mappedLoc =
+            urlLoc && /lagos/i.test(urlLoc)
+              ? 'Lagos'
+              : urlLoc && /port\s*harcourt|rivers/i.test(urlLoc)
+                ? 'Port Harcourt'
+                : urlLoc && /kuje|gwagwalada|bwari|abaji|kwali/i.test(urlLoc)
+                  ? 'Abuja FCT - Area Council'
+                  : 'Abuja FCT - within city';
+          setFormValues((prev) => ({
+            ...prev,
+            addr: urlLoc && !urlProp.toLowerCase().includes(urlLoc.toLowerCase()) ? `${urlProp} (${urlLoc})` : urlProp,
+            loc: mappedLoc,
+          }));
+          setTimeout(() => {
+            document.getElementById('ins-physical')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 150);
         }
       }
     } catch {}
@@ -1230,6 +1250,213 @@ export default function InspectionsContent() {
                       </div>
                     </div>
                   </div>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '14px', flexWrap: 'wrap' }}>
+                    <a
+                      href={`https://wa.me/2349049924198?text=${encodeURIComponent(
+                        `Hello Fair Deal Properties Inspection Desk, I am following up on my inspection reference ${trackData.reference} (${trackData.propertyTitle || 'Property Inspection'}).`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        flex: 1,
+                        padding: '8px 12px',
+                        background: '#ecfdf5',
+                        color: '#065f46',
+                        border: '1px solid #a7f3d0',
+                        borderRadius: '6px',
+                        fontSize: '11.5px',
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                        textAlign: 'center',
+                      }}
+                    >
+                      💬 WhatsApp Desk
+                    </a>
+                    <a
+                      href="tel:+2349049924198"
+                      style={{
+                        padding: '8px 12px',
+                        background: '#f8fafc',
+                        color: 'var(--forest)',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '6px',
+                        fontSize: '11.5px',
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                        textAlign: 'center',
+                      }}
+                    >
+                      📞 Call Desk
+                    </a>
+                  </div>
+                </div>
+
+                {/* Official Printable / PDF Verification Dossier Card */}
+                <div className="card" style={{ padding: '1.5rem', marginBottom: '1.25rem', border: trackData.stage >= 9 ? '1.5px solid var(--gold)' : undefined }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <h4 style={{ fontSize: '.95rem', margin: 0 }}>
+                      {trackData.stage >= 9 ? 'Official Verification Certificate' : 'Verification Progress Dossier'}
+                    </h4>
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        background: trackData.stage >= 9 ? 'var(--gold)' : '#e0f2fe',
+                        color: trackData.stage >= 9 ? 'var(--forest)' : '#0369a1',
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      {trackData.stage >= 9 ? 'Final Issued' : `Stage ${trackData.stage}/9`}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '11.5px', color: 'var(--ink-muted)', lineHeight: 1.5, marginBottom: '12px' }}>
+                    Download or print a formal PDF record of all completed stages, surveyor notes, timestamps, and site photographs for your records or mortgage bank.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const printWin = window.open('', '_blank', 'width=900,height=800');
+                      if (!printWin) return;
+                      const allStageRows = inspectionPipeline
+                        .map((p, i) => {
+                          const sNum = i + 1;
+                          const isDone = i < trackData.stage - 1 || (i === trackData.stage - 1 && Boolean(trackData.currentStepDone || trackData.stage >= 9));
+                          const isNow = i === trackData.stage - 1 && !isDone;
+                          const hist = trackData.stageHistory?.[String(sNum)];
+                          const note =
+                            cleanNoteText(hist?.note || (i === trackData.stage - 1 ? trackData.officerMessage : '')) ||
+                            (isDone || isNow ? DEFAULT_STAGE_NOTES[sNum] : 'Pending stage execution');
+                          const statusBadge = isDone ? '✓ COMPLETED' : isNow ? '● IN PROGRESS' : 'PENDING';
+                          return `
+                            <tr>
+                              <td style="padding:10px;border-bottom:1px solid #e2e8f0;font-weight:700;color:#0d2b1e;">Stage ${sNum}: ${p.t}</td>
+                              <td style="padding:10px;border-bottom:1px solid #e2e8f0;font-weight:700;font-size:11px;color:${isDone ? '#15803d' : isNow ? '#b45309' : '#94a3b8'};">${statusBadge}</td>
+                              <td style="padding:10px;border-bottom:1px solid #e2e8f0;color:#334155;font-size:12px;">${note}</td>
+                            </tr>
+                          `;
+                        })
+                        .join('');
+
+                      const docPhotos: string[] = [];
+                      if (Array.isArray(trackData.photos)) {
+                        trackData.photos.forEach((u: string) => {
+                          if (u && !docPhotos.includes(u)) docPhotos.push(u);
+                        });
+                      }
+                      if (trackData.stageHistory) {
+                        Object.values(trackData.stageHistory).forEach((entry: any) => {
+                          if (entry && Array.isArray(entry.photos)) {
+                            entry.photos.forEach((u: string) => {
+                              if (u && !docPhotos.includes(u)) docPhotos.push(u);
+                            });
+                          }
+                        });
+                      }
+
+                      const photosHtml =
+                        docPhotos.length > 0
+                          ? `<h3 style="color:#0d2b1e;font-size:15px;margin-top:28px;border-bottom:1px solid #cbd5e1;padding-bottom:6px;">Attached Site & Survey Photographs (${docPhotos.length})</h3>
+                             <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:12px;">
+                               ${docPhotos
+                                 .map(
+                                   (u, idx) =>
+                                     `<div style="border:1px solid #cbd5e1;border-radius:8px;overflow:hidden;padding:8px;background:#f8fafc;">
+                                        <img src="${u.startsWith('/') ? window.location.origin + u : u}" style="width:100%;height:210px;object-fit:cover;border-radius:4px;" />
+                                        <div style="font-size:11px;color:#475569;margin-top:6px;font-weight:600;">Evidence Photograph #${idx + 1}</div>
+                                      </div>`
+                                 )
+                                 .join('')}
+                             </div>`
+                          : '';
+
+                      printWin.document.write(`
+                        <!DOCTYPE html>
+                        <html>
+                          <head>
+                            <title>FDP Verification Dossier - ${trackData.reference}</title>
+                            <style>
+                              body { font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #0f172a; margin: 0; padding: 32px; }
+                              .header { background: #0d2b1e; color: #fff; padding: 24px 28px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; }
+                              .meta-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px 20px; margin: 20px 0; font-size: 13px; }
+                              table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+                              th { text-align: left; background: #f1f5f9; padding: 10px; font-size: 11px; text-transform: uppercase; color: #475569; border-bottom: 2px solid #cbd5e1; }
+                              @media print { .no-print { display: none; } body { padding: 12px; } }
+                            </style>
+                          </head>
+                          <body>
+                            <div class="no-print" style="margin-bottom:16px;text-align:right;">
+                              <button onclick="window.print()" style="background:#0d2b1e;color:#fff;border:none;padding:10px 20px;border-radius:6px;font-weight:700;cursor:pointer;">🖨️ Print / Save as PDF</button>
+                            </div>
+                            <div class="header">
+                              <div>
+                                <div style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#c9a84c;">Fair Deal Properties Ltd · Abuja, Nigeria</div>
+                                <h1 style="margin:6px 0 0;font-size:22px;">Official Property Inspection & Verification Dossier</h1>
+                              </div>
+                              <div style="text-align:right;">
+                                <div style="font-size:11px;color:#cbd5e1;">Tracking Reference</div>
+                                <div style="font-size:18px;font-weight:700;color:#c9a84c;font-family:monospace;">${trackData.reference}</div>
+                              </div>
+                            </div>
+                            <div class="meta-grid">
+                              <div><strong>Client Name:</strong> ${trackData.clientName || 'Verified Client'}</div>
+                              <div><strong>Assigned Surveyor:</strong> ${trackData.officerName || 'FDP Field Verification Team'}</div>
+                              <div><strong>Property Target:</strong> ${trackData.propertyTitle || 'N/A'}</div>
+                              <div><strong>Location:</strong> ${trackData.propertyLocation || 'Abuja FCT'}</div>
+                              <div><strong>Verification Status:</strong> Stage ${trackData.stage} of 9 (${trackData.stage >= 9 ? 'Final Dossier Issued' : trackData.stageTitle})</div>
+                              <div><strong>Report Generated:</strong> ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                            </div>
+                            <h3 style="color:#0d2b1e;font-size:15px;margin-top:20px;">9-Stage Verification Protocol Log</h3>
+                            <table>
+                              <thead>
+                                <tr>
+                                  <th style="width:28%;">Verification Stage</th>
+                                  <th style="width:16%;">Status</th>
+                                  <th>Surveyor Findings & Stage Notes</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                ${allStageRows}
+                              </tbody>
+                            </table>
+                            ${photosHtml}
+                            <div style="margin-top:32px;padding-top:16px;border-top:1px solid #cbd5e1;font-size:11px;color:#64748b;display:flex;justify-content:space-between;">
+                              <span>Fair Deal Properties Ltd · No. 4 Ekeh A. Yesufu Close, Utako, Abuja</span>
+                              <span>Generated via FDP Inspection Hub (${window.location.origin}/inspections)</span>
+                            </div>
+                          </body>
+                        </html>
+                      `);
+                      printWin.document.close();
+                      setTimeout(() => {
+                        printWin.focus();
+                        printWin.print();
+                      }, 400);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      background: trackData.stage >= 9 ? 'var(--gold)' : 'var(--forest)',
+                      color: trackData.stage >= 9 ? 'var(--forest)' : '#ffffff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '12.5px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    <span>📄</span>
+                    <span>
+                      {trackData.stage >= 9
+                        ? 'Download Final Verification Dossier (PDF)'
+                        : 'Download Verification Progress Report (PDF)'}
+                    </span>
+                  </button>
                 </div>
                 <div className="card" style={{padding:'1.5rem',marginBottom:'1.25rem'}}>
                   <h4 style={{fontSize:'.95rem',marginBottom:'.9rem'}}>Recent Audit Updates</h4>

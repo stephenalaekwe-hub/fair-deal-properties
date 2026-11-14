@@ -29,6 +29,22 @@ export function verifyToken(token: string): AuthUser | null {
   }
 }
 
+export function getRequestUser(req: Request): AuthUser | null {
+  const authHeader = req.headers.get('authorization') || '';
+  if (authHeader.toLowerCase().startsWith('bearer ')) {
+    const token = authHeader.slice(7).trim();
+    const user = verifyToken(token);
+    if (user) return user;
+  }
+  const cookieHeader = req.headers.get('cookie') || '';
+  const match = cookieHeader.match(/(?:^|;\s*)fdp_token=([^;]+)/);
+  if (match && match[1]) {
+    const user = verifyToken(decodeURIComponent(match[1]));
+    if (user) return user;
+  }
+  return null;
+}
+
 export async function authenticateUser(email: string, passwordPlain: string): Promise<AuthUser | null> {
   const normEmail = email.toLowerCase().trim();
   const user = await getUserByEmail(normEmail);

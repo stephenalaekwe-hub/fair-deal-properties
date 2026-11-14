@@ -172,6 +172,18 @@ export function updateTestAgentStatus(idOrEmail: string, active: boolean): Agent
   return null;
 }
 
+export function updateTestAgentPassword(idOrEmail: string, newPassword: string): AgentUser | null {
+  const norm = idOrEmail.toLowerCase().trim();
+  const agents = getTestAgents();
+  const agent = agents.find((a) => a.id.toLowerCase() === norm || a.email.toLowerCase() === norm);
+  if (agent) {
+    agent.password = newPassword;
+    saveAgentsToDisk(agents);
+    return { ...agent };
+  }
+  return null;
+}
+
 export function addTestAgent(newAgent: Partial<AgentUser>): AgentUser {
   const agents = getTestAgents();
   const existing = agents.find(

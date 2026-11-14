@@ -7,10 +7,13 @@ import CurrencyToggle from '@/components/CurrencyToggle';
 import { useCurrency } from '@/components/CurrencyProvider';
 import { sanitizePhone, isValidPhone, sanitizeName } from '@/lib/validation';
 import { listings as defaultListings, type Listing } from '@/data/listings';
+import { parseImageUrls } from '@/components/ImageUpload';
 
 export default function MarketplaceContent() {
   const { formatPrice, currency } = useCurrency();
   const [customListings, setCustomListings] = useState<Listing[]>([]);
+  const [detailListing, setDetailListing] = useState<Listing | null>(null);
+  const [detailPhotoIdx, setDetailPhotoIdx] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [submissionRef, setSubmissionRef] = useState('');
   const [copiedRef, setCopiedRef] = useState(false);
@@ -149,14 +152,40 @@ export default function MarketplaceContent() {
         if (live.propertyType) card.dataset.type = live.propertyType;
         if (live.city) card.dataset.city = live.city;
 
+        const photos = parseImageUrls(live.image);
+        const primaryPhoto = photos[0] || '/assets/illustrations/i2.svg';
         const img = card.querySelector<HTMLImageElement>('.opp-media img');
-        if (img && live.image) {
-          img.src = live.image;
+        if (img && primaryPhoto) {
+          img.src = primaryPhoto;
           img.alt = live.title || img.alt;
-          if (!live.image.startsWith('/assets/illustrations/')) {
+          if (!primaryPhoto.startsWith('/assets/illustrations/')) {
             img.style.width = '100%';
             img.style.height = '100%';
             img.style.objectFit = 'cover';
+          }
+        }
+
+        const mediaBox = card.querySelector<HTMLElement>('.opp-media');
+        if (mediaBox) {
+          mediaBox.style.cursor = 'pointer';
+          mediaBox.title = 'Click to view full property details & photo gallery';
+          mediaBox.onclick = () => {
+            setDetailListing(live);
+            setDetailPhotoIdx(0);
+          };
+          let photoCountBadge = mediaBox.querySelector<HTMLElement>('.opp-photo-count-badge');
+          if (photos.length > 1) {
+            if (!photoCountBadge) {
+              photoCountBadge = document.createElement('span');
+              photoCountBadge.className = 'img-badge opp-photo-count-badge';
+              photoCountBadge.style.background = 'rgba(13,43,30,0.88)';
+              photoCountBadge.style.color = '#ffffff';
+              photoCountBadge.style.borderColor = 'var(--gold)';
+              mediaBox.querySelector('.opp-media-top > div:last-child')?.appendChild(photoCountBadge);
+            }
+            photoCountBadge.textContent = `📷 ${photos.length} Photos`;
+          } else if (photoCountBadge) {
+            photoCountBadge.remove();
           }
         }
 
@@ -200,6 +229,18 @@ export default function MarketplaceContent() {
               window.openEnquiry(live.title, live.priceDisplay, live.verificationStatus || 'FDP Verified');
             }
           };
+
+          const btnParent = enquireBtn.parentElement;
+          if (btnParent && !btnParent.querySelector('.opp-inspect-link-btn')) {
+            const inspectBtn = document.createElement('a');
+            inspectBtn.className = 'opp-inspect-link-btn';
+            inspectBtn.href = `/inspections?property=${encodeURIComponent(live.title)}&location=${encodeURIComponent(live.location || live.city || 'Abuja FCT - within city')}`;
+            inspectBtn.textContent = 'Inspect';
+            inspectBtn.title = 'Request an independent physical inspection on this property';
+            inspectBtn.style.cssText =
+              'display:inline-flex;align-items:center;justify-content:center;padding:8px 11px;border:1px solid var(--forest);border-radius:var(--radius-sm);font-size:11.5px;font-weight:600;color:var(--forest);background:transparent;text-decoration:none;white-space:nowrap;';
+            btnParent.insertBefore(inspectBtn, enquireBtn);
+          }
         }
       });
     };
@@ -516,7 +557,9 @@ export default function MarketplaceContent() {
 
       {/* ─ DYNAMICALLY PUBLISHED ADMIN LISTINGS ─ */}
       {customListings.map((item) => {
-        const isRealPhoto = item.image && !item.image.startsWith('/assets/illustrations/');
+        const itemPhotos = parseImageUrls(item.image);
+        const primaryPhoto = itemPhotos[0] || '/assets/illustrations/i2.svg';
+        const isRealPhoto = primaryPhoto && !primaryPhoto.startsWith('/assets/illustrations/');
         return (
           <div
             key={item.id || item.slug}
@@ -532,9 +575,17 @@ export default function MarketplaceContent() {
             data-price={item.priceMillionsNGN != null ? String(item.priceMillionsNGN) : '0'}
             data-date={item.listedOn || '2026-05-15'}
           >
-            <div className="opp-media">
+            <div
+              className="opp-media"
+              style={{ cursor: 'pointer' }}
+              title="Click to view full property details & photo gallery"
+              onClick={() => {
+                setDetailListing(item);
+                setDetailPhotoIdx(0);
+              }}
+            >
               <img
-                src={item.image || '/assets/illustrations/i2.svg'}
+                src={primaryPhoto}
                 alt={item.title}
                 loading="lazy"
                 style={isRealPhoto ? { width: '100%', height: '100%', objectFit: 'cover' } : undefined}
@@ -546,6 +597,11 @@ export default function MarketplaceContent() {
                 </div>
                 <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}>
                   <span className="img-badge">{item.badges?.[1] || 'Verified Title'}</span>
+                  {itemPhotos.length > 1 && (
+                    <span className="img-badge" style={{ background: 'rgba(13,43,30,0.88)', color: '#fff', borderColor: 'var(--gold)' }}>
+                      📷 {itemPhotos.length} Photos
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="opp-media-bot">
@@ -583,7 +639,7 @@ export default function MarketplaceContent() {
                   {formatPrice(item.priceMillionsNGN, item.priceDisplay)}
                 </div>
               </div>
-              <div style={{display:'flex',gap:'.5rem'}}>
+              <div style={{display:'flex',gap:'.5rem',alignItems:'center'}}>
                 <button
                   className="opp-save-btn"
                   onClick={(event) => { window.saveProperty(event.currentTarget, item.title); }}
@@ -591,6 +647,25 @@ export default function MarketplaceContent() {
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                 </button>
+                <Link
+                  href={`/inspections?property=${encodeURIComponent(item.title)}&location=${encodeURIComponent(item.location || item.city || 'Abuja FCT - within city')}`}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '8px 11px',
+                    border: '1px solid var(--forest)',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '11.5px',
+                    fontWeight: 600,
+                    color: 'var(--forest)',
+                    background: 'transparent',
+                    textDecoration: 'none',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  Inspect
+                </Link>
                 <button
                   className="opp-enquire-btn"
                   onClick={() => { window.openEnquiry(item.title, item.priceDisplay, item.verificationStatus || 'FDP Verified'); }}
@@ -2243,6 +2318,253 @@ export default function MarketplaceContent() {
   <span><span id="saved-count">0</span> saved propert<span id="saved-plural">y</span></span>
   <span style={{color:'var(--gold-light)',fontWeight:'600',fontSize:'11px',letterSpacing:'.08em'}}>VIEW →</span>
 </div>
+
+{/* ── PROPERTY DOSSIER & MULTI-PHOTO GALLERY MODAL ── */}
+{detailListing && (() => {
+  const photos = parseImageUrls(detailListing.image);
+  const displayPhotos = photos.length > 0 ? photos : ['/assets/illustrations/i2.svg'];
+  const currentPhoto = displayPhotos[detailPhotoIdx] || displayPhotos[0];
+  const isReal = currentPhoto && !currentPhoto.startsWith('/assets/illustrations/');
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(13,43,30,0.75)',
+        backdropFilter: 'blur(4px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1200,
+        padding: '20px',
+      }}
+      onClick={() => setDetailListing(null)}
+    >
+      <div
+        style={{
+          background: '#ffffff',
+          borderRadius: '14px',
+          maxWidth: '820px',
+          width: '100%',
+          maxHeight: '92vh',
+          overflowY: 'auto',
+          boxShadow: '0 25px 60px rgba(0,0,0,0.35)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Photo Carousel Header */}
+        <div style={{ position: 'relative', height: '360px', background: '#0d2b1e', overflow: 'hidden' }}>
+          <img
+            src={currentPhoto}
+            alt={detailListing.title}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: isReal ? 'cover' : 'contain',
+              padding: isReal ? 0 : '24px',
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => setDetailListing(null)}
+            style={{
+              position: 'absolute',
+              top: '16px',
+              right: '16px',
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              background: 'rgba(0,0,0,0.65)',
+              color: '#ffffff',
+              border: 'none',
+              fontSize: '18px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            ✕
+          </button>
+
+          {displayPhotos.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={() => setDetailPhotoIdx((prev) => (prev - 1 + displayPhotos.length) % displayPhotos.length)}
+                style={{
+                  position: 'absolute',
+                  left: '14px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '50%',
+                  background: 'rgba(0,0,0,0.65)',
+                  color: '#fff',
+                  border: 'none',
+                  fontSize: '18px',
+                  cursor: 'pointer',
+                }}
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                onClick={() => setDetailPhotoIdx((prev) => (prev + 1) % displayPhotos.length)}
+                style={{
+                  position: 'absolute',
+                  right: '14px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '50%',
+                  background: 'rgba(0,0,0,0.65)',
+                  color: '#fff',
+                  border: 'none',
+                  fontSize: '18px',
+                  cursor: 'pointer',
+                }}
+              >
+                ›
+              </button>
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: '12px',
+                  right: '16px',
+                  background: 'rgba(0,0,0,0.72)',
+                  color: '#fff',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  padding: '4px 10px',
+                  borderRadius: '999px',
+                }}
+              >
+                Photo {detailPhotoIdx + 1} of {displayPhotos.length}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Thumbnail Strip if multiple photos */}
+        {displayPhotos.length > 1 && (
+          <div style={{ display: 'flex', gap: '8px', padding: '12px 24px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', overflowX: 'auto' }}>
+            {displayPhotos.map((ph, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => setDetailPhotoIdx(idx)}
+                style={{
+                  width: '64px',
+                  height: '48px',
+                  borderRadius: '6px',
+                  overflow: 'hidden',
+                  border: idx === detailPhotoIdx ? '2px solid var(--forest)' : '1px solid #cbd5e1',
+                  padding: 0,
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  opacity: idx === detailPhotoIdx ? 1 : 0.65,
+                }}
+              >
+                <img src={ph} alt={`Thumb ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Property Dossier Body */}
+        <div style={{ padding: '24px 28px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap', marginBottom: '16px' }}>
+            <div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                <span style={{ background: '#ecfdf5', color: '#065f46', padding: '3px 10px', borderRadius: '4px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>
+                  ✓ {detailListing.verificationStatus || 'FDP Verified Mandate'}
+                </span>
+                <span style={{ background: '#f1f5f9', color: '#334155', padding: '3px 10px', borderRadius: '4px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>
+                  {detailListing.source} · {detailListing.propertyType}
+                </span>
+              </div>
+              <h2 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--forest)', margin: 0 }}>
+                {detailListing.title}
+              </h2>
+              <div style={{ fontSize: '13.5px', color: '#64748b', marginTop: '4px' }}>
+                📍 {detailListing.location} · {detailListing.specification}
+              </div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '.08em' }}>
+                {detailListing.priceLabel || 'Verified Price'}
+              </div>
+              <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--forest)' }}>
+                {formatPrice(detailListing.priceMillionsNGN, detailListing.priceDisplay)}
+              </div>
+            </div>
+          </div>
+
+          <p style={{ fontSize: '14px', lineHeight: 1.7, color: '#334155', marginBottom: '20px' }}>
+            {detailListing.description}
+          </p>
+
+          {Array.isArray(detailListing.amenities) && detailListing.amenities.length > 0 && (
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
+              {detailListing.amenities.map((am, i) => (
+                <span key={i} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '5px 12px', borderRadius: '6px', fontSize: '12px', color: '#334155', fontWeight: 500 }}>
+                  {am}
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', paddingTop: '18px', borderTop: '1px solid #e2e8f0' }}>
+            <Link
+              href={`/inspections?property=${encodeURIComponent(detailListing.title)}&location=${encodeURIComponent(detailListing.location || detailListing.city || 'Abuja FCT - within city')}`}
+              style={{
+                padding: '11px 20px',
+                border: '1.5px solid var(--forest)',
+                borderRadius: '6px',
+                color: 'var(--forest)',
+                fontWeight: 700,
+                fontSize: '13px',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              🔍 Request Physical Inspection on This Property →
+            </Link>
+
+            <button
+              type="button"
+              onClick={() => {
+                const target = detailListing;
+                setDetailListing(null);
+                if (typeof window !== 'undefined' && typeof window.openEnquiry === 'function') {
+                  window.openEnquiry(target.title, target.priceDisplay, target.verificationStatus || 'FDP Verified');
+                }
+              }}
+              style={{
+                padding: '12px 24px',
+                background: 'var(--forest)',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '6px',
+                fontWeight: 700,
+                fontSize: '13px',
+                cursor: 'pointer',
+              }}
+            >
+              Enquire / Book Private Viewing →
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+})()}
     </>
   );
 }
