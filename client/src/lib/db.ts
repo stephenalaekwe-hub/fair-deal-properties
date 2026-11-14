@@ -15,6 +15,7 @@ const inMemoryNotificationReads = new Map<string, string>();
 const inMemoryMediaStore = new Map<string, { mimeType: string; base64Data: string; fileName?: string }>();
 const inMemoryListingOverrides = new Map<string, Partial<Listing> & { isDeleted?: boolean }>();
 const inMemoryCustomListings: Listing[] = [];
+const inMemoryFinancingOverrides = new Map<string, Partial<FinancingRoute>>();
 
 export async function ensureSchemaColumns(p: Pool): Promise<void> {
   if (schemaInitialized) return;
@@ -98,6 +99,42 @@ export async function ensureSchemaColumns(p: Pool): Promise<void> {
           base64_data text NOT NULL,
           file_name text,
           created_at timestamp with time zone NOT NULL DEFAULT now()
+        );
+      `).catch(() => {}),
+      p.query(`
+        CREATE TABLE IF NOT EXISTS financing_routes (
+          id text PRIMARY KEY,
+          name text NOT NULL,
+          institution text NOT NULL,
+          interest_rate_pct numeric,
+          max_term_years integer,
+          min_equity_pct numeric,
+          eligibility text,
+          best_for text,
+          constraints text,
+          last_verified text,
+          verification_note text,
+          updated_at timestamp with time zone DEFAULT now()
+        );
+      `).catch(() => {}),
+      p.query(`
+        CREATE TABLE IF NOT EXISTS scraped_telemetry_logs (
+          id text PRIMARY KEY,
+          source_portal text NOT NULL,
+          portal_url text,
+          target_benchmark text NOT NULL,
+          previous_rate_pct numeric,
+          detected_rate_pct numeric,
+          previous_price_millions_ngn numeric,
+          detected_price_millions_ngn numeric,
+          detected_price_display text,
+          route_id text,
+          listing_slug text,
+          listing_title text,
+          portal_reachable boolean DEFAULT true,
+          status text NOT NULL DEFAULT 'PENDING_REVIEW',
+          detected_at timestamp with time zone NOT NULL DEFAULT now(),
+          applied_at timestamp with time zone
         );
       `).catch(() => {}),
     ]);
@@ -2154,29 +2191,67 @@ export async function closeLiveSubmission(
 
 // ─── Financing Queries ───────────────────────────────────────────────────────
 
+function applyInMemoryFinancingOverrides(routes: FinancingRoute[]): FinancingRoute[] {
+  return routes.map((r) => {
+    const ov = inMemoryFinancingOverrides.get(r.id);
+    return ov ? { ...r, ...ov } : r;
+  });
+}
+
 export async function getLiveFinancingRoutes(): Promise<FinancingRoute[]> {
   try {
     const p = getDbPool();
-    if (!p) return defaultFinancingRoutes;
+    if (!p) return applyInMemoryFinancingOverrides([...defaultFinancingRoutes]);
+
+    await ensureSchemaColumns(p);
 
     const res = await p.query(
       `SELECT id, name, institution, interest_rate_pct as "interestRatePct",
               max_term_years as "maxTermYears", min_equity_pct as "minEquityPct",
               eligibility, best_for as "bestFor", constraints, last_verified as "lastVerified",
               verification_note as "verificationNote"
-       FROM financing_routes
-       ORDER BY interest_rate_pct ASC NULLS LAST`
+       FROM financing_routes`
     );
 
-    if (res.rows.length === 0) return defaultFinancingRoutes;
-    return res.rows.map((r) => ({
-      ...r,
-      interestRatePct: r.interestRatePct ? parseFloat(r.interestRatePct) : null,
-      minEquityPct: r.minEquityPct ? parseFloat(r.minEquityPct) : null,
-    }));
+    const dbById = new Map<string, any>();
+    for (const r of res.rows) {
+      dbById.set(r.id, {
+        ...r,
+        interestRatePct: r.interestRatePct !== null && r.interestRatePct !== undefined ? parseFloat(r.interestRatePct) : null,
+        maxTermYears: r.maxTermYears !== null && r.maxTermYears !== undefined ? parseInt(String(r.maxTermYears), 10) : null,
+        minEquityPct: r.minEquityPct !== null && r.minEquityPct !== undefined ? parseFloat(r.minEquityPct) : null,
+      });
+    }
+
+    const merged: FinancingRoute[] = defaultFinancingRoutes.map((seed) => {
+      const dbRow = dbById.get(seed.id);
+      if (!dbRow) return { ...seed };
+      return {
+        ...seed,
+        name: dbRow.name || seed.name,
+        institution: dbRow.institution || seed.institution,
+        interestRatePct: dbRow.interestRatePct !== undefined ? dbRow.interestRatePct : seed.interestRatePct,
+        maxTermYears: dbRow.maxTermYears !== undefined && dbRow.maxTermYears !== null ? dbRow.maxTermYears : seed.maxTermYears,
+        minEquityPct: dbRow.minEquityPct !== undefined && dbRow.minEquityPct !== null ? dbRow.minEquityPct : seed.minEquityPct,
+        eligibility: dbRow.eligibility || seed.eligibility,
+        bestFor: dbRow.bestFor || seed.bestFor,
+        constraints: dbRow.constraints || seed.constraints,
+        lastVerified: dbRow.lastVerified || seed.lastVerified,
+        verificationNote: dbRow.verificationNote || seed.verificationNote,
+      };
+    });
+
+    // Also include any custom DB financing routes not in defaultFinancingRoutes
+    for (const [id, dbRow] of dbById.entries()) {
+      if (!defaultFinancingRoutes.some((s) => s.id === id)) {
+        merged.push(dbRow as FinancingRoute);
+      }
+    }
+
+    return applyInMemoryFinancingOverrides(merged);
   } catch (err) {
     console.error('[fdp:db] getLiveFinancingRoutes error:', err);
-    return defaultFinancingRoutes;
+    return applyInMemoryFinancingOverrides([...defaultFinancingRoutes]);
   }
 }
 
@@ -2189,35 +2264,79 @@ export async function updateLiveFinancingRoute(id: string, updates: {
   verificationNote?: string;
   lastVerified?: string;
 }): Promise<any> {
-  const p = getDbPool();
-  if (!p) throw new Error('Database connection not available');
+  const seed = defaultFinancingRoutes.find((r) => r.id === id);
+  const existingMem = inMemoryFinancingOverrides.get(id) || {};
+  const nextMem: Partial<FinancingRoute> = { ...existingMem };
+  if (updates.name !== undefined) nextMem.name = updates.name;
+  if (updates.institution !== undefined) nextMem.institution = updates.institution;
+  if (updates.interestRatePct !== undefined) nextMem.interestRatePct = updates.interestRatePct;
+  if (updates.maxTermYears !== undefined && updates.maxTermYears !== null) nextMem.maxTermYears = updates.maxTermYears;
+  if (updates.minEquityPct !== undefined && updates.minEquityPct !== null) nextMem.minEquityPct = updates.minEquityPct;
+  if (updates.verificationNote !== undefined) nextMem.verificationNote = updates.verificationNote;
+  nextMem.lastVerified = updates.lastVerified || new Date().toISOString().slice(0, 10);
+  inMemoryFinancingOverrides.set(id, nextMem);
 
-  const res = await p.query(
-    `UPDATE financing_routes
-     SET name = COALESCE($2, name),
-         institution = COALESCE($3, institution),
-         interest_rate_pct = COALESCE($4, interest_rate_pct),
-         max_term_years = COALESCE($5, max_term_years),
-         min_equity_pct = COALESCE($6, min_equity_pct),
-         verification_note = COALESCE($7, verification_note),
-         last_verified = COALESCE($8, last_verified),
+  const p = getDbPool();
+  if (!p) {
+    return { ...(seed || { id }), ...nextMem };
+  }
+
+  try {
+    await ensureSchemaColumns(p);
+
+    const baseName = updates.name || seed?.name || id;
+    const baseInstitution = updates.institution || seed?.institution || 'Institutional Partner';
+    const baseRate = updates.interestRatePct !== undefined ? updates.interestRatePct : (seed?.interestRatePct ?? null);
+    const baseTerm = updates.maxTermYears !== undefined && updates.maxTermYears !== null ? updates.maxTermYears : (seed?.maxTermYears ?? 20);
+    const baseEquity = updates.minEquityPct !== undefined && updates.minEquityPct !== null ? updates.minEquityPct : (seed?.minEquityPct ?? 20);
+    const baseEligibility = seed?.eligibility || '';
+    const baseBestFor = seed?.bestFor || '';
+    const baseConstraints = seed?.constraints || '';
+    const baseVerified = updates.lastVerified || new Date().toISOString().slice(0, 10);
+    const baseNote = updates.verificationNote || seed?.verificationNote || '';
+
+    const res = await p.query(
+      `INSERT INTO financing_routes (
+         id, name, institution, interest_rate_pct, max_term_years, min_equity_pct,
+         eligibility, best_for, constraints, last_verified, verification_note, updated_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now())
+       ON CONFLICT (id) DO UPDATE SET
+         name = COALESCE($12, financing_routes.name),
+         institution = COALESCE($13, financing_routes.institution),
+         interest_rate_pct = CASE WHEN $14::boolean THEN $4 ELSE financing_routes.interest_rate_pct END,
+         max_term_years = COALESCE($15, financing_routes.max_term_years),
+         min_equity_pct = COALESCE($16, financing_routes.min_equity_pct),
+         verification_note = COALESCE($17, financing_routes.verification_note),
+         last_verified = COALESCE($10, financing_routes.last_verified),
          updated_at = now()
-     WHERE id = $1
-     RETURNING id, name, institution, interest_rate_pct as "interestRatePct",
-               max_term_years as "maxTermYears", min_equity_pct as "minEquityPct",
-               last_verified as "lastVerified", verification_note as "verificationNote"`,
-    [
-      id,
-      updates.name || null,
-      updates.institution || null,
-      updates.interestRatePct !== undefined ? updates.interestRatePct : null,
-      updates.maxTermYears !== undefined ? updates.maxTermYears : null,
-      updates.minEquityPct !== undefined ? updates.minEquityPct : null,
-      updates.verificationNote || null,
-      updates.lastVerified || new Date().toISOString().slice(0, 10),
-    ]
-  );
-  return res.rows[0];
+       RETURNING id, name, institution, interest_rate_pct as "interestRatePct",
+                 max_term_years as "maxTermYears", min_equity_pct as "minEquityPct",
+                 last_verified as "lastVerified", verification_note as "verificationNote"`,
+      [
+        id,
+        baseName,
+        baseInstitution,
+        baseRate,
+        baseTerm,
+        baseEquity,
+        baseEligibility,
+        baseBestFor,
+        baseConstraints,
+        baseVerified,
+        baseNote,
+        updates.name || null,
+        updates.institution || null,
+        updates.interestRatePct !== undefined,
+        updates.maxTermYears !== undefined ? updates.maxTermYears : null,
+        updates.minEquityPct !== undefined ? updates.minEquityPct : null,
+        updates.verificationNote || null,
+      ]
+    );
+    return res.rows[0] || { ...(seed || { id }), ...nextMem };
+  } catch (err) {
+    console.error('[fdp:db] updateLiveFinancingRoute error:', err);
+    return { ...(seed || { id }), ...nextMem };
+  }
 }
 
 // ─── Analytics Overview ──────────────────────────────────────────────────────

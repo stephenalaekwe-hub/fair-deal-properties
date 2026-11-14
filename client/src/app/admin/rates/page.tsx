@@ -41,10 +41,13 @@ export default function AdminRatesPage() {
 
   const handleRunScan = async () => {
     setScanning(true);
-    setScanStatus('Running background scraper across FMBN, MREIF, NMRC and FHA...');
+    setScanStatus('Running live portal & property listener across FMBN, MREIF, FHF, FHA, and NMRC...');
     const res = await fetchApi('/admin/listener/run-now', { method: 'POST' });
     if (res.ok) {
-      setScanStatus('Scan completed successfully! Check detected logs below.');
+      setScanStatus(
+        (res.data as any)?.message ||
+          'Live portal scan completed! Check detected rates and institutional property allocations below.'
+      );
       await loadData();
     } else {
       setScanStatus('Scan encountered a problem or server was busy.');
@@ -56,6 +59,7 @@ export default function AdminRatesPage() {
     setApplyingId(id);
     const res = await fetchApi(`/admin/scraped-logs/${id}/apply`, { method: 'POST' });
     if (res.ok) {
+      setScanStatus('✓ Institutional financing rate and linked Marketplace property price synchronized to live!');
       await loadData();
     }
     setApplyingId(null);
@@ -209,72 +213,143 @@ export default function AdminRatesPage() {
 
           {/* ── Scraped Telemetry Logs ── */}
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden' }}>
-            <div style={{ padding: '16px 20px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', fontWeight: 700, color: '#0f172a' }}>
-              External Portal Telemetry & Detected Movements
+            <div style={{ padding: '16px 20px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+              <div>
+                <div style={{ fontWeight: 700, color: '#0f172a' }}>
+                  External Portal Telemetry &amp; Institutional Property Listener
+                </div>
+                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                  Monitors FMBN, MREIF, FHF, FHA, and NMRC portals and synchronizes both financing comparator rates and linked Marketplace properties.
+                </div>
+              </div>
             </div>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid #e2e8f0', textAlign: 'left', color: '#64748b' }}>
                     <th style={{ padding: '12px 16px' }}>External Source</th>
-                    <th style={{ padding: '12px 16px' }}>Target Benchmark</th>
+                    <th style={{ padding: '12px 16px' }}>Benchmark &amp; Linked Property</th>
                     <th style={{ padding: '12px 16px' }}>Previous</th>
                     <th style={{ padding: '12px 16px' }}>Detected Live</th>
+                    <th style={{ padding: '12px 16px' }}>Last Checked</th>
                     <th style={{ padding: '12px 16px' }}>Status</th>
                     <th style={{ padding: '12px 16px', textAlign: 'right' }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {logs.length > 0 ? (
-                    logs.map((log) => (
-                      <tr key={log.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '14px 16px', fontWeight: 700 }}>{log.sourcePortal}</td>
-                        <td style={{ padding: '14px 16px', color: '#475569' }}>{log.targetBenchmark}</td>
-                        <td style={{ padding: '14px 16px', color: '#64748b' }}>{log.previousRatePct}%</td>
-                        <td style={{ padding: '14px 16px', fontWeight: 700, color: '#b45309' }}>
-                          {log.detectedRatePct}%
-                        </td>
-                        <td style={{ padding: '14px 16px' }}>
-                          <span
-                            style={{
-                              background: log.status === 'APPLIED' ? '#dcfce7' : '#fef3c7',
-                              color: log.status === 'APPLIED' ? '#15803d' : '#b45309',
-                              padding: '3px 8px',
-                              borderRadius: '4px',
-                              fontWeight: 700,
-                              fontSize: '11px',
-                            }}
-                          >
-                            {log.status}
-                          </span>
-                        </td>
-                        <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                          {log.status === 'DETECTED' ? (
-                            <button
-                              onClick={() => handleApplyLog(log.id)}
-                              disabled={applyingId === log.id}
+                    logs.map((log) => {
+                      const isPending = log.status === 'PENDING_REVIEW' || log.status === 'DETECTED';
+                      return (
+                        <tr key={log.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '14px 16px' }}>
+                            <div style={{ fontWeight: 700, color: '#0f172a' }}>{log.sourcePortal}</div>
+                            {log.portalUrl && (
+                              <a
+                                href={log.portalUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ fontSize: '11px', color: '#0d9488', textDecoration: 'none' }}
+                              >
+                                {log.portalUrl} ↗
+                              </a>
+                            )}
+                          </td>
+                          <td style={{ padding: '14px 16px', color: '#475569' }}>
+                            <div style={{ fontWeight: 600, color: '#1e293b' }}>{log.targetBenchmark}</div>
+                            {log.listingTitle && (
+                              <div style={{ fontSize: '11px', color: '#64748b', marginTop: '3px' }}>
+                                🏠 Linked Property: <strong style={{ color: 'var(--forest)' }}>{log.listingTitle}</strong>
+                              </div>
+                            )}
+                          </td>
+                          <td style={{ padding: '14px 16px', color: '#64748b' }}>
+                            <div>{log.previousRatePct}% p.a.</div>
+                            {log.previousPriceMillionsNGN !== undefined && (
+                              <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                                Base: ₦{log.previousPriceMillionsNGN}M
+                              </div>
+                            )}
+                          </td>
+                          <td style={{ padding: '14px 16px', fontWeight: 700, color: isPending ? '#b45309' : 'var(--forest)' }}>
+                            <div>{log.detectedRatePct}% p.a.</div>
+                            {log.detectedPriceDisplay && (
+                              <div style={{ fontSize: '11px', color: '#0f766e', fontWeight: 600 }}>
+                                Base: {log.detectedPriceDisplay}
+                              </div>
+                            )}
+                          </td>
+                          <td style={{ padding: '14px 16px', color: '#64748b', fontSize: '12px' }}>
+                            {log.detectedAt
+                              ? new Date(log.detectedAt).toLocaleString('en-GB', {
+                                  day: '2-digit',
+                                  month: 'short',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })
+                              : 'Just now'}
+                          </td>
+                          <td style={{ padding: '14px 16px' }}>
+                            <span
                               style={{
-                                padding: '6px 12px',
-                                background: 'var(--gold)',
-                                color: 'var(--forest)',
-                                border: 'none',
+                                background: log.status === 'APPLIED' ? '#dcfce7' : '#fef3c7',
+                                color: log.status === 'APPLIED' ? '#15803d' : '#b45309',
+                                padding: '3px 8px',
                                 borderRadius: '4px',
-                                fontSize: '12px',
-                                fontWeight: 600,
-                                cursor: applyingId === log.id ? 'not-allowed' : 'pointer',
+                                fontWeight: 700,
+                                fontSize: '11px',
                               }}
                             >
-                              {applyingId === log.id ? 'Applying...' : 'Apply to Live'}
-                            </button>
-                          ) : (
-                            <span style={{ fontSize: '12px', color: '#16a34a', fontWeight: 600 }}>✓ Applied</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))
+                              {log.status}
+                            </span>
+                          </td>
+                          <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                            {isPending ? (
+                              <button
+                                onClick={() => handleApplyLog(log.id)}
+                                disabled={applyingId === log.id}
+                                style={{
+                                  padding: '6px 12px',
+                                  background: 'var(--gold)',
+                                  color: 'var(--forest)',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  fontSize: '12px',
+                                  fontWeight: 700,
+                                  cursor: applyingId === log.id ? 'not-allowed' : 'pointer',
+                                }}
+                              >
+                                {applyingId === log.id ? 'Applying...' : 'Apply to Live'}
+                              </button>
+                            ) : (
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontSize: '12px', color: '#16a34a', fontWeight: 600 }}>✓ Applied</span>
+                                <button
+                                  onClick={() => handleApplyLog(log.id)}
+                                  disabled={applyingId === log.id}
+                                  style={{
+                                    padding: '4px 8px',
+                                    background: '#f1f5f9',
+                                    color: '#475569',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: '4px',
+                                    fontSize: '11px',
+                                    fontWeight: 600,
+                                    cursor: applyingId === log.id ? 'not-allowed' : 'pointer',
+                                  }}
+                                  title="Re-synchronize this benchmark rate and property price to live"
+                                >
+                                  {applyingId === log.id ? '...' : 'Re-Sync'}
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
                   ) : (
                     <tr>
-                      <td colSpan={6} style={{ padding: '24px 16px', textAlign: 'center', color: '#94a3b8' }}>
+                      <td colSpan={7} style={{ padding: '24px 16px', textAlign: 'center', color: '#94a3b8' }}>
                         No price discrepancies detected. All published rates match benchmark. Click &quot;Trigger Live Portal Scan&quot; to test.
                       </td>
                     </tr>

@@ -6,5 +6,8 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const routes = await getLiveFinancingRoutes();
-  return NextResponse.json({ ok: true, data: routes });
+  return NextResponse.json(
+    { ok: true, data: routes },
+    { headers: { 'Cache-Control': 'no-store, max-age=0' } }
+  );
 }

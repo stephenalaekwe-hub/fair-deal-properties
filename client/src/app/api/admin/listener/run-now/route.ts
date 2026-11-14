@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { runErasureSweep } from '@/lib/drivers/postgres';
-import { refreshScrapedLogs } from '@/lib/scrapedStore';
+import { runLivePortalScan } from '@/lib/scrapedStore';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -14,7 +14,8 @@ export async function POST() {
       console.warn('[fdp:listener] Retention sweep warning:', sweepErr?.message || sweepErr);
     }
 
-    const updatedLogs = refreshScrapedLogs();
+    const updatedLogs = await runLivePortalScan();
+    const pendingCount = updatedLogs.filter((l) => l.status === 'PENDING_REVIEW').length;
 
     return NextResponse.json({
       ok: true,
@@ -22,7 +23,9 @@ export async function POST() {
         timestamp: new Date().toISOString(),
         erasedRecords: sweepResult.erased,
         scrapedLogsCount: updatedLogs.length,
-        message: 'Listener scan completed: telemetry across FMBN, NMRC, MREIF, and FHA synchronized.',
+        pendingReviewCount: pendingCount,
+        logs: updatedLogs,
+        message: `Live portal & property listener scan completed across FMBN, MREIF, FHF, FHA, and NMRC (${updatedLogs.length} institutional feeds checked, ${pendingCount} awaiting review/sync).`,
       },
     });
   } catch (err: any) {
