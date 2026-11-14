@@ -585,7 +585,7 @@ export default function MarketplaceContent() {
         <div style={{position:'relative',zIndex:'1',display:'flex',alignItems:'flex-start',justifyContent:'space-between',flexWrap:'wrap',gap:'1.5rem'}}>
           <div>
             <div style={{fontSize:'10px',letterSpacing:'.25em',textTransform:'uppercase',color:'rgba(201,168,76,.7)',marginBottom:'.5rem'}}>FDP Partner Developer · Mshel Homes Ltd · Master Estate Portfolio</div>
-            <h2 style={{fontFamily:'\'Palatino Linotype\',Palatino,Georgia,serif',fontSize:'clamp(1.8rem,4vw,2.8rem)',fontWeight:'300',color:'white',lineHeight:'1.1',marginBottom:'.75rem'}}>Hutu Exclusive Golf Resort Estate<br/><span style={{fontSize:'1.1rem',color:'rgba(255,255,255,.6)',fontWeight:'300'}}>Airport Road, Before Centenary City, Abuja</span></h2>
+            <h2 style={{fontFamily:'var(--font-body)',fontSize:'clamp(1.8rem,4vw,2.8rem)',fontWeight:'300',color:'white',lineHeight:'1.1',marginBottom:'.75rem'}}>Hutu Exclusive Golf Resort Estate<br/><span style={{fontSize:'1.1rem',color:'rgba(255,255,255,.6)',fontWeight:'300'}}>Airport Road, Before Centenary City, Abuja</span></h2>
             <p style={{color:'rgba(255,255,255,.6)',fontSize:'.9rem',lineHeight:'1.75',maxWidth:'620px'}}>Master-planned luxury golf resort development offering apartments, whole blocks of 6 units for institutional investors, and serviced estate lands across all development phases. Flexible 4–18 month payment plans across all categories. <strong style={{color:'#e8cc7a'}}>⚡ All prices subject to 25% review effective 7th June 2026.</strong> FDP provides independent advisory on all units — not developer sales.</p>
             <div style={{marginTop:'1.25rem',display:'flex',gap:'1rem',flexWrap:'wrap'}}>
               <div style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(201,168,76,.2)',borderRadius:'var(--radius-sm)',padding:'.6rem 1rem',fontSize:'12px',color:'rgba(255,255,255,.7)'}}>🏌️ Golf Resort Estate</div>
@@ -597,7 +597,7 @@ export default function MarketplaceContent() {
           <div style={{display:'flex',flexDirection:'column',gap:'.75rem',flexShrink:'0'}}>
             <div style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(201,168,76,.2)',borderRadius:'var(--radius-md)',padding:'1rem 1.5rem',textAlign:'center'}}>
               <div style={{fontSize:'10px',letterSpacing:'.18em',textTransform:'uppercase',color:'rgba(201,168,76,.6)',marginBottom:'.25rem'}}>Price Review Deadline</div>
-              <div style={{fontFamily:'\'Palatino Linotype\',Georgia,serif',fontSize:'1.6rem',color:'white',fontWeight:'400'}}>7th June 2026</div>
+              <div style={{fontFamily:'var(--font-body)',fontSize:'1.6rem',color:'white',fontWeight:'400'}}>7th June 2026</div>
               <div style={{fontSize:'11px',color:'rgba(255,255,255,.4)',marginTop:'.2rem'}}>25% increase after this date</div>
             </div>
             <a href="#" onClick={(event)=>{event.preventDefault();window.openEnquiry('Hutu Exclusive Golf Resort - Master Portfolio','Multiple Units Available','Mshel Homes via FDP')}} className="btn btn-gold" style={{textAlign:'center',fontSize:'12px'}}>Enquire About All Hutu Units →</a>

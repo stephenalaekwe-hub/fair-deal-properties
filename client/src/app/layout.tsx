@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Cormorant_Garamond, DM_Sans, DM_Mono } from 'next/font/google';
+import { DM_Sans } from 'next/font/google';
 import './globals.css';
 import '@/styles/components.css';
 
@@ -17,25 +17,10 @@ import { SITE_URL, FIRM } from '@/lib/site';
  * Paint, and it removes a transfer of visitor IP addresses to that host, which is a
  * disclosure of personal data the firm would otherwise have to account for.
  */
-const display = Cormorant_Garamond({
-  subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700'],
-  style: ['normal', 'italic'],
-  variable: '--font-display-next',
-  display: 'swap',
-});
-
 const body = DM_Sans({
   subsets: ['latin'],
   weight: ['300', '400', '500', '600', '700'],
   variable: '--font-body-next',
-  display: 'swap',
-});
-
-const mono = DM_Mono({
-  subsets: ['latin'],
-  weight: ['400', '500'],
-  variable: '--font-mono-next',
   display: 'swap',
 });
 
@@ -68,7 +53,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en-NG" className={`${display.variable} ${body.variable} ${mono.variable}`}>
+    <html lang="en-NG" className={body.variable}>
       <body>
         {/* Firm-level entities, emitted once on every page. Page-level nodes are
             added by each route so the @graph resolves as one connected entity. */}
