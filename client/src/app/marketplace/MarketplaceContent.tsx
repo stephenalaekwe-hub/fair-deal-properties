@@ -4,9 +4,13 @@ import Link from 'next/link';
 import LegacyWidgets from '@/components/LegacyWidgets';
 import { fetchApi } from '@/lib/api';
 import CurrencyToggle from '@/components/CurrencyToggle';
+import { useCurrency } from '@/components/CurrencyProvider';
 import { sanitizePhone, isValidPhone, sanitizeName } from '@/lib/validation';
+import { listings as defaultListings, type Listing } from '@/data/listings';
 
 export default function MarketplaceContent() {
+  const { formatPrice, currency } = useCurrency();
+  const [customListings, setCustomListings] = useState<Listing[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submissionRef, setSubmissionRef] = useState('');
   const [copiedRef, setCopiedRef] = useState(false);
@@ -93,6 +97,118 @@ export default function MarketplaceContent() {
       (hutuPhase === 'all' || item.phase === hutuPhase) &&
       (hutuCategory === 'all' || item.cat === hutuCategory)
   ).length;
+
+  useEffect(() => {
+    let active = true;
+    const defaultSlugSet = new Set(defaultListings.map((l) => l.slug));
+
+    // Tag static cards with their canonical slug on mount
+    const mainGridCards = document.querySelectorAll<HTMLElement>('#opp-grid > .opp-card:not([data-custom-card="true"])');
+    mainGridCards.forEach((card, idx) => {
+      if (defaultListings[idx] && !card.dataset.slug) {
+        card.dataset.slug = defaultListings[idx].slug;
+      }
+    });
+
+    const hutuGridCards = document.querySelectorAll<HTMLElement>('#hutu-unified-grid > .opp-card');
+    hutuGridCards.forEach((card, idx) => {
+      const seed = defaultListings[10 + idx];
+      if (seed && !card.dataset.slug) {
+        card.dataset.slug = seed.slug;
+      }
+    });
+
+    const syncLiveListings = async () => {
+      const res = await fetchApi('/listings?pageSize=200');
+      if (!active || !res.ok || !res.data) return;
+      const liveArr: Listing[] = (res.data as any).listings || [];
+      const custom = liveArr.filter((l) => l.isCustom || !defaultSlugSet.has(l.slug));
+      setCustomListings(custom);
+
+      const liveBySlug = new Map<string, Listing>();
+      for (const l of liveArr) {
+        liveBySlug.set(l.slug, l);
+      }
+
+      const allStaticCards = document.querySelectorAll<HTMLElement>('.opp-card[data-slug]');
+      allStaticCards.forEach((card) => {
+        const slug = card.dataset.slug;
+        if (!slug) return;
+        const live = liveBySlug.get(slug);
+        if (!live) {
+          card.style.display = 'none';
+          card.dataset.deleted = 'true';
+          return;
+        }
+        delete card.dataset.deleted;
+
+        if (live.priceMillionsNGN !== null && live.priceMillionsNGN !== undefined) {
+          card.dataset.price = String(live.priceMillionsNGN);
+        }
+        if (live.source) card.dataset.source = live.source;
+        if (live.propertyType) card.dataset.type = live.propertyType;
+        if (live.city) card.dataset.city = live.city;
+
+        const img = card.querySelector<HTMLImageElement>('.opp-media img');
+        if (img && live.image) {
+          img.src = live.image;
+          img.alt = live.title || img.alt;
+          if (!live.image.startsWith('/assets/illustrations/')) {
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.objectFit = 'cover';
+          }
+        }
+
+        const ttl = card.querySelector<HTMLElement>('.opp-media-ttl');
+        if (ttl && live.title) ttl.textContent = live.title;
+
+        const sub = card.querySelector<HTMLElement>('.opp-media-sub');
+        if (sub && live.subtitle) sub.textContent = live.subtitle;
+
+        const metaRows = card.querySelectorAll<HTMLElement>('.opp-meta-row');
+        const setRowTextAfterSvg = (rowEl: HTMLElement | undefined, text?: string) => {
+          if (!rowEl || !text) return;
+          const svg = rowEl.querySelector('svg');
+          if (svg) {
+            while (svg.nextSibling) {
+              rowEl.removeChild(svg.nextSibling);
+            }
+            rowEl.appendChild(document.createTextNode(text));
+          } else {
+            rowEl.textContent = text;
+          }
+        };
+        setRowTextAfterSvg(metaRows[0], live.location);
+        setRowTextAfterSvg(metaRows[1], live.specification);
+
+        const desc = card.querySelector<HTMLElement>('.opp-desc');
+        if (desc && live.description) desc.textContent = live.description;
+
+        const priceEl = card.querySelector<HTMLElement>('.opp-price');
+        if (priceEl && live.priceDisplay) {
+          priceEl.dataset.original = live.priceDisplay;
+          priceEl.textContent = formatPrice(live.priceMillionsNGN, live.priceDisplay);
+        }
+
+        const enquireBtn = card.querySelector<HTMLButtonElement>('.opp-enquire-btn');
+        if (enquireBtn) {
+          enquireBtn.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof window !== 'undefined' && typeof window.openEnquiry === 'function') {
+              window.openEnquiry(live.title, live.priceDisplay, live.verificationStatus || 'FDP Verified');
+            }
+          };
+        }
+      });
+    };
+
+    syncLiveListings();
+    return () => {
+      active = false;
+    };
+  }, [currency]);
 
   useEffect(() => {
     try {
@@ -397,6 +513,95 @@ export default function MarketplaceContent() {
 
     {/* ══════════ LISTING CARDS GRID ══════════ */}
     <div id="opp-grid" style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'1.5rem'}}>
+
+      {/* ─ DYNAMICALLY PUBLISHED ADMIN LISTINGS ─ */}
+      {customListings.map((item) => {
+        const isRealPhoto = item.image && !item.image.startsWith('/assets/illustrations/');
+        return (
+          <div
+            key={item.id || item.slug}
+            className="opp-card"
+            data-custom-card="true"
+            data-source={item.source || 'fdp'}
+            data-type={item.propertyType || 'residential'}
+            data-city={item.city || 'abuja'}
+            data-diaspora={String(Boolean(item.diasporaFriendly))}
+            data-mortgage={String(Boolean(item.mortgageEligible))}
+            data-affordable={String(Boolean(item.affordable))}
+            data-offplan={String(Boolean(item.offPlan))}
+            data-price={item.priceMillionsNGN != null ? String(item.priceMillionsNGN) : '0'}
+            data-date={item.listedOn || '2026-05-15'}
+          >
+            <div className="opp-media">
+              <img
+                src={item.image || '/assets/illustrations/i2.svg'}
+                alt={item.title}
+                loading="lazy"
+                style={isRealPhoto ? { width: '100%', height: '100%', objectFit: 'cover' } : undefined}
+              />
+              <div className="opp-media-top">
+                <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}>
+                  <span className="img-badge" style={{background:'var(--gold)',color:'var(--forest)',borderColor:'var(--gold)'}}>⭐ New Mandate</span>
+                  <span className="img-badge">FDP Verified</span>
+                </div>
+                <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap',justifyContent:'flex-end'}}>
+                  <span className="img-badge">{item.badges?.[1] || 'Verified Title'}</span>
+                </div>
+              </div>
+              <div className="opp-media-bot">
+                <div className="opp-media-ttl">{item.title}</div>
+                <div className="opp-media-sub">{item.subtitle || `${item.propertyType} · ${item.city}`}</div>
+              </div>
+            </div>
+            <div className="opp-card-body">
+              <div className="opp-meta-row">
+                <svg className="opp-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                {item.location}
+              </div>
+              <div className="opp-meta-row">
+                <svg className="opp-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                {item.specification || 'Verified Property Specification'}
+              </div>
+              <p className="opp-desc">{item.description}</p>
+              <div className="opp-tags">
+                {item.diasporaFriendly && <span className="opp-tag">Diaspora Friendly</span>}
+                {item.mortgageEligible && <span className="opp-tag tag-green">Mortgage Eligible</span>}
+                {item.offPlan ? <span className="opp-tag tag-gold">Off-Plan</span> : <span className="opp-tag tag-gold">Available Now</span>}
+              </div>
+              {Array.isArray(item.amenities) && item.amenities.length > 0 && (
+                <div className="opp-amenities">
+                  {item.amenities.map((am, i) => (
+                    <span key={i} className="opp-am">{am}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="opp-card-footer">
+              <div>
+                <div className="opp-price-label">{item.priceLabel || 'Asking Price'}</div>
+                <div className="opp-price" data-original={item.priceDisplay}>
+                  {formatPrice(item.priceMillionsNGN, item.priceDisplay)}
+                </div>
+              </div>
+              <div style={{display:'flex',gap:'.5rem'}}>
+                <button
+                  className="opp-save-btn"
+                  onClick={(event) => { window.saveProperty(event.currentTarget, item.title); }}
+                  title="Save"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                </button>
+                <button
+                  className="opp-enquire-btn"
+                  onClick={() => { window.openEnquiry(item.title, item.priceDisplay, item.verificationStatus || 'FDP Verified'); }}
+                >
+                  Enquire
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })}
 
       {/* ─ FDP DIRECT LISTINGS ─ */}
 

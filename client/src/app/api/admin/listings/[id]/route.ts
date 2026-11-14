@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getDbPool } from '@/lib/db';
+import { updateLiveListing, deleteLiveListing } from '@/lib/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -12,31 +12,32 @@ async function handleUpdateListing(
     const { id } = await params;
     const body = await req.json();
 
-    const p = getDbPool();
-    if (p) {
-      await p.query(
-        `UPDATE listings
-         SET title = COALESCE($2, title),
-             price_display = COALESCE($3, price_display),
-             price_millions_ngn = COALESCE($4, price_millions_ngn),
-             image = COALESCE($5, image),
-             verification_status = COALESCE($6, verification_status),
-             updated_at = now()
-         WHERE id::text = $1 OR slug = $1`,
-        [
-          id,
-          body.title || null,
-          body.priceDisplay || null,
-          body.priceMillionsNGN !== undefined && body.priceMillionsNGN !== null ? body.priceMillionsNGN : null,
-          body.image || null,
-          body.verificationStatus || null,
-        ]
-      );
-    }
+    const updated = await updateLiveListing(decodeURIComponent(id), {
+      title: body.title,
+      subtitle: body.subtitle,
+      source: body.source,
+      propertyType: body.propertyType,
+      city: body.city,
+      diasporaFriendly: body.diasporaFriendly,
+      mortgageEligible: body.mortgageEligible,
+      affordable: body.affordable,
+      offPlan: body.offPlan,
+      priceMillionsNGN: body.priceMillionsNGN,
+      priceDisplay: body.priceDisplay,
+      priceLabel: body.priceLabel,
+      image: body.image,
+      imageAlt: body.imageAlt,
+      location: body.location,
+      specification: body.specification,
+      description: body.description,
+      verificationStatus: body.verificationStatus,
+      assignedAgentId: body.assignedAgentId,
+      assignedAgentName: body.assignedAgentName,
+    });
 
     return NextResponse.json({
       ok: true,
-      data: { id, ...body, message: 'Listing updated successfully.' },
+      data: { id, ...(updated || body), message: 'Listing updated successfully.' },
     });
   } catch (err: any) {
     console.error('[fdp:admin:listings:update] Error:', err);
@@ -59,4 +60,24 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   return handleUpdateListing(req, params);
+}
+
+export async function DELETE(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    await deleteLiveListing(decodeURIComponent(id));
+    return NextResponse.json({
+      ok: true,
+      data: { id, message: 'Listing removed successfully.' },
+    });
+  } catch (err: any) {
+    console.error('[fdp:admin:listings:delete] Error:', err);
+    return NextResponse.json(
+      { ok: false, error: err?.message || 'Failed to delete listing' },
+      { status: 500 }
+    );
+  }
 }

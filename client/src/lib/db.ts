@@ -13,15 +13,52 @@ let pool: Pool | null = null;
 let schemaInitialized = false;
 const inMemoryNotificationReads = new Map<string, string>();
 const inMemoryMediaStore = new Map<string, { mimeType: string; base64Data: string; fileName?: string }>();
+const inMemoryListingOverrides = new Map<string, Partial<Listing> & { isDeleted?: boolean }>();
+const inMemoryCustomListings: Listing[] = [];
 
 export async function ensureSchemaColumns(p: Pool): Promise<void> {
   if (schemaInitialized) return;
   try {
     await Promise.all([
       p.query(`
+        CREATE TABLE IF NOT EXISTS listings (
+          id serial PRIMARY KEY,
+          slug text UNIQUE NOT NULL,
+          title text NOT NULL,
+          subtitle text,
+          source text DEFAULT 'fdp',
+          property_type text DEFAULT 'residential',
+          city text DEFAULT 'abuja',
+          diaspora_friendly boolean DEFAULT false,
+          mortgage_eligible boolean DEFAULT false,
+          affordable boolean DEFAULT false,
+          off_plan boolean DEFAULT false,
+          price_millions_ngn numeric,
+          price_display text,
+          price_label text DEFAULT 'Verified Price',
+          listed_on text,
+          image text,
+          image_alt text,
+          badges jsonb DEFAULT '[]'::jsonb,
+          location text,
+          specification text,
+          description text,
+          tags jsonb DEFAULT '[]'::jsonb,
+          amenities jsonb DEFAULT '[]'::jsonb,
+          verification_status text,
+          assigned_agent text,
+          assigned_agent_id text,
+          is_deleted boolean DEFAULT false,
+          created_at timestamp with time zone DEFAULT now(),
+          updated_at timestamp with time zone DEFAULT now()
+        );
+      `).catch(() => {}),
+      p.query(`
         ALTER TABLE listings
         ADD COLUMN IF NOT EXISTS assigned_agent text,
-        ADD COLUMN IF NOT EXISTS assigned_agent_id text;
+        ADD COLUMN IF NOT EXISTS assigned_agent_id text,
+        ADD COLUMN IF NOT EXISTS is_deleted boolean DEFAULT false,
+        ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone DEFAULT now();
       `).catch(() => {}),
       p.query(`
         ALTER TABLE inspections
@@ -197,6 +234,36 @@ export async function query<T = any>(sql: string, params: any[] = []): Promise<T
 
 // ─── Listings Queries ────────────────────────────────────────────────────────
 
+export function inferMillionsFromDisplay(priceDisplay?: string | null): number | null {
+  if (!priceDisplay) return null;
+  const s = String(priceDisplay).trim();
+  if (!s) return null;
+  const billionMatch = s.match(/([\d,.]+)\s*(b|bn|billion)/i);
+  if (billionMatch) {
+    const val = parseFloat(billionMatch[1].replace(/,/g, ''));
+    if (!Number.isNaN(val)) return Math.round(val * 1000 * 100) / 100;
+  }
+  const millionMatch = s.match(/([\d,.]+)\s*(m|mn|million)/i);
+  if (millionMatch) {
+    const val = parseFloat(millionMatch[1].replace(/,/g, ''));
+    if (!Number.isNaN(val)) return Math.round(val * 100) / 100;
+  }
+  const digitsOnly = s.replace(/[^0-9.]/g, '');
+  if (!digitsOnly) return null;
+  const num = parseFloat(digitsOnly);
+  if (Number.isNaN(num) || num <= 0) return null;
+  if (num >= 100000) {
+    return Math.round((num / 1000000) * 100) / 100;
+  }
+  return Math.round(num * 100) / 100;
+}
+
+export function formatNairaDisplayFromMillions(millions?: number | null): string {
+  if (millions === null || millions === undefined || Number.isNaN(Number(millions))) return '';
+  const naira = Math.round(Number(millions) * 1000000);
+  return `₦${naira.toLocaleString('en-NG')}`;
+}
+
 export async function getLiveListings(filters: {
   source?: ListingSource;
   propertyType?: PropertyType;
@@ -213,89 +280,80 @@ export async function getLiveListings(filters: {
 } = {}): Promise<{ total: number; listings: Listing[] }> {
   try {
     const p = getDbPool();
-    if (!p) {
-      return fallbackListings(filters);
+    const defaultSlugSet = new Set(defaultListings.map((l) => l.slug));
+    const deletedSlugs = new Set<string>();
+    const dbBySlug = new Map<string, Listing>();
+    const customDbListings: Listing[] = [];
+
+    for (const [slug, ov] of inMemoryListingOverrides.entries()) {
+      if (ov.isDeleted) deletedSlugs.add(slug);
     }
 
-    await ensureSchemaColumns(p);
+    if (p) {
+      await ensureSchemaColumns(p);
+      const queryStr = `
+        SELECT id, slug, title, subtitle, source, property_type as "propertyType",
+               city, diaspora_friendly as "diasporaFriendly", mortgage_eligible as "mortgageEligible",
+               affordable, off_plan as "offPlan", price_millions_ngn as "priceMillionsNGN",
+               price_display as "priceDisplay", price_label as "priceLabel", listed_on as "listedOn",
+               image, image_alt as "imageAlt", badges, location, specification, description,
+               tags, amenities, verification_status as "verificationStatus",
+               assigned_agent as "assignedAgentName", assigned_agent_id as "assignedAgentId",
+               COALESCE(is_deleted, false) as "isDeleted"
+        FROM listings
+        ORDER BY created_at DESC NULLS LAST, id DESC
+      `;
+      const rowsRes = await p.query(queryStr);
 
-    const conditions: string[] = [];
-    const values: any[] = [];
-    let idx = 1;
-
-    if (filters.source) {
-      conditions.push(`source = $${idx++}`);
-      values.push(filters.source);
-    }
-    if (filters.propertyType) {
-      conditions.push(`property_type = $${idx++}`);
-      values.push(filters.propertyType);
-    }
-    if (filters.city) {
-      conditions.push(`city = $${idx++}`);
-      values.push(filters.city);
-    }
-    if (filters.diasporaFriendly !== undefined) {
-      conditions.push(`diaspora_friendly = $${idx++}`);
-      values.push(filters.diasporaFriendly);
-    }
-    if (filters.mortgageEligible !== undefined) {
-      conditions.push(`mortgage_eligible = $${idx++}`);
-      values.push(filters.mortgageEligible);
-    }
-    if (filters.affordable !== undefined) {
-      conditions.push(`affordable = $${idx++}`);
-      values.push(filters.affordable);
-    }
-    if (filters.offPlan !== undefined) {
-      conditions.push(`off_plan = $${idx++}`);
-      values.push(filters.offPlan);
-    }
-    if (filters.maxPriceMillionsNGN) {
-      conditions.push(`price_millions_ngn <= $${idx++}`);
-      values.push(filters.maxPriceMillionsNGN);
-    }
-    if (filters.search) {
-      conditions.push(`(title ILIKE $${idx} OR location ILIKE $${idx} OR description ILIKE $${idx})`);
-      values.push(`%${filters.search}%`);
-      idx++;
+      for (const rawRow of rowsRes.rows) {
+        if (rawRow.isDeleted) {
+          deletedSlugs.add(rawRow.slug);
+          continue;
+        }
+        // Automatically offload any base64 data URLs in row.image to uploaded_media
+        if (typeof rawRow.image === 'string' && rawRow.image.includes('data:')) {
+          const parsedPhotos = parsePhotoList(rawRow.image);
+          const offloaded = await offloadPhotoArray(parsedPhotos);
+          const cleanImage = serializePhotoList(offloaded);
+          rawRow.image = cleanImage;
+          if (rawRow.id) {
+            p.query(`UPDATE listings SET image = $2 WHERE id = $1`, [rawRow.id, cleanImage]).catch(() => {});
+          }
+        }
+        const mapped = mapListingRow(rawRow);
+        if (!defaultSlugSet.has(mapped.slug)) {
+          mapped.isCustom = true;
+          customDbListings.push(mapped);
+        }
+        dbBySlug.set(mapped.slug, mapped);
+      }
     }
 
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const merged: Listing[] = [];
+    const seenSlugs = new Set<string>();
 
-    let orderBy = 'created_at DESC';
-    if (filters.sort === 'price-asc') orderBy = 'price_millions_ngn ASC NULLS LAST';
-    if (filters.sort === 'price-desc') orderBy = 'price_millions_ngn DESC NULLS LAST';
-    if (filters.sort === 'title') orderBy = 'title ASC';
+    // 1. Custom listings created by Admin (DB first, then in-memory fallback)
+    for (const custom of [...customDbListings, ...inMemoryCustomListings]) {
+      if (deletedSlugs.has(custom.slug) || seenSlugs.has(custom.slug)) continue;
+      const memOv = inMemoryListingOverrides.get(custom.slug);
+      seenSlugs.add(custom.slug);
+      merged.push({ ...custom, ...(memOv || {}), isCustom: true });
+    }
 
-    const countRes = await p.query(`SELECT count(*) FROM listings ${whereClause}`, values);
-    const total = parseInt(countRes.rows[0].count, 10);
+    // 2. Curated seed listings merged with any DB row and in-memory override
+    for (const seed of defaultListings) {
+      if (deletedSlugs.has(seed.slug) || seenSlugs.has(seed.slug)) continue;
+      const dbOv = dbBySlug.get(seed.slug);
+      const memOv = inMemoryListingOverrides.get(seed.slug);
+      seenSlugs.add(seed.slug);
+      merged.push({
+        ...seed,
+        ...(dbOv || {}),
+        ...(memOv || {}),
+      });
+    }
 
-    const page = Math.max(1, filters.page || 1);
-    const pageSize = Math.min(100, Math.max(1, filters.pageSize || 30));
-    const offset = (page - 1) * pageSize;
-
-    const queryStr = `
-      SELECT id, slug, title, subtitle, source, property_type as "propertyType",
-             city, diaspora_friendly as "diasporaFriendly", mortgage_eligible as "mortgageEligible",
-             affordable, off_plan as "offPlan", price_millions_ngn as "priceMillionsNGN",
-             price_display as "priceDisplay", price_label as "priceLabel", listed_on as "listedOn",
-             image, image_alt as "imageAlt", badges, location, specification, description,
-             tags, amenities, verification_status as "verificationStatus",
-             assigned_agent as "assignedAgentName", assigned_agent_id as "assignedAgentId"
-      FROM listings
-      ${whereClause}
-      ORDER BY ${orderBy}
-      LIMIT $${idx++} OFFSET $${idx++}
-    `;
-
-    values.push(pageSize, offset);
-    const rowsRes = await p.query(queryStr, values);
-
-    return {
-      total,
-      listings: rowsRes.rows.map(mapListingRow),
-    };
+    return applyListingFiltersAndPagination(merged, filters);
   } catch (err) {
     console.error('[fdp:db] getLiveListings error, falling back to local dataset:', err);
     return fallbackListings(filters);
@@ -303,32 +361,445 @@ export async function getLiveListings(filters: {
 }
 
 export async function getLiveListingBySlug(slug: string): Promise<Listing | null> {
-  try {
-    const p = getDbPool();
-    if (!p) {
-      return defaultListings.find((l) => l.slug === slug) || null;
+  const { listings } = await getLiveListings({ pageSize: 200 });
+  return listings.find((l) => l.slug === slug || String(l.id) === slug) || null;
+}
+
+export async function createLiveListing(input: {
+  title: string;
+  subtitle?: string;
+  source?: ListingSource;
+  propertyType?: PropertyType;
+  city?: City;
+  diasporaFriendly?: boolean;
+  mortgageEligible?: boolean;
+  affordable?: boolean;
+  offPlan?: boolean;
+  priceMillionsNGN?: number | string | null;
+  priceDisplay?: string;
+  priceLabel?: string;
+  image?: string | string[];
+  imageAlt?: string;
+  location: string;
+  specification?: string;
+  description?: string;
+  verificationStatus?: string;
+  assignedAgentId?: string | null;
+  assignedAgentName?: string | null;
+  badges?: string[];
+  tags?: string[];
+  amenities?: string[];
+}): Promise<Listing> {
+  const title = (input.title || '').trim();
+  const location = (input.location || '').trim();
+  const baseSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'property';
+  const randomSuffix = Math.random().toString(36).substring(2, 6);
+  const slug = `${baseSlug}-${randomSuffix}`;
+
+  const parsedMillions =
+    input.priceMillionsNGN !== undefined && input.priceMillionsNGN !== null && String(input.priceMillionsNGN).trim() !== ''
+      ? parseFloat(String(input.priceMillionsNGN))
+      : inferMillionsFromDisplay(input.priceDisplay);
+
+  const cleanMillions = parsedMillions !== null && !Number.isNaN(parsedMillions) ? parsedMillions : null;
+  const priceDisplay = (input.priceDisplay || '').trim() || formatNairaDisplayFromMillions(cleanMillions) || 'Price on Request';
+  const priceLabel = (input.priceLabel || '').trim() || 'Verified Price';
+
+  const rawPhotos = parsePhotoList(input.image);
+  const offloadedPhotos = await offloadPhotoArray(rawPhotos);
+  const serializedImage = serializePhotoList(offloadedPhotos) || '/assets/illustrations/i0.svg';
+  const primaryImage = offloadedPhotos[0] || '/assets/illustrations/i0.svg';
+
+  const source: ListingSource = (input.source as ListingSource) || 'fdp';
+  const propertyType: PropertyType = (input.propertyType as PropertyType) || 'residential';
+  const city: City = (input.city as City) || 'abuja';
+  const subtitle = (input.subtitle || '').trim() || `${propertyType.charAt(0).toUpperCase() + propertyType.slice(1)} · ${city.charAt(0).toUpperCase() + city.slice(1)}`;
+  const specification = (input.specification || '').trim() || 'Physical & title verification completed';
+  const description = (input.description || '').trim() || 'Verified property opportunity available through Fair Deal Properties.';
+  const verificationStatus = (input.verificationStatus || '').trim() || 'Verified by Fair Deal Properties Ltd';
+  const listedOn = new Date().toISOString().split('T')[0];
+
+  const badges = Array.isArray(input.badges) && input.badges.length > 0
+    ? input.badges
+    : ['FDP Verified', propertyType === 'residential' ? 'C of O' : "Gov't Consent"];
+  const tags = Array.isArray(input.tags) && input.tags.length > 0
+    ? input.tags
+    : [input.offPlan ? 'Off-Plan' : 'Available Now', ...(input.diasporaFriendly ? ['Diaspora Friendly'] : [])];
+  const amenities = Array.isArray(input.amenities) && input.amenities.length > 0
+    ? input.amenities
+    : ['Title Search Passed', 'Physical Inspection'];
+
+  let assignedAgentId = input.assignedAgentId || null;
+  let assignedAgentName = input.assignedAgentName || null;
+
+  const p = getDbPool();
+  if (p) {
+    await ensureSchemaColumns(p);
+    if (assignedAgentId && !assignedAgentName) {
+      try {
+        const uRes = await p.query(`SELECT name FROM users WHERE id::text = $1 LIMIT 1`, [assignedAgentId]);
+        if (uRes.rows[0]?.name) assignedAgentName = uRes.rows[0].name;
+      } catch {}
     }
 
     const res = await p.query(
-      `SELECT id, slug, title, subtitle, source, property_type as "propertyType",
-              city, diaspora_friendly as "diasporaFriendly", mortgage_eligible as "mortgageEligible",
-              affordable, off_plan as "offPlan", price_millions_ngn as "priceMillionsNGN",
-              price_display as "priceDisplay", price_label as "priceLabel", listed_on as "listedOn",
-              image, image_alt as "imageAlt", badges, location, specification, description,
-              tags, amenities, verification_status as "verificationStatus"
-       FROM listings
-       WHERE slug = $1 LIMIT 1`,
-      [slug]
+      `INSERT INTO listings (
+        slug, title, subtitle, source, property_type, city,
+        diaspora_friendly, mortgage_eligible, affordable, off_plan,
+        price_millions_ngn, price_display, price_label, listed_on,
+        image, image_alt, badges, location, specification, description,
+        tags, amenities, verification_status, assigned_agent, assigned_agent_id, is_deleted
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6,
+        $7, $8, $9, $10,
+        $11, $12, $13, $14,
+        $15, $16, $17::jsonb, $18, $19, $20,
+        $21::jsonb, $22::jsonb, $23, $24, $25, false
+      ) RETURNING
+        id, slug, title, subtitle, source, property_type as "propertyType",
+        city, diaspora_friendly as "diasporaFriendly", mortgage_eligible as "mortgageEligible",
+        affordable, off_plan as "offPlan", price_millions_ngn as "priceMillionsNGN",
+        price_display as "priceDisplay", price_label as "priceLabel", listed_on as "listedOn",
+        image, image_alt as "imageAlt", badges, location, specification, description,
+        tags, amenities, verification_status as "verificationStatus",
+        assigned_agent as "assignedAgentName", assigned_agent_id as "assignedAgentId"`,
+      [
+        slug,
+        title,
+        subtitle,
+        source,
+        propertyType,
+        city,
+        Boolean(input.diasporaFriendly),
+        Boolean(input.mortgageEligible),
+        Boolean(input.affordable),
+        Boolean(input.offPlan),
+        cleanMillions,
+        priceDisplay,
+        priceLabel,
+        listedOn,
+        serializedImage,
+        input.imageAlt || title,
+        JSON.stringify(badges),
+        location,
+        specification,
+        description,
+        JSON.stringify(tags),
+        JSON.stringify(amenities),
+        verificationStatus,
+        assignedAgentName,
+        assignedAgentId,
+      ]
+    );
+    const created = mapListingRow(res.rows[0]);
+    created.isCustom = true;
+    return created;
+  }
+
+  const fallbackCreated: Listing = {
+    id: `custom-${Date.now()}`,
+    slug,
+    title,
+    subtitle,
+    source,
+    propertyType,
+    city,
+    diasporaFriendly: Boolean(input.diasporaFriendly),
+    mortgageEligible: Boolean(input.mortgageEligible),
+    affordable: Boolean(input.affordable),
+    offPlan: Boolean(input.offPlan),
+    priceMillionsNGN: cleanMillions,
+    priceDisplay,
+    priceLabel,
+    listedOn,
+    image: primaryImage,
+    images: offloadedPhotos.length > 0 ? offloadedPhotos : [primaryImage],
+    imageAlt: input.imageAlt || title,
+    badges,
+    location,
+    specification,
+    description,
+    tags,
+    amenities,
+    verificationStatus,
+    assignedAgentId,
+    assignedAgent: (assignedAgentId || assignedAgentName) ? { id: assignedAgentId, name: assignedAgentName || 'Assigned Officer' } : null,
+    isCustom: true,
+  };
+  inMemoryCustomListings.unshift(fallbackCreated);
+  return fallbackCreated;
+}
+
+export async function updateLiveListing(
+  idOrSlug: string,
+  updates: Partial<{
+    title: string;
+    subtitle: string;
+    source: ListingSource;
+    propertyType: PropertyType;
+    city: City;
+    diasporaFriendly: boolean;
+    mortgageEligible: boolean;
+    affordable: boolean;
+    offPlan: boolean;
+    priceMillionsNGN: number | string | null;
+    priceDisplay: string;
+    priceLabel: string;
+    image: string | string[];
+    imageAlt: string;
+    location: string;
+    specification: string;
+    description: string;
+    verificationStatus: string;
+    assignedAgentId: string | null;
+    assignedAgentName: string | null;
+  }>
+): Promise<Listing | null> {
+  const key = (idOrSlug || '').trim();
+  if (!key) return null;
+
+  // Offload any base64 image(s) if image was provided
+  let serializedImage: string | undefined;
+  let offloadedPhotos: string[] | undefined;
+  if (updates.image !== undefined && updates.image !== null) {
+    const rawPhotos = parsePhotoList(updates.image);
+    if (rawPhotos.length > 0) {
+      offloadedPhotos = await offloadPhotoArray(rawPhotos);
+      serializedImage = serializePhotoList(offloadedPhotos);
+    } else if (typeof updates.image === 'string' && updates.image.trim() === '') {
+      // Do not overwrite existing image with empty string unless explicitly desired
+      serializedImage = undefined;
+    }
+  }
+
+  let cleanMillions: number | null | undefined = undefined;
+  if (updates.priceMillionsNGN !== undefined) {
+    if (updates.priceMillionsNGN === null || String(updates.priceMillionsNGN).trim() === '') {
+      cleanMillions = inferMillionsFromDisplay(updates.priceDisplay);
+    } else {
+      const parsed = parseFloat(String(updates.priceMillionsNGN));
+      cleanMillions = !Number.isNaN(parsed) ? parsed : inferMillionsFromDisplay(updates.priceDisplay);
+    }
+  } else if (updates.priceDisplay !== undefined) {
+    const inferred = inferMillionsFromDisplay(updates.priceDisplay);
+    if (inferred !== null) cleanMillions = inferred;
+  }
+
+  let cleanPriceDisplay: string | undefined =
+    updates.priceDisplay !== undefined && updates.priceDisplay.trim() !== ''
+      ? updates.priceDisplay.trim()
+      : undefined;
+
+  if (!cleanPriceDisplay && cleanMillions !== undefined && cleanMillions !== null) {
+    cleanPriceDisplay = formatNairaDisplayFromMillions(cleanMillions);
+  }
+
+  const p = getDbPool();
+  let assignedAgentName = updates.assignedAgentName;
+  const assignedAgentId = updates.assignedAgentId;
+
+  if (p) {
+    await ensureSchemaColumns(p);
+
+    if (assignedAgentId && !assignedAgentName) {
+      try {
+        const uRes = await p.query(`SELECT name FROM users WHERE id::text = $1 LIMIT 1`, [assignedAgentId]);
+        if (uRes.rows[0]?.name) assignedAgentName = uRes.rows[0].name;
+      } catch {}
+    }
+
+    // Check if row exists in DB
+    const existingRes = await p.query(
+      `SELECT id, slug FROM listings WHERE id::text = $1 OR slug = $1 LIMIT 1`,
+      [key]
     );
 
-    if (res.rows.length === 0) {
-      return defaultListings.find((l) => l.slug === slug) || null;
+    if (existingRes.rows.length === 0) {
+      // Seed from defaultListings if it's one of the curated listings not yet in DB
+      const seed = defaultListings.find((l) => l.slug === key || String(l.id) === key);
+      if (seed) {
+        await p.query(
+          `INSERT INTO listings (
+            slug, title, subtitle, source, property_type, city,
+            diaspora_friendly, mortgage_eligible, affordable, off_plan,
+            price_millions_ngn, price_display, price_label, listed_on,
+            image, image_alt, badges, location, specification, description,
+            tags, amenities, verification_status, is_deleted
+          ) VALUES (
+            $1, $2, $3, $4, $5, $6,
+            $7, $8, $9, $10,
+            $11, $12, $13, $14,
+            $15, $16, $17::jsonb, $18, $19, $20,
+            $21::jsonb, $22::jsonb, $23, false
+          ) ON CONFLICT (slug) DO NOTHING`,
+          [
+            seed.slug,
+            seed.title,
+            seed.subtitle,
+            seed.source,
+            seed.propertyType,
+            seed.city,
+            Boolean(seed.diasporaFriendly),
+            Boolean(seed.mortgageEligible),
+            Boolean(seed.affordable),
+            Boolean(seed.offPlan),
+            seed.priceMillionsNGN,
+            seed.priceDisplay,
+            seed.priceLabel,
+            seed.listedOn,
+            seed.image,
+            seed.imageAlt,
+            JSON.stringify(seed.badges || []),
+            seed.location,
+            seed.specification,
+            seed.description,
+            JSON.stringify(seed.tags || []),
+            JSON.stringify(seed.amenities || []),
+            seed.verificationStatus,
+          ]
+        );
+      }
     }
-    return mapListingRow(res.rows[0]);
-  } catch (err) {
-    console.error('[fdp:db] getLiveListingBySlug error:', err);
-    return defaultListings.find((l) => l.slug === slug) || null;
+
+    const updateRes = await p.query(
+      `UPDATE listings
+       SET title = COALESCE($2, title),
+           subtitle = COALESCE($3, subtitle),
+           source = COALESCE($4, source),
+           property_type = COALESCE($5, property_type),
+           city = COALESCE($6, city),
+           diaspora_friendly = COALESCE($7, diaspora_friendly),
+           mortgage_eligible = COALESCE($8, mortgage_eligible),
+           affordable = COALESCE($9, affordable),
+           off_plan = COALESCE($10, off_plan),
+           price_millions_ngn = COALESCE($11, price_millions_ngn),
+           price_display = COALESCE($12, price_display),
+           price_label = COALESCE($13, price_label),
+           image = COALESCE($14, image),
+           location = COALESCE($15, location),
+           specification = COALESCE($16, specification),
+           description = COALESCE($17, description),
+           verification_status = COALESCE($18, verification_status),
+           assigned_agent = CASE WHEN $19::boolean THEN $20 ELSE assigned_agent END,
+           assigned_agent_id = CASE WHEN $19::boolean THEN $21 ELSE assigned_agent_id END,
+           is_deleted = false,
+           updated_at = now()
+       WHERE id::text = $1 OR slug = $1
+       RETURNING
+         id, slug, title, subtitle, source, property_type as "propertyType",
+         city, diaspora_friendly as "diasporaFriendly", mortgage_eligible as "mortgageEligible",
+         affordable, off_plan as "offPlan", price_millions_ngn as "priceMillionsNGN",
+         price_display as "priceDisplay", price_label as "priceLabel", listed_on as "listedOn",
+         image, image_alt as "imageAlt", badges, location, specification, description,
+         tags, amenities, verification_status as "verificationStatus",
+         assigned_agent as "assignedAgentName", assigned_agent_id as "assignedAgentId"`,
+      [
+        key,
+        updates.title?.trim() || null,
+        updates.subtitle?.trim() || null,
+        updates.source || null,
+        updates.propertyType || null,
+        updates.city || null,
+        updates.diasporaFriendly !== undefined ? Boolean(updates.diasporaFriendly) : null,
+        updates.mortgageEligible !== undefined ? Boolean(updates.mortgageEligible) : null,
+        updates.affordable !== undefined ? Boolean(updates.affordable) : null,
+        updates.offPlan !== undefined ? Boolean(updates.offPlan) : null,
+        cleanMillions !== undefined ? cleanMillions : null,
+        cleanPriceDisplay || null,
+        updates.priceLabel?.trim() || null,
+        serializedImage || null,
+        updates.location?.trim() || null,
+        updates.specification?.trim() || null,
+        updates.description?.trim() || null,
+        updates.verificationStatus?.trim() || null,
+        updates.assignedAgentId !== undefined || updates.assignedAgentName !== undefined,
+        assignedAgentName ?? null,
+        assignedAgentId ?? null,
+      ]
+    );
+
+    if (updateRes.rows[0]) {
+      const updated = mapListingRow(updateRes.rows[0]);
+      inMemoryListingOverrides.set(updated.slug, updated);
+      return updated;
+    }
   }
+
+  // Fallback in-memory update
+  const seedTarget =
+    defaultListings.find((l) => l.slug === key || String(l.id) === key) ||
+    inMemoryCustomListings.find((l) => l.slug === key || String(l.id) === key);
+  const slugKey = seedTarget?.slug || key;
+  const prevOv = inMemoryListingOverrides.get(slugKey) || {};
+  const nextOv: Partial<Listing> = {
+    ...prevOv,
+    ...(updates.title ? { title: updates.title.trim() } : {}),
+    ...(updates.subtitle ? { subtitle: updates.subtitle.trim() } : {}),
+    ...(updates.source ? { source: updates.source } : {}),
+    ...(updates.propertyType ? { propertyType: updates.propertyType } : {}),
+    ...(updates.city ? { city: updates.city } : {}),
+    ...(updates.diasporaFriendly !== undefined ? { diasporaFriendly: Boolean(updates.diasporaFriendly) } : {}),
+    ...(updates.mortgageEligible !== undefined ? { mortgageEligible: Boolean(updates.mortgageEligible) } : {}),
+    ...(updates.affordable !== undefined ? { affordable: Boolean(updates.affordable) } : {}),
+    ...(updates.offPlan !== undefined ? { offPlan: Boolean(updates.offPlan) } : {}),
+    ...(cleanMillions !== undefined ? { priceMillionsNGN: cleanMillions } : {}),
+    ...(cleanPriceDisplay ? { priceDisplay: cleanPriceDisplay } : {}),
+    ...(updates.priceLabel ? { priceLabel: updates.priceLabel.trim() } : {}),
+    ...(offloadedPhotos && offloadedPhotos.length > 0 ? { image: offloadedPhotos[0], images: offloadedPhotos } : {}),
+    ...(updates.location ? { location: updates.location.trim() } : {}),
+    ...(updates.specification ? { specification: updates.specification.trim() } : {}),
+    ...(updates.description ? { description: updates.description.trim() } : {}),
+    ...(updates.verificationStatus ? { verificationStatus: updates.verificationStatus.trim() } : {}),
+    ...(updates.assignedAgentId !== undefined
+      ? {
+          assignedAgentId: updates.assignedAgentId,
+          assignedAgent: updates.assignedAgentId
+            ? { id: updates.assignedAgentId, name: assignedAgentName || 'Assigned Officer' }
+            : null,
+        }
+      : {}),
+  };
+  inMemoryListingOverrides.set(slugKey, nextOv);
+  return seedTarget ? { ...seedTarget, ...nextOv } : null;
+}
+
+export async function deleteLiveListing(idOrSlug: string): Promise<boolean> {
+  const key = (idOrSlug || '').trim();
+  if (!key) return false;
+
+  const seed = defaultListings.find((l) => l.slug === key || String(l.id) === key);
+  const slugKey = seed?.slug || key;
+  inMemoryListingOverrides.set(slugKey, { isDeleted: true });
+
+  const p = getDbPool();
+  if (p) {
+    await ensureSchemaColumns(p);
+    const res = await p.query(
+      `UPDATE listings SET is_deleted = true, updated_at = now() WHERE id::text = $1 OR slug = $1 RETURNING id`,
+      [key]
+    );
+    if (res.rows.length === 0 && seed) {
+      await p.query(
+        `INSERT INTO listings (
+          slug, title, subtitle, source, property_type, city,
+          price_millions_ngn, price_display, location, is_deleted
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true)
+        ON CONFLICT (slug) DO UPDATE SET is_deleted = true, updated_at = now()`,
+        [
+          seed.slug,
+          seed.title,
+          seed.subtitle,
+          seed.source,
+          seed.propertyType,
+          seed.city,
+          seed.priceMillionsNGN,
+          seed.priceDisplay,
+          seed.location,
+        ]
+      );
+    }
+  }
+  return true;
 }
 
 function mapListingRow(row: any): Listing {
@@ -356,7 +827,7 @@ function mapListingRow(row: any): Listing {
     ...row,
     image: primaryImage,
     images,
-    priceMillionsNGN: row.priceMillionsNGN ? parseFloat(row.priceMillionsNGN) : null,
+    priceMillionsNGN: row.priceMillionsNGN !== null && row.priceMillionsNGN !== undefined ? parseFloat(row.priceMillionsNGN) : null,
     badges: typeof row.badges === 'string' ? JSON.parse(row.badges) : (row.badges || []),
     tags: typeof row.tags === 'string' ? JSON.parse(row.tags) : (row.tags || []),
     amenities: typeof row.amenities === 'string' ? JSON.parse(row.amenities) : (row.amenities || []),
@@ -368,21 +839,48 @@ function mapListingRow(row: any): Listing {
   };
 }
 
-function fallbackListings(filters: any): { total: number; listings: Listing[] } {
-  let res = [...defaultListings];
+function applyListingFiltersAndPagination(allListings: Listing[], filters: any): { total: number; listings: Listing[] } {
+  let res = [...allListings];
   if (filters.source) res = res.filter((l) => l.source === filters.source);
   if (filters.propertyType) res = res.filter((l) => l.propertyType === filters.propertyType);
   if (filters.city) res = res.filter((l) => l.city === filters.city);
-  if (filters.diasporaFriendly) res = res.filter((l) => l.diasporaFriendly);
-  if (filters.mortgageEligible) res = res.filter((l) => l.mortgageEligible);
-  if (filters.affordable) res = res.filter((l) => l.affordable);
-  if (filters.offPlan) res = res.filter((l) => l.offPlan);
+  if (filters.diasporaFriendly !== undefined) res = res.filter((l) => Boolean(l.diasporaFriendly) === Boolean(filters.diasporaFriendly));
+  if (filters.mortgageEligible !== undefined) res = res.filter((l) => Boolean(l.mortgageEligible) === Boolean(filters.mortgageEligible));
+  if (filters.affordable !== undefined) res = res.filter((l) => Boolean(l.affordable) === Boolean(filters.affordable));
+  if (filters.offPlan !== undefined) res = res.filter((l) => Boolean(l.offPlan) === Boolean(filters.offPlan));
   if (filters.maxPriceMillionsNGN) res = res.filter((l) => (l.priceMillionsNGN ?? 0) <= filters.maxPriceMillionsNGN);
   if (filters.search) {
-    const q = filters.search.toLowerCase();
-    res = res.filter((l) => l.title.toLowerCase().includes(q) || l.location.toLowerCase().includes(q));
+    const q = String(filters.search).toLowerCase();
+    res = res.filter(
+      (l) =>
+        (l.title || '').toLowerCase().includes(q) ||
+        (l.location || '').toLowerCase().includes(q) ||
+        (l.description || '').toLowerCase().includes(q) ||
+        (l.specification || '').toLowerCase().includes(q)
+    );
   }
-  return { total: res.length, listings: res };
+
+  if (filters.sort === 'price-asc') {
+    res.sort((a, b) => (a.priceMillionsNGN ?? Infinity) - (b.priceMillionsNGN ?? Infinity));
+  } else if (filters.sort === 'price-desc') {
+    res.sort((a, b) => (b.priceMillionsNGN ?? -Infinity) - (a.priceMillionsNGN ?? -Infinity));
+  } else if (filters.sort === 'title') {
+    res.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+  }
+
+  const total = res.length;
+  const page = Math.max(1, filters.page || 1);
+  const pageSize = Math.min(200, Math.max(1, filters.pageSize || 60));
+  const offset = (page - 1) * pageSize;
+
+  return {
+    total,
+    listings: res.slice(offset, offset + pageSize),
+  };
+}
+
+function fallbackListings(filters: any): { total: number; listings: Listing[] } {
+  return applyListingFiltersAndPagination(defaultListings, filters);
 }
 
 // ─── Inspections Queries ─────────────────────────────────────────────────────

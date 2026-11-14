@@ -1,5 +1,10 @@
+'use client';
+
+import { useEffect } from 'react';
 import AudienceTabs from '@/components/AudienceTabs';
 import Link from 'next/link';
+import { fetchApi } from '@/lib/api';
+import { useCurrency } from '@/components/CurrencyProvider';
 
 const AUDIENCE_PANELS = [
   {
@@ -123,6 +128,55 @@ const AUDIENCE_PANELS = [
 ];
 
 export default function HomeContent() {
+  const { formatPrice, currency } = useCurrency();
+
+  useEffect(() => {
+    let active = true;
+    const featuredSlugs = [
+      'luxury-duplex-maitama',
+      'grade-a-office-space-victoria-island',
+      'development-land-guzape-hill',
+    ];
+
+    fetchApi('/listings?pageSize=200').then((res) => {
+      if (!active || !res.ok || !res.data) return;
+      const liveArr: any[] = (res.data as any).listings || [];
+      const bySlug = new Map(liveArr.map((l) => [l.slug, l]));
+
+      featuredSlugs.forEach((slug) => {
+        const card = document.querySelector<HTMLElement>(`.listing-card[data-slug="${slug}"]`);
+        const live = bySlug.get(slug);
+        if (!card || !live) return;
+
+        const ttl = card.querySelector<HTMLElement>('.listing-title');
+        if (ttl && live.title) ttl.textContent = live.title;
+
+        const header = card.querySelector<HTMLElement>('.listing-header');
+        if (header && live.image && !live.image.startsWith('/assets/illustrations/')) {
+          header.style.backgroundImage = `linear-gradient(to top, rgba(10,24,18,0.88), rgba(10,24,18,0.35)), url("${live.image}")`;
+          header.style.backgroundSize = 'cover';
+          header.style.backgroundPosition = 'center';
+        }
+
+        const desc = card.querySelector<HTMLElement>('.listing-body p.body-sm');
+        if (desc && live.description) desc.textContent = live.description;
+
+        const priceEl = card.querySelector<HTMLElement>('.listing-price');
+        if (priceEl && live.priceDisplay) {
+          priceEl.dataset.original = live.priceDisplay;
+          if (live.priceMillionsNGN != null) {
+            priceEl.dataset.price = String(live.priceMillionsNGN);
+          }
+          priceEl.textContent = formatPrice(live.priceMillionsNGN, live.priceDisplay);
+        }
+      });
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [currency]);
+
   return (
     <>
 
@@ -341,7 +395,7 @@ export default function HomeContent() {
         <Link href="/marketplace" className="btn-text">View All Verified Opportunities <span className="arrow-ico"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span></Link>
       </div>
       <div className="grid-3">
-        <div className="listing-card">
+        <div className="listing-card" data-slug="luxury-duplex-maitama">
           <div className="listing-header">
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
               <span className="listing-type-pill">Residential · Abuja</span>
@@ -360,7 +414,7 @@ export default function HomeContent() {
             <Link href="/contact" className="btn-text">Enquire <span className="arrow-ico"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span></Link>
           </div>
         </div>
-        <div className="listing-card">
+        <div className="listing-card" data-slug="grade-a-office-space-victoria-island">
           <div className="listing-header" style={{background:'linear-gradient(135deg,#1a3d50 0%,#1e5068 100%)'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
               <span className="listing-type-pill">Commercial · Lagos</span>
@@ -379,7 +433,7 @@ export default function HomeContent() {
             <Link href="/contact" className="btn-text">Enquire <span className="arrow-ico"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span></Link>
           </div>
         </div>
-        <div className="listing-card">
+        <div className="listing-card" data-slug="development-land-guzape-hill">
           <div className="listing-header" style={{background:'linear-gradient(135deg,#2d3a1a 0%,#3d5020 100%)'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
               <span className="listing-type-pill">Land · Abuja</span>

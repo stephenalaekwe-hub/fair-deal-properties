@@ -13,6 +13,7 @@ export type PropertyType = 'residential' | 'commercial' | 'land';
 export type City = 'abuja' | 'lagos' | 'ogun' | 'nationwide';
 
 export interface Listing {
+  id?: string;
   slug: string;
   title: string;
   subtitle: string;
@@ -28,6 +29,7 @@ export interface Listing {
   priceLabel: string;
   listedOn: string;
   image: string;
+  images?: string[];
   imageAlt: string;
   badges: string[];
   location: string;
@@ -36,6 +38,9 @@ export interface Listing {
   tags: string[];
   amenities: string[];
   verificationStatus: string;
+  assignedAgentId?: string | null;
+  assignedAgent?: { id?: string | null; name?: string | null } | null;
+  isCustom?: boolean;
 }
 
 export const SOURCE_LABELS: Record<ListingSource, string> = {

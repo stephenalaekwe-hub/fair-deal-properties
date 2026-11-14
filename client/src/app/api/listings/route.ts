@@ -25,7 +25,7 @@ export async function GET(req: Request) {
 
   const sort = (pick<ListingSort>('sort', SORTS) ?? 'featured') as ListingSort;
   const page = Math.max(1, Number(sp.get('page') ?? 1) || 1);
-  const pageSize = Math.min(60, Math.max(1, Number(sp.get('pageSize') ?? 30) || 30));
+  const pageSize = Math.min(200, Math.max(1, Number(sp.get('pageSize') ?? 100) || 100));
 
   const result = await getLiveListings({
     source: pick<ListingSource>('source', SOURCES),
@@ -51,5 +51,5 @@ export async function GET(req: Request) {
       sort,
       listings: result.listings,
     },
-  }, { headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' } });
+  }, { headers: { 'Cache-Control': 'no-store, max-age=0' } });
 }

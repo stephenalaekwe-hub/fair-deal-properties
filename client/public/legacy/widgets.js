@@ -127,9 +127,11 @@
     var cards = document.querySelectorAll('.opp-card');
     var visible = 0;
     cards.forEach(function(c) {
-      var title = c.querySelector('.opp-card-title').textContent.toLowerCase();
-      var desc = (c.querySelector('.opp-desc')||{}).textContent.toLowerCase();
-      var loc = (c.querySelector('.opp-meta-row')||{}).textContent.toLowerCase();
+      if (c.dataset.deleted === 'true') { c.style.display = 'none'; return; }
+      var titleEl = c.querySelector('.opp-card-title') || c.querySelector('.opp-media-ttl');
+      var title = (titleEl ? titleEl.textContent : '').toLowerCase();
+      var desc = ((c.querySelector('.opp-desc')||{}).textContent || '').toLowerCase();
+      var loc = ((c.querySelector('.opp-meta-row')||{}).textContent || '').toLowerCase();
       var matchQ = !q || title.includes(q) || desc.includes(q) || loc.includes(q);
       var matchCity = !city || c.dataset.city === city;
       var matchBudget = true;
