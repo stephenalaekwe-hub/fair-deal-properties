@@ -7,7 +7,7 @@ import { Pool, type PoolConfig } from 'pg';
 import { listings as defaultListings, type Listing, type ListingSource, type PropertyType, type City, type ListingSort } from '@/data/listings';
 import { financingRoutes as defaultFinancingRoutes, type FinancingRoute } from '@/data/financing';
 import { getTestAgents } from './agentsStore';
-import { getScrapedLogs } from './scrapedStore';
+import { getScrapedLogs, getScrapedLogsAsync } from './scrapedStore';
 
 let pool: Pool | null = null;
 let schemaInitialized = false;
@@ -1187,11 +1187,10 @@ export async function getLiveInspections(agentId?: string): Promise<any[]> {
     })
   );
 
-  const baseList = mapped.length > 0 ? mapped : defaultInspections;
   if (profile) {
-    return baseList.filter((ins) => matchesAgentRecord(ins, profile, false));
+    return mapped.filter((ins) => matchesAgentRecord(ins, profile, false));
   }
-  return baseList;
+  return mapped;
 }
 
 export function parsePhotoList(val?: string | string[] | null): string[] {
@@ -1919,7 +1918,8 @@ export async function getLiveNotificationCounts(
     // 7. Rates & Scraper (Admin only)
     let ratesCount = 0;
     if (!isAgent && currentActive !== 'rates') {
-      const pendingLogs = getScrapedLogs().filter((l) => l.status === 'PENDING_REVIEW');
+      const allLogs = await getScrapedLogsAsync().catch(() => getScrapedLogs());
+      const pendingLogs = allLogs.filter((l) => l.status === 'PENDING_REVIEW');
       const seenRatesAt = seenMap['rates'];
       if (seenRatesAt) {
         ratesCount = pendingLogs.filter((l) => new Date(l.detectedAt) > new Date(seenRatesAt)).length;
@@ -2104,15 +2104,10 @@ export async function getLiveSubmissions(collection?: string, agentId?: string):
     };
   });
 
-  let baseList = mapped;
-  if (baseList.length === 0) {
-    baseList = collection ? defaultSubmissions.filter((s) => s.collection === collection) : defaultSubmissions;
-  }
-
   if (profile) {
-    return baseList.filter((s) => matchesAgentRecord(s, profile, false));
+    return mapped.filter((s) => matchesAgentRecord(s, profile, false));
   }
-  return baseList;
+  return mapped;
 }
 
 export async function closeLiveSubmission(
@@ -2342,55 +2337,22 @@ export async function updateLiveFinancingRoute(id: string, updates: {
 // ─── Analytics Overview ──────────────────────────────────────────────────────
 
 export async function getLiveAnalyticsOverview(agentId?: string): Promise<any> {
-  const fallbackRecentInspections = [
-    {
-      id: 'ins-demo-1',
-      reference: 'FDP-INS-890214',
-      clientName: 'Dr. Chidi Okonkwo',
-      stage: 4,
-      assignedAgent: { name: 'Stephen Alaekwe (Field Surveyor)' },
-    },
-    {
-      id: 'ins-demo-2',
-      reference: 'FDP-INS-DEMO01',
-      clientName: 'Amina Bello',
-      stage: 8,
-      assignedAgent: { name: 'Emeka Nwosu' },
-    },
-  ];
-
-  const fallbackRecentSubmissions = [
-    {
-      id: 'sub-demo-1',
-      reference: 'FDP-ENQ-10492',
-      collection: 'enquiry',
-      clientName: 'Tunde Bakare',
-      closedAt: null,
-      assignedAgent: { name: 'Emeka Nwosu' },
-    },
-    {
-      id: 'sub-demo-2',
-      reference: 'FDP-CON-90214',
-      collection: 'contact',
-      clientName: 'Ngozi Eze',
-      closedAt: null,
-      assignedAgent: null,
-    },
-  ];
-
-  const pendingRateAlerts = getScrapedLogs().filter((l) => l.status === 'PENDING_REVIEW').length;
+  const allScrapedLogs = await getScrapedLogsAsync().catch(() => getScrapedLogs());
+  const pendingRateAlerts = allScrapedLogs.filter((l) => l.status === 'PENDING_REVIEW').length;
 
   try {
     const p = getDbPool();
+    const livePortfolio = await getLiveListings({}).catch(() => ({ total: defaultListings.length, listings: defaultListings }));
+
     if (!p) {
       return {
-        totalListings: defaultListings.length,
-        activeInspections: 2,
-        completedInspections: 1,
-        pendingSubmissions: 3,
+        totalListings: livePortfolio.total,
+        activeInspections: 0,
+        completedInspections: 0,
+        pendingSubmissions: 0,
         priceAlertsCount: pendingRateAlerts,
-        recentInspections: fallbackRecentInspections,
-        recentSubmissions: fallbackRecentSubmissions,
+        recentInspections: [],
+        recentSubmissions: [],
       };
     }
 
@@ -2398,20 +2360,18 @@ export async function getLiveAnalyticsOverview(agentId?: string): Promise<any> {
 
     // If agentId is provided (Field Officer dashboard), use the profile-aware helpers so all metrics & tables match the agent sections
     if (agentId) {
-      const [listingsCount, agentIns, agentSubs] = await Promise.all([
-        p.query(`SELECT count(*) FROM listings`).catch(() => ({ rows: [{ count: '0' }] })),
+      const [agentIns, agentSubs] = await Promise.all([
         getLiveInspections(agentId).catch(() => []),
         getLiveSubmissions(undefined, agentId).catch(() => []),
       ]);
 
-      const dbListingsTotal = parseInt(listingsCount.rows[0]?.count || '0', 10);
       const activeInspections = agentIns.filter((i: any) => (Number(i.stage) || 1) < 9).length;
       const completedInspections = agentIns.filter((i: any) => (Number(i.stage) || 1) >= 9).length;
       const actionableSubs = agentSubs.filter((s: any) => s.collection === 'enquiry' || s.collection === 'contact' || s.collection === 'alert');
       const pendingSubmissions = actionableSubs.filter((s: any) => !s.closedAt && s.status !== 'closed').length;
 
       return {
-        totalListings: dbListingsTotal > 0 ? dbListingsTotal : defaultListings.length,
+        totalListings: livePortfolio.total,
         activeInspections,
         completedInspections,
         pendingSubmissions,
@@ -2435,8 +2395,7 @@ export async function getLiveAnalyticsOverview(agentId?: string): Promise<any> {
       };
     }
 
-    const [listingsCount, activeInsCount, compInsCount, subCount, recentIns, recentSubs] = await Promise.all([
-      p.query(`SELECT count(*) FROM listings`).catch(() => ({ rows: [{ count: '0' }] })),
+    const [activeInsCount, compInsCount, subCount, recentIns, recentSubs] = await Promise.all([
       p.query(`SELECT count(*) FROM inspections WHERE stage < 9`).catch(() => ({ rows: [{ count: '0' }] })),
       p.query(`SELECT count(*) FROM inspections WHERE stage >= 9`).catch(() => ({ rows: [{ count: '0' }] })),
       p.query(`SELECT count(*) FROM submissions WHERE closed_at IS NULL`).catch(() => ({ rows: [{ count: '0' }] })),
@@ -2467,7 +2426,7 @@ export async function getLiveAnalyticsOverview(agentId?: string): Promise<any> {
     ]);
 
     return {
-      totalListings: parseInt(listingsCount.rows[0]?.count || '0', 10),
+      totalListings: livePortfolio.total,
       activeInspections: parseInt(activeInsCount.rows[0]?.count || '0', 10),
       completedInspections: parseInt(compInsCount.rows[0]?.count || '0', 10),
       pendingSubmissions: parseInt(subCount.rows[0]?.count || '0', 10),

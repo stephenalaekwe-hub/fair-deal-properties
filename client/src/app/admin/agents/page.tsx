@@ -98,11 +98,11 @@ export default function AdminAgentsPage() {
         </button>
       </div>
 
-      {/* ── Demo Testing Credentials Banner ── */}
+      {/* ── Field Roster Summary Banner ── */}
       <div
         style={{
-          background: '#f0fdf4',
-          border: '1px solid #bbf7d0',
+          background: '#f8fafc',
+          border: '1px solid #e2e8f0',
           borderRadius: '8px',
           padding: '12px 18px',
           marginBottom: '20px',
@@ -112,21 +112,21 @@ export default function AdminAgentsPage() {
           flexWrap: 'wrap',
           gap: '12px',
           fontSize: '12px',
-          color: '#166534',
+          color: '#334155',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '16px' }}>🔑</span>
+          <span style={{ fontSize: '16px' }}>🛡️</span>
           <span>
-            <strong>Test User Agents Active:</strong> Log into the{' '}
+            <strong>Field Operations Roster:</strong> Authorized surveyors and advisors access their assigned pipeline via the{' '}
             <Link href="/agent/login" style={{ textDecoration: 'underline', color: 'var(--forest)', fontWeight: 700 }}>
               Field Agent Portal
-            </Link>{' '}
-            with any agent email below and password: <code style={{ background: '#dcfce7', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>Agent@123456</code>.
+            </Link>
+            .
           </span>
         </div>
-        <div style={{ fontSize: '11px', color: '#15803d', fontWeight: 600 }}>
-          ⚡ {agents.length} Registered Field Specialists
+        <div style={{ fontSize: '11px', color: 'var(--forest)', fontWeight: 600 }}>
+          ⚡ {agents.filter((a) => a.active).length} Active Specialists ({agents.length} Total)
         </div>
       </div>
 

@@ -21,15 +21,14 @@ export default function AdminEnquiriesPage() {
 
   const loadData = async () => {
     setLoading(true);
+    const agentKey = isAgent ? (user?.id || user?.email || user?.name || '') : '';
+    const qs = agentKey ? `&agentId=${encodeURIComponent(agentKey)}` : '';
     const [subRes, agentsRes] = await Promise.all([
-      fetchApi('/admin/submissions?collection=enquiry'),
+      fetchApi(`/admin/submissions?collection=enquiry${qs}`),
       isAgent ? Promise.resolve({ ok: true, data: [] }) : fetchApi('/admin/agents'),
     ]);
     if (subRes.ok && subRes.data) {
-      const list = isAgent
-        ? subRes.data.filter((s: any) => s.assignedAgentId === user?.id || s.payload?.assignedAgentId === user?.id)
-        : subRes.data;
-      setEnquiries(list);
+      setEnquiries(subRes.data);
     }
     if (agentsRes.ok && agentsRes.data) setAgents(agentsRes.data);
     setLoading(false);

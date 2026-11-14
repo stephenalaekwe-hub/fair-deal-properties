@@ -29,7 +29,7 @@ export const INITIAL_TEST_AGENTS: AgentUser[] = [
     phone: '+2349049924198',
     active: true,
     createdAt: '2026-01-10T08:00:00Z',
-    _count: { assignedInspections: 1, assignedListings: 4 },
+    _count: { assignedInspections: 0, assignedListings: 0 },
   },
   {
     id: 'agent-fallback-01',
@@ -39,7 +39,7 @@ export const INITIAL_TEST_AGENTS: AgentUser[] = [
     phone: '+2348031234567',
     active: true,
     createdAt: '2026-01-15T09:30:00Z',
-    _count: { assignedInspections: 2, assignedListings: 3 },
+    _count: { assignedInspections: 0, assignedListings: 0 },
   },
   {
     id: 'agent-fallback-02',
@@ -49,7 +49,7 @@ export const INITIAL_TEST_AGENTS: AgentUser[] = [
     phone: '+2348098765432',
     active: true,
     createdAt: '2026-01-16T10:00:00Z',
-    _count: { assignedInspections: 2, assignedListings: 2 },
+    _count: { assignedInspections: 0, assignedListings: 0 },
   },
   {
     id: 'agent-ismail-kewa',
@@ -59,7 +59,7 @@ export const INITIAL_TEST_AGENTS: AgentUser[] = [
     phone: '+2348092872837',
     active: true,
     createdAt: '2026-01-20T11:00:00Z',
-    _count: { assignedInspections: 1, assignedListings: 2 },
+    _count: { assignedInspections: 0, assignedListings: 0 },
   },
 ];
 

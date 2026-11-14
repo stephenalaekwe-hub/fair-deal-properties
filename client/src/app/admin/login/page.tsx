@@ -9,8 +9,8 @@ import { useAuth } from '@/components/AuthProvider';
 export default function AdminLoginPage() {
   const router = useRouter();
   const { refreshUser } = useAuth();
-  const [email, setEmail] = useState('admin@fdealproperties.com');
-  const [password, setPassword] = useState('Admin@123456');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -109,6 +109,7 @@ export default function AdminLoginPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              placeholder="admin@fdealproperties.com"
               required
               style={{
                 width: '100%',
@@ -129,6 +130,7 @@ export default function AdminLoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
               required
               style={{
                 width: '100%',
@@ -159,11 +161,6 @@ export default function AdminLoginPage() {
           >
             {loading ? 'Authenticating...' : 'Sign In to Portal'}
           </button>
-
-          <div style={{ marginTop: '20px', padding: '12px', background: '#f8fafc', borderRadius: '6px', fontSize: '12px', color: '#64748b' }}>
-            <div><strong>Default Admin:</strong> admin@fdealproperties.com</div>
-            <div><strong>Password:</strong> Admin@123456</div>
-          </div>
 
           <div style={{ marginTop: '16px', textAlign: 'center', fontSize: '12px', color: '#64748b' }}>
             Are you a Field Agent or Surveyor?{' '}

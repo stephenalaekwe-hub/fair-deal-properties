@@ -10,8 +10,8 @@ import { useAuth } from '@/components/AuthProvider';
 export default function AgentLoginPage() {
   const router = useRouter();
   const { refreshUser } = useAuth();
-  const [email, setEmail] = useState('emeka.agent@fdealproperties.com');
-  const [password, setPassword] = useState('Agent@123456');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -169,13 +169,6 @@ export default function AgentLoginPage() {
           >
             {loading ? 'Authenticating Officer...' : 'Sign In as Field Agent'}
           </button>
-
-          <div style={{ marginTop: '20px', padding: '12px', background: '#f8fafc', borderRadius: '6px', fontSize: '12px', color: '#64748b' }}>
-            <div><strong>Demo Field Officer 1:</strong> emeka.agent@fdealproperties.com</div>
-            <div><strong>Demo Field Officer 2:</strong> aisha.agent@fdealproperties.com</div>
-            <div><strong>Field Agent:</strong> ismail.kewa@fdealproperties.com</div>
-            <div><strong>Password:</strong> Agent@123456</div>
-          </div>
 
           <div style={{ marginTop: '16px', textAlign: 'center', fontSize: '12px', color: '#64748b' }}>
             Are you a Super Admin or Platform Manager?{' '}
